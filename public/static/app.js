@@ -1165,3 +1165,347 @@ document.addEventListener('DOMContentLoaded', async () => {
   await checkAuth()
   render()
 })
+// ============================================
+// RENDERING FUNCTIONS - CORPORATE DESIGN
+// ============================================
+
+const renderLoginPage = () => {
+  return `
+    <div class="login-page">
+      <div class="login-container">
+        <div class="login-card">
+          <div class="login-header">
+            <div class="login-logo-placeholder" style="text-align: center; margin-bottom: 1.5rem;">
+              <i class="fas fa-cube" style="font-size: 4rem; color: #0066cc;"></i>
+            </div>
+            <h1 class="login-title">Brand Portal</h1>
+            <p class="login-subtitle">Proteos Biotech Asset Management</p>
+          </div>
+          
+          <form onsubmit="handleLogin(event)">
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input 
+                id="login-email" 
+                type="email" 
+                required
+                value="admin@proteos.com"
+                class="form-input"
+                placeholder="your@email.com"
+              />
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input 
+                id="login-password" 
+                type="password" 
+                required
+                value="admin123"
+                class="form-input"
+                placeholder="••••••••"
+              />
+            </div>
+            
+            <button type="submit" class="btn-login">
+              <i class="fas fa-sign-in-alt"></i>
+              Sign In
+            </button>
+          </form>
+          
+          <div class="login-footer">
+            <p>Demo credentials provided above</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `
+}
+
+const renderHeader = () => {
+  return `
+    <header class="app-header">
+      <div class="header-content">
+        <div class="header-brand">
+          <div class="header-logo">
+            <i class="fas fa-cube"></i>
+            <span>Brand Portal</span>
+          </div>
+          <div class="header-subtitle">Proteos Biotech</div>
+        </div>
+        
+        <div class="header-user">
+          <div class="user-info">
+            <div class="user-avatar">
+              <i class="fas fa-user"></i>
+            </div>
+            <div class="user-details">
+              <span class="user-name">${state.currentUser.name}</span>
+              <span class="user-role">${state.currentUser.role}</span>
+            </div>
+          </div>
+          
+          <button onclick="handleLogout()" class="btn-logout">
+            <i class="fas fa-sign-out-alt"></i>
+            Logout
+          </button>
+        </div>
+      </div>
+    </header>
+  `
+}
+
+const renderSidebar = () => {
+  return `
+    <aside class="app-sidebar">
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">Navigation</h3>
+        <ul class="sidebar-menu">
+          <li class="sidebar-item">
+            <a href="#" onclick="navigateTo('dashboard'); return false;" class="sidebar-link ${state.currentPage === 'dashboard' ? 'active' : ''}">
+              <i class="fas fa-home"></i>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a href="#" onclick="navigateTo('assets'); return false;" class="sidebar-link ${state.currentPage === 'assets' ? 'active' : ''}">
+              <i class="fas fa-folder-open"></i>
+              <span>Assets Library</span>
+            </a>
+          </li>
+          ${state.currentUser.role === 'admin' ? `
+            <li class="sidebar-item">
+              <a href="#" onclick="navigateTo('users'); return false;" class="sidebar-link ${state.currentPage === 'users' ? 'active' : ''}">
+                <i class="fas fa-users"></i>
+                <span>Users</span>
+              </a>
+            </li>
+          ` : ''}
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">Brands</h3>
+        <ul class="sidebar-menu">
+          ${state.brands.map(brand => `
+            <li class="sidebar-item">
+              <a href="#" onclick='selectBrand(${JSON.stringify(brand).replace(/"/g, '&quot;')}); return false;' class="sidebar-link ${state.selectedBrand?.id === brand.id ? 'active' : ''}">
+                <span class="brand-badge" style="background-color: ${brand.color}"></span>
+                <span>${brand.display_name}</span>
+              </a>
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">Categories</h3>
+        <ul class="sidebar-menu">
+          ${state.materialTypes.slice(0, 8).map(type => `
+            <li class="sidebar-item">
+              <a href="#" onclick='selectMaterialType(${JSON.stringify(type).replace(/"/g, '&quot;')}); return false;' class="sidebar-link ${state.selectedMaterialType?.id === type.id ? 'active' : ''}">
+                <i class="fas ${type.icon}"></i>
+                <span>${type.display_name}</span>
+              </a>
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+    </aside>
+  `
+}
+
+const renderDashboard = () => {
+  return `
+    <div class="page-header">
+      <h1 class="page-title">Welcome back, ${state.currentUser.name}!</h1>
+      <p class="page-subtitle">Manage your brand assets and materials</p>
+    </div>
+    
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-header">
+          <div>
+            <div class="stat-label">Total Assets</div>
+            <div class="stat-value">${state.assets.length}</div>
+          </div>
+          <div class="stat-icon blue">
+            <i class="fas fa-file-alt"></i>
+          </div>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-header">
+          <div>
+            <div class="stat-label">Brands</div>
+            <div class="stat-value">${state.brands.length}</div>
+          </div>
+          <div class="stat-icon purple">
+            <i class="fas fa-tags"></i>
+          </div>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-header">
+          <div>
+            <div class="stat-label">Categories</div>
+            <div class="stat-value">${state.materialTypes.length}</div>
+          </div>
+          <div class="stat-icon green">
+            <i class="fas fa-layer-group"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div style="margin-bottom: 3rem;">
+      <h2 style="font-size: 1.75rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--gray-900);">Our Brands</h2>
+      <div class="brand-grid">
+        ${state.brands.map(brand => `
+          <div class="brand-card" style="--brand-color: ${brand.color}" onclick="selectBrand(${JSON.stringify(brand).replace(/"/g, '&quot;')}); navigateTo('assets')">
+            <div class="brand-icon" style="background-color: ${brand.color}">
+              <i class="fas fa-cube"></i>
+            </div>
+            <h3 class="brand-name">${brand.display_name}</h3>
+            <p class="brand-description">${brand.description || 'Brand materials and assets'}</p>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    
+    <div>
+      <h2 style="font-size: 1.75rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--gray-900);">Material Categories</h2>
+      <div class="material-grid">
+        ${state.materialTypes.map(type => `
+          <div class="material-card" onclick="selectMaterialType(${JSON.stringify(type).replace(/"/g, '&quot;')}); navigateTo('assets')">
+            <div class="material-icon">
+              <i class="fas ${type.icon}"></i>
+            </div>
+            <div class="material-name">${type.display_name}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `
+}
+
+const renderAssetsPage = () => {
+  return `
+    <div class="page-header">
+      <h1 class="page-title">Assets Library</h1>
+      <p class="page-subtitle">
+        ${state.selectedBrand ? `Brand: ${state.selectedBrand.display_name}` : 'All brands'}
+        ${state.selectedMaterialType ? ` | ${state.selectedMaterialType.display_name}` : ''}
+      </p>
+      
+      ${state.currentUser.role === 'admin' || state.currentUser.role === 'marketing' ? `
+        <div class="page-actions">
+          <button onclick="openUploadModal()" class="btn-primary">
+            <i class="fas fa-upload"></i>
+            Upload Asset
+          </button>
+        </div>
+      ` : ''}
+    </div>
+    
+    ${state.assets.length === 0 ? `
+      <div class="empty-state">
+        <div class="empty-icon">
+          <i class="fas fa-folder-open"></i>
+        </div>
+        <h3 class="empty-title">No assets found</h3>
+        <p class="empty-description">Upload your first asset to get started</p>
+      </div>
+    ` : `
+      <div class="asset-grid">
+        ${state.assets.map(asset => `
+          <div class="asset-card">
+            <div class="asset-thumbnail">
+              <i class="fas ${getFileIcon(asset.file_type)} ${getFileIconColor(asset.file_type)}"></i>
+            </div>
+            
+            <div class="asset-body">
+              <h4 class="asset-title">${asset.title || asset.original_filename}</h4>
+              
+              <div class="asset-meta">
+                <span>${formatFileSize(asset.file_size)}</span>
+                <span>${formatDate(asset.created_at)}</span>
+              </div>
+              
+              <div style="font-size: 0.75rem; color: var(--gray-700); margin-bottom: 1rem;">
+                <div>${asset.brand_name || 'N/A'}</div>
+                ${asset.sub_brand_name ? `<div>${asset.sub_brand_name}</div>` : ''}
+              </div>
+              
+              <div class="asset-actions">
+                <a href="${asset.file_url}" download class="btn-download">
+                  <i class="fas fa-download"></i>
+                  Download
+                </a>
+                ${state.currentUser.role === 'admin' ? `
+                  <button onclick="handleDeleteAsset(${asset.id})" style="background: #dc2626; color: white; border: none; padding: 0.625rem; border-radius: 8px; cursor: pointer;">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `}
+  `
+}
+
+
+// Actualizar función render principal
+const renderMain = () => {
+  const app = $('#app')
+  
+  if (state.currentPage === 'login') {
+    app.innerHTML = renderLoginPage()
+    return
+  }
+  
+  let pageContent = ''
+  
+  switch (state.currentPage) {
+    case 'dashboard':
+      pageContent = renderDashboard()
+      break
+    case 'assets':
+      pageContent = renderAssetsPage()
+      break
+    case 'users':
+      pageContent = renderUsersPage()
+      break
+  }
+  
+  app.innerHTML = `
+    <div class="app-wrapper">
+      ${renderHeader()}
+      <div class="app-main">
+        ${renderSidebar()}
+        <main class="app-content">
+          ${pageContent}
+          ${renderUploadModal()}
+          ${renderUserModal()}
+        </main>
+      </div>
+    </div>
+    
+    ${state.loading ? `
+      <div class="loading-overlay">
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <p style="color: var(--gray-700); font-weight: 500;">Loading...</p>
+        </div>
+      </div>
+    ` : ''}
+  `
+}
+
+// Override render function
+window.render = renderMain
+
