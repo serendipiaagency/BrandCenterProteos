@@ -10,8 +10,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "webapp-production",
-      "database_id": "your-database-id-here"
+      "database_name": "brand-portal-db",
+      "database_id": "c601bc0d-52e3-4b45-bc22-1683580c7c7e"
     }
   ],
   // R2 Storage for files
