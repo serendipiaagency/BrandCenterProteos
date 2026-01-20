@@ -195,6 +195,38 @@ const api = {
   async getStats() {
     const response = await axios.get('/api/stats')
     return response.data
+  },
+  
+  // Brands management
+  async createBrand(data) {
+    const response = await axios.post('/api/brands', data)
+    return response.data
+  },
+  
+  async updateBrand(id, data) {
+    const response = await axios.put(`/api/brands/${id}`, data)
+    return response.data
+  },
+  
+  async deleteBrand(id) {
+    const response = await axios.delete(`/api/brands/${id}`)
+    return response.data
+  },
+  
+  // Material types management
+  async createMaterialType(data) {
+    const response = await axios.post('/api/material-types', data)
+    return response.data
+  },
+  
+  async updateMaterialType(id, data) {
+    const response = await axios.put(`/api/material-types/${id}`, data)
+    return response.data
+  },
+  
+  async deleteMaterialType(id) {
+    const response = await axios.delete(`/api/material-types/${id}`)
+    return response.data
   }
 }
 
@@ -537,6 +569,150 @@ const handleDeleteAsset = async (assetId) => {
 }
 
 // ============================================
+// Brand Management
+// ============================================
+
+let brandModal = null
+
+const openBrandModal = (brand = null) => {
+  brandModal = brand || {
+    name: '',
+    display_name: '',
+    description: '',
+    logo_url: '',
+    color: '#0ea5e9'
+  }
+  render()
+}
+
+const closeBrandModal = () => {
+  brandModal = null
+  render()
+}
+
+const handleBrandSubmit = async (e) => {
+  e.preventDefault()
+  
+  const brandData = {
+    name: $('#brand-name').value,
+    display_name: $('#brand-display-name').value,
+    description: $('#brand-description').value,
+    logo_url: $('#brand-logo-url').value,
+    color: $('#brand-color').value
+  }
+  
+  try {
+    showLoading()
+    
+    if (brandModal.id) {
+      await api.updateBrand(brandModal.id, brandData)
+      showNotification('Brand updated successfully!', 'success')
+    } else {
+      await api.createBrand(brandData)
+      showNotification('Brand created successfully!', 'success')
+    }
+    
+    closeBrandModal()
+    await loadInitialData()
+  } catch (error) {
+    console.error('Brand save error:', error)
+    showNotification('Error saving brand', 'error')
+  } finally {
+    hideLoading()
+  }
+}
+
+const handleDeleteBrand = async (brandId) => {
+  if (!confirm('Are you sure you want to delete this brand?')) return
+  
+  try {
+    showLoading()
+    await api.deleteBrand(brandId)
+    showNotification('Brand deleted successfully!', 'success')
+    await loadInitialData()
+  } catch (error) {
+    console.error('Delete error:', error)
+    showNotification('Error deleting brand', 'error')
+  } finally {
+    hideLoading()
+  }
+}
+
+// ============================================
+// Material Type Management
+// ============================================
+
+let materialTypeModal = null
+
+const openMaterialTypeModal = (materialType = null) => {
+  materialTypeModal = materialType || {
+    name: '',
+    display_name_en: '',
+    display_name_es: '',
+    description: '',
+    icon: 'fa-file',
+    sort_order: 999
+  }
+  render()
+}
+
+const closeMaterialTypeModal = () => {
+  materialTypeModal = null
+  render()
+}
+
+const handleMaterialTypeSubmit = async (e) => {
+  e.preventDefault()
+  
+  const materialTypeData = {
+    name: $('#material-type-name').value,
+    display_name_en: $('#material-type-display-en').value,
+    display_name_es: $('#material-type-display-es').value,
+    description: $('#material-type-description').value,
+    icon: $('#material-type-icon').value,
+    sort_order: parseInt($('#material-type-sort-order').value)
+  }
+  
+  try {
+    showLoading()
+    
+    if (materialTypeModal.id) {
+      await api.updateMaterialType(materialTypeModal.id, materialTypeData)
+      showNotification('Material type updated successfully!', 'success')
+    } else {
+      await api.createMaterialType(materialTypeData)
+      showNotification('Material type created successfully!', 'success')
+    }
+    
+    closeMaterialTypeModal()
+    await loadInitialData()
+  } catch (error) {
+    console.error('Material type save error:', error)
+    showNotification('Error saving material type', 'error')
+  } finally {
+    hideLoading()
+  }
+}
+
+const handleDeleteMaterialType = async (typeId) => {
+  if (!confirm('Are you sure you want to delete this material type?')) return
+  
+  try {
+    showLoading()
+    await api.deleteMaterialType(typeId)
+    showNotification('Material type deleted successfully!', 'success')
+    await loadInitialData()
+  } catch (error) {
+    console.error('Delete error:', error)
+    showNotification('Error deleting material type', 'error')
+  } finally {
+    hideLoading()
+  }
+}
+
+// Continue with existing code...
+
+// ============================================
 // RENDERING FUNCTIONS
 // ============================================
 
@@ -649,6 +825,18 @@ const renderSidebar = () => {
               <a href="#" onclick="navigateTo('users'); return false;" class="sidebar-link ${state.currentPage === 'users' ? 'active' : ''}">
                 <i class="fas fa-users"></i>
                 <span>Users</span>
+              </a>
+            </li>
+            <li class="sidebar-item">
+              <a href="#" onclick="navigateTo('brands'); return false;" class="sidebar-link ${state.currentPage === 'brands' ? 'active' : ''}">
+                <i class="fas fa-tags"></i>
+                <span>Brands</span>
+              </a>
+            </li>
+            <li class="sidebar-item">
+              <a href="#" onclick="navigateTo('categories'); return false;" class="sidebar-link ${state.currentPage === 'categories' ? 'active' : ''}">
+                <i class="fas fa-layer-group"></i>
+                <span>Categories</span>
               </a>
             </li>
           ` : ''}
@@ -1140,6 +1328,264 @@ const renderUserModal = () => {
   `
 }
 
+const renderBrandsPage = () => {
+  return `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Brands Management</h1>
+        <p class="page-subtitle">Manage brand portfolio and identities</p>
+      </div>
+      
+      <div class="page-actions">
+        <button onclick="openBrandModal()" class="btn-primary">
+          <i class="fas fa-plus"></i>
+          Add Brand
+        </button>
+      </div>
+    </div>
+    
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Brand</th>
+            <th>Display Name</th>
+            <th>Description</th>
+            <th>Color</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${state.brands.map(brand => `
+            <tr>
+              <td>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <span class="brand-badge" style="background-color: ${brand.color}; width: 24px; height: 24px; border-radius: 4px;"></span>
+                  <span style="font-weight: 600;">${brand.name}</span>
+                </div>
+              </td>
+              <td>${brand.display_name}</td>
+              <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                ${brand.description || 'N/A'}
+              </td>
+              <td>
+                <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                  <span style="width: 20px; height: 20px; background-color: ${brand.color}; border-radius: 3px; border: 1px solid #ddd;"></span>
+                  <code>${brand.color}</code>
+                </span>
+              </td>
+              <td>
+                <div style="display: flex; gap: 0.5rem;">
+                  <button 
+                    onclick='openBrandModal(${JSON.stringify(brand).replace(/"/g, '&quot;')})'
+                    class="icon-btn"
+                    title="Edit brand"
+                  >
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button 
+                    onclick="handleDeleteBrand(${brand.id})"
+                    class="icon-btn danger"
+                    title="Delete brand"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `
+}
+
+const renderCategoriesPage = () => {
+  return `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Material Categories</h1>
+        <p class="page-subtitle">Manage asset classification and types</p>
+      </div>
+      
+      <div class="page-actions">
+        <button onclick="openMaterialTypeModal()" class="btn-primary">
+          <i class="fas fa-plus"></i>
+          Add Category
+        </button>
+      </div>
+    </div>
+    
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Icon</th>
+            <th>Name (EN)</th>
+            <th>Name (ES)</th>
+            <th>Description</th>
+            <th>Sort Order</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${state.materialTypes.map(type => `
+            <tr>
+              <td>
+                <i class="fas ${type.icon}" style="font-size: 1.25rem; color: #0066cc;"></i>
+              </td>
+              <td style="font-weight: 600;">${type.display_name || type.name}</td>
+              <td>${type.display_name_es || type.display_name || type.name}</td>
+              <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                ${type.description || 'N/A'}
+              </td>
+              <td>${type.sort_order || 999}</td>
+              <td>
+                <div style="display: flex; gap: 0.5rem;">
+                  <button 
+                    onclick='openMaterialTypeModal(${JSON.stringify(type).replace(/"/g, '&quot;')})'
+                    class="icon-btn"
+                    title="Edit category"
+                  >
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button 
+                    onclick="handleDeleteMaterialType(${type.id})"
+                    class="icon-btn danger"
+                    title="Delete category"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `
+}
+
+const renderBrandModal = () => {
+  if (!brandModal) return ''
+  
+  return `
+    <div class="modal-overlay" onclick="closeBrandModal()">
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h3 class="modal-title">${brandModal.id ? 'Edit Brand' : 'Add Brand'}</h3>
+          <button onclick="closeBrandModal()" class="modal-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <form onsubmit="handleBrandSubmit(event)" class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Name (ID) *</label>
+            <input id="brand-name" type="text" required value="${brandModal.name || ''}" class="form-input" placeholder="pbserum" />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Display Name *</label>
+            <input id="brand-display-name" type="text" required value="${brandModal.display_name || ''}" class="form-input" placeholder="pbserum" />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea id="brand-description" rows="3" class="form-input" placeholder="Brand description">${brandModal.description || ''}</textarea>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Logo URL</label>
+            <input id="brand-logo-url" type="url" value="${brandModal.logo_url || ''}" class="form-input" placeholder="https://example.com/logo.png" />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Brand Color</label>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+              <input id="brand-color" type="color" value="${brandModal.color || '#0ea5e9'}" style="width: 60px; height: 40px; border: none; border-radius: 4px; cursor: pointer;" />
+              <input type="text" value="${brandModal.color || '#0ea5e9'}" readonly class="form-input" style="flex: 1;" />
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button type="button" onclick="closeBrandModal()" class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-save"></i>
+              ${brandModal.id ? 'Update' : 'Create'} Brand
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `
+}
+
+const renderMaterialTypeModal = () => {
+  if (!materialTypeModal) return ''
+  
+  return `
+    <div class="modal-overlay" onclick="closeMaterialTypeModal()">
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h3 class="modal-title">${materialTypeModal.id ? 'Edit Category' : 'Add Category'}</h3>
+          <button onclick="closeMaterialTypeModal()" class="modal-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <form onsubmit="handleMaterialTypeSubmit(event)" class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Name (ID) *</label>
+            <input id="material-type-name" type="text" required value="${materialTypeModal.name || ''}" class="form-input" placeholder="brand_books" />
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Display Name (English) *</label>
+              <input id="material-type-display-en" type="text" required value="${materialTypeModal.display_name_en || materialTypeModal.display_name || ''}" class="form-input" placeholder="Brand Books" />
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Display Name (Spanish)</label>
+              <input id="material-type-display-es" type="text" value="${materialTypeModal.display_name_es || materialTypeModal.display_name || ''}" class="form-input" placeholder="Guías de Marca" />
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea id="material-type-description" rows="3" class="form-input" placeholder="Category description">${materialTypeModal.description || ''}</textarea>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Icon (FontAwesome) *</label>
+              <input id="material-type-icon" type="text" required value="${materialTypeModal.icon || 'fa-file'}" class="form-input" placeholder="fa-file-pdf" />
+              <small style="color: var(--gray-600); font-size: 0.75rem;">
+                <i class="fas ${materialTypeModal.icon || 'fa-file'}"></i> Preview
+                | <a href="https://fontawesome.com/icons" target="_blank">Browse icons</a>
+              </small>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Sort Order</label>
+              <input id="material-type-sort-order" type="number" value="${materialTypeModal.sort_order || 999}" class="form-input" min="0" />
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button type="button" onclick="closeMaterialTypeModal()" class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-save"></i>
+              ${materialTypeModal.id ? 'Update' : 'Create'} Category
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `
+}
+
 const renderPasswordModal = () => {
   if (!passwordModal) return ''
   
@@ -1209,6 +1655,12 @@ const render = () => {
     case 'users':
       pageContent = renderUsersPage()
       break
+    case 'brands':
+      pageContent = renderBrandsPage()
+      break
+    case 'categories':
+      pageContent = renderCategoriesPage()
+      break
   }
   
   app.innerHTML = `
@@ -1225,6 +1677,8 @@ const render = () => {
     ${renderUploadModal()}
     ${renderUserModal()}
     ${renderPasswordModal()}
+    ${renderBrandModal()}
+    ${renderMaterialTypeModal()}
     
     ${state.loading ? `
       <div class="loading-overlay">

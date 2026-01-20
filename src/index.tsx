@@ -198,6 +198,55 @@ app.get('/api/brands/:id/sub-brands', async (c) => {
   return c.json({ subBrands: results })
 })
 
+// Create new brand
+app.post('/api/brands', async (c) => {
+  const data = await c.req.json()
+  
+  const result = await c.env.DB.prepare(`
+    INSERT INTO brands (name, display_name, description, logo_url, color, active)
+    VALUES (?, ?, ?, ?, ?, 1)
+  `).bind(
+    data.name,
+    data.display_name,
+    data.description || null,
+    data.logo_url || null,
+    data.color || '#0ea5e9'
+  ).run()
+  
+  return c.json({ success: true, id: result.meta.last_row_id })
+})
+
+// Update brand
+app.put('/api/brands/:id', async (c) => {
+  const id = c.req.param('id')
+  const data = await c.req.json()
+  
+  await c.env.DB.prepare(`
+    UPDATE brands 
+    SET display_name = ?, description = ?, logo_url = ?, color = ?
+    WHERE id = ?
+  `).bind(
+    data.display_name,
+    data.description || null,
+    data.logo_url || null,
+    data.color,
+    id
+  ).run()
+  
+  return c.json({ success: true })
+})
+
+// Delete brand
+app.delete('/api/brands/:id', async (c) => {
+  const id = c.req.param('id')
+  
+  await c.env.DB.prepare(`
+    UPDATE brands SET active = 0 WHERE id = ?
+  `).bind(id).run()
+  
+  return c.json({ success: true })
+})
+
 // ============================================
 // API ROUTES - Material Types
 // ============================================
@@ -213,6 +262,57 @@ app.get('/api/material-types', async (c) => {
   `).all()
   
   return c.json({ materialTypes: results })
+})
+
+// Create new material type
+app.post('/api/material-types', async (c) => {
+  const data = await c.req.json()
+  
+  const result = await c.env.DB.prepare(`
+    INSERT INTO material_types (name, display_name_en, display_name_es, description, icon, sort_order, active)
+    VALUES (?, ?, ?, ?, ?, ?, 1)
+  `).bind(
+    data.name,
+    data.display_name_en,
+    data.display_name_es || data.display_name_en,
+    data.description || null,
+    data.icon || 'fa-file',
+    data.sort_order || 999
+  ).run()
+  
+  return c.json({ success: true, id: result.meta.last_row_id })
+})
+
+// Update material type
+app.put('/api/material-types/:id', async (c) => {
+  const id = c.req.param('id')
+  const data = await c.req.json()
+  
+  await c.env.DB.prepare(`
+    UPDATE material_types 
+    SET display_name_en = ?, display_name_es = ?, description = ?, icon = ?, sort_order = ?
+    WHERE id = ?
+  `).bind(
+    data.display_name_en,
+    data.display_name_es || data.display_name_en,
+    data.description || null,
+    data.icon,
+    data.sort_order,
+    id
+  ).run()
+  
+  return c.json({ success: true })
+})
+
+// Delete material type
+app.delete('/api/material-types/:id', async (c) => {
+  const id = c.req.param('id')
+  
+  await c.env.DB.prepare(`
+    UPDATE material_types SET active = 0 WHERE id = ?
+  `).bind(id).run()
+  
+  return c.json({ success: true })
 })
 
 // ============================================
