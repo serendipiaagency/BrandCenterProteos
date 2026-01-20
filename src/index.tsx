@@ -492,24 +492,129 @@ app.post('/api/users/:id/reset-password', async (c) => {
 })
 
 // ============================================
+// PUBLIC API ROUTES (No authentication required)
+// ============================================
+
+// Public catalog - Get all public assets
+app.get('/api/public/assets', async (c) => {
+  const { brand_id, material_type_id, region, search } = c.req.query()
+  
+  let query = `
+    SELECT 
+      a.*,
+      b.display_name as brand_name,
+      b.color as brand_color,
+      sb.display_name as sub_brand_name,
+      mt.display_name as material_type_name,
+      mt.icon as material_type_icon
+    FROM assets a
+    LEFT JOIN brands b ON a.brand_id = b.id
+    LEFT JOIN sub_brands sb ON a.sub_brand_id = sb.id
+    LEFT JOIN material_types mt ON a.material_type_id = mt.id
+    WHERE 1=1
+  `
+  
+  const params: any[] = []
+  
+  if (brand_id) {
+    query += ` AND a.brand_id = ?`
+    params.push(brand_id)
+  }
+  
+  if (material_type_id) {
+    query += ` AND a.material_type_id = ?`
+    params.push(material_type_id)
+  }
+  
+  if (region) {
+    query += ` AND (a.region = ? OR a.region = 'GLOBAL')`
+    params.push(region)
+  }
+  
+  if (search) {
+    query += ` AND (a.title LIKE ? OR a.description LIKE ? OR a.original_filename LIKE ?)`
+    const searchTerm = `%${search}%`
+    params.push(searchTerm, searchTerm, searchTerm)
+  }
+  
+  query += ` ORDER BY a.created_at DESC`
+  
+  const stmt = c.env.DB.prepare(query)
+  const result = await stmt.bind(...params).all()
+  
+  return c.json({ assets: result.results || [] })
+})
+
+// Public brands list
+app.get('/api/public/brands', async (c) => {
+  const result = await c.env.DB.prepare(`
+    SELECT * FROM brands WHERE active = 1 ORDER BY display_name
+  `).all()
+  
+  return c.json({ brands: result.results || [] })
+})
+
+// Public material types
+app.get('/api/public/material-types', async (c) => {
+  const result = await c.env.DB.prepare(`
+    SELECT * FROM material_types ORDER BY display_order, display_name
+  `).all()
+  
+  return c.json({ materialTypes: result.results || [] })
+})
+
+// Public stats
+app.get('/api/public/stats', async (c) => {
+  const totalAssets = await c.env.DB.prepare('SELECT COUNT(*) as count FROM assets').first()
+  const totalBrands = await c.env.DB.prepare('SELECT COUNT(*) as count FROM brands WHERE active = 1').first()
+  
+  return c.json({
+    totalAssets: totalAssets?.count || 0,
+    totalBrands: totalBrands?.count || 0
+  })
+})
+
+// ============================================
 // MAIN PAGES
 // ============================================
 
+// Admin panel (login required)
+app.get('/admin', (c) => {
+  return c.html(
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Brand Portal - Admin Panel</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
+        <link href="/static/style.css?v=4" rel="stylesheet" />
+      </head>
+      <body class="bg-gray-50">
+        <div id="app"></div>
+        <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+        <script src="/static/app.js?v=4"></script>
+      </body>
+    </html>
+  )
+})
+
+// Public catalog page (no login required)
 app.get('/', (c) => {
   return c.html(
     <html lang="en">
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Brand Portal - Proteos Biotech</title>
+        <title>Proteos Biotech - Brand Materials Catalog</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
-        <link href="/static/style.css?v=3" rel="stylesheet" />
+        <link href="/static/style.css?v=4" rel="stylesheet" />
       </head>
       <body class="bg-gray-50">
-        <div id="app"></div>
+        <div id="catalog"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/app.js?v=3"></script>
+        <script src="/static/catalog.js?v=4"></script>
       </body>
     </html>
   )
