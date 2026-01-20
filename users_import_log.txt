@@ -1,0 +1,85 @@
+🔄 Procesando Excel...
+📊 Total usuarios encontrados: 76
+
+💾 Insertando en base de datos...
+✅ Creado: Sarra Antit (sarah.antit@gmail.com) - Password: oCNYwUGdB#5P
+✅ Creado: Ghazanfar Rauf (ghazanfarrauf@gmail.com) - Password: U5K8zJttnNjP
+✅ Creado: Meisam Abdn (commercial@afateb.com) - Password: pigNSXJUAvqA
+✅ Creado: Mehriban Guliyeva (m.guliyeva@alliancepharma.az) - Password: RJev3nf1MSGn
+✅ Creado: Anna Rubinstein (anna@vyon.lv) - Password: suqm8uix6TeM
+✅ Creado: Carine Keller (info@innovativemedtech.ch) - Password: Mc@hR9p!#cZt
+✅ Creado: Daniela Hodková (poradce@intermedexp.com) - Password: M1VsnKiuAl2B
+✅ Creado: Minaricova Silvia (sisaminaric@yahoo.com) - Password: VUU2ot6T9ImM
+✅ Creado: Alexandru Mirza (alexandru.mirza@meddev.md) - Password: Sfw$@VGFrX8L
+✅ Creado: Madina Kurtauli (madina.kurtauli@beautysecrets.ge) - Password: ccLLqwn#Da#S
+✅ Creado: Elena Frolova (elena.frolova@mkom.kiev.ua) - Password: vkvW!9uZi$rx
+✅ Creado: Mario von Pallandt (mvp@ultrav-medical.com) - Password: R5TCVCfuliyR
+✅ Creado: Ludmila Pruhnitskaya (l.pruhnitskaya@gmail.com) - Password: 7HGgVj8JinBb
+✅ Creado: Kunduz Azizova (aestheticlaboratory@gmail.com) - Password: zFyw4rYz95cE
+✅ Creado: Alesia Rummo (alesiarummo@mail.ru) - Password: Q@BhjttD@i39
+✅ Creado: Anna Arakelyan (annaarakelyan@esthetic.am) - Password: XMFaDCPsu8bv
+✅ Creado: Olga Gasymona (olivia-64@yandex.ru) - Password: mkes4TjwLOgX
+✅ Creado: Aileen Castañeda (aileen.castaneda@fbdcenca.com) - Password: OnV%5Bd8SgQK
+✅ Creado: Ahdy El Says (a.elsayes@cigalahmedpharm.com) - Password: gJfA5XwW7#hf
+✅ Creado: Gabriele Di Benedetti (gabriele@dbcompany.it) - Password: YnwszJnkB1CY
+✅ Creado: Huda Abrahams (huda.abrahams@vitateck.com) - Password: jZQgeUgC0oJp
+✅ Creado: Fadi Mousa (fadi@emic.ps) - Password: qOt2WyABDMZS
+✅ Creado: Raafat Azmy (r.azmy@evertruemedical.com) - Password: Izf5pazFSbxz
+✅ Creado: Ali Hamade (alihamade@hamadetrading.com) - Password: 0KlyaheHD!nm
+⚠️  Usuario ya existe: anna@vyon.lv
+✅ Creado: Daniela Feil (daniela.feil@medicaltrading.at) - Password: jGuAHG6H441L
+✅ Creado: Harald Feil (harald.feil@medicaltrading.at) - Password: EbK@cMAk$ofe
+⚠️  Usuario ya existe: poradce@intermedexp.com
+⚠️  Usuario ya existe: sisaminaric@yahoo.com
+✅ Creado: Ena Simara (ena@lotusmedical.hr) - Password: yMiV8NI$BFLR
+✅ Creado: Maja Jedvaj Poljak (maja@lotusmedical.hr) - Password: 9PnOmVntGd$r
+⚠️  Usuario ya existe: alexandru.mirza@meddev.md
+✅ Creado: Martin Minkov (m.minkov@beautymedcorp.com) - Password: 28B1$DCl5ZTc
+✅ Creado: Lilia Dencheva (l.dencheva@bulmed.bg) - Password: u8h%gRQjfOE%
+⚠️  Usuario ya existe: madina.kurtauli@beautysecrets.ge
+✅ Creado: Omar Sawaf (omar.sawaf@vitateck.com) - Password: js$fXsj%GEV@
+✅ Creado: Dragos Giurgea (dragos.giurgea@beautymed.ro) - Password: eU8QQ4Ikgc6C
+✅ Creado: Johana Quiroga Meneses (jquiroga@meditekergo.com) - Password: vzQ9pdHfVD5H
+✅ Creado: Javier Ramirez (jramirez@meditekergo.com) - Password: 977yB1vxgc7m
+✅ Creado: Lynn Ang (lynn.ang@neuvaera.com.sg) - Password: zZbBOM4oS#vA
+✅ Creado: Ezequiel Urdiñez (EUrdinez@nordest-nova.com) - Password: j4gEH@baM0kT
+✅ Creado: Juliana Pla (julianapla@biosplus.com.ar) - Password: QjXr6BacHaUR
+✅ Creado: Ersin Demiroz (ersindemiroz@gmail.com) - Password: HGBAEaw#UlhX
+✅ Creado: El Amine Chentouf (eac@omniumpharma.com) - Password: W0uouer6dK0D
+✅ Creado: Luis Mariano Ramos (lramos@protekha.com) - Password: bLeB%EpdDA6f
+✅ Creado: Jaquilen Shand (jshand@sironaaesthetics.co.uk) - Password: NIJB0R0FJ$Zh
+✅ Creado: Barzan H.saeed (barzanpossible@gmail.com) - Password: A9jCOphVRE4A
+✅ Creado: Krystyna Doruch (k.doruch@topderm.pl) - Password: Vww1!l!IIWXH
+⚠️  Usuario ya existe: mvp@ultrav-medical.com
+✅ Creado: Fathy Elsawy (fathy_ali@unitedhealth-ame.com) - Password: MkQmFOuG4yK!
+✅ Creado: Ibrahim Abu Qudameh (ibrahim@verdun-int.com) - Password: ziSIQqC@mDUy
+⚠️  Usuario ya existe: omar.sawaf@vitateck.com
+⚠️  Usuario ya existe: omar.sawaf@vitateck.com
+✅ Creado: Domenico Alesi (info@venusmalta.com) - Password: ig4zgOzcpPMk
+✅ Creado: Karin Sosa (karin.sosa@pbserumspain.com) - Password: 48JMRFTFGVG6
+✅ Creado: Yolanda Sánchez (yolanda.sanchez@pbserumspain.com) - Password: G4SOyc@%KECK
+⚠️  Usuario ya existe: sarah.antit@gmail.com
+✅ Creado: Mari Ángeles Fierro (mariangel.fierro@axiospharma.mx) - Password: P54us1i3sQLa
+✅ Creado: Ángel Salgado (angel.salgado@axiospharma.mx) - Password: G$iI5Bpy5yr@
+✅ Creado: Diana Vilicaña (diana.villicana@fbdcenca.com) - Password: ir7Tcub8qlP%
+✅ Creado: KONG Lian Sing (liansing.kong@neoasiagroup.com) - Password: CJpOFw@hy34#
+⚠️  Usuario ya existe: lynn.ang@neuvaera.com.sg
+✅ Creado: Sergio Engrassi (sengrassi@kimika.us) - Password: eg3iXnuPjk44
+✅ Creado: Ali Hamade (ali.hamade10@gmail.com) - Password: 5yTH$K8EuZ3u
+✅ Creado: Greg Kennebeck (greg@promedsi.com) - Password: hlNVkMnqyKI6
+⚠️  Usuario ya existe: l.pruhnitskaya@gmail.com
+⚠️  Usuario ya existe: omar.sawaf@vitateck.com
+⚠️  Usuario ya existe: annaarakelyan@esthetic.am
+✅ Creado: Emilia Gasymova (emily@royal-esthetic.ru) - Password: HEHTD4m#!vL6
+✅ Creado: Anita Heizer (anita.heizer@vitee.hu) - Password: %IFPIGsiy81C
+⚠️  Usuario ya existe: alesiarummo@mail.ru
+⚠️  Usuario ya existe: aestheticlaboratory@gmail.com
+⚠️  Usuario ya existe: lramos@protekha.com
+✅ Creado: Christina Araouzou (christina@cai.gr) - Password: YPTsTwWu%n6v
+✅ Creado: Dimitris Halastanis (dimitris@cai.gr) - Password: XYadS3!$8lQn
+✅ Creado: Sandra Michélle Romano (beautymedicaloslo@gmail.com) - Password: xKSJ1mWcOePn
+
+✅ Usuarios creados: 60
+⚠️  Usuarios omitidos (ya existentes): 16
+
+🔐 IMPORTANTE: Guarda las contraseñas mostradas arriba

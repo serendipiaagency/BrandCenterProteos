@@ -98,32 +98,47 @@ app.get('/api/auth/session', async (c) => {
 // ============================================
 
 app.get('/api/users', async (c) => {
-  const { results } = await c.env.DB.prepare(`
-    SELECT id, email, name, role, region, country, language, brands_access, active, created_at, last_login
-    FROM users ORDER BY created_at DESC
-  `).all()
+  const currentUserId = c.req.query('currentUserId')
   
-  return c.json({ users: results })
+  // Verificar si es admin
+  const currentUser = await c.env.DB.prepare(`
+    SELECT role FROM users WHERE id = ?
+  `).bind(currentUserId).first()
+  
+  const isAdmin = currentUser && currentUser.role === 'admin'
+  
+  // Si es admin, incluir password_hash
+  const query = isAdmin 
+    ? `SELECT id, email, name, role, region, country, distributor, language, brands_access, password_hash, active, created_at, last_login FROM users ORDER BY created_at DESC`
+    : `SELECT id, email, name, role, region, country, distributor, language, brands_access, active, created_at, last_login FROM users ORDER BY created_at DESC`
+  
+  const { results } = await c.env.DB.prepare(query).all()
+  
+  return c.json({ users: results, isAdmin })
 })
 
 app.post('/api/users', async (c) => {
   const data = await c.req.json()
   
+  // Generar contraseña aleatoria si no se proporciona
+  const password = data.password || Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase()
+  
   const result = await c.env.DB.prepare(`
-    INSERT INTO users (email, password_hash, name, role, region, country, language, brands_access)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO users (email, password_hash, name, role, region, country, distributor, language, brands_access)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.email,
-    '$2a$10$default', // In production, hash with bcrypt
+    password, // En producción, hash con bcrypt
     data.name,
     data.role,
     data.region || null,
     data.country || null,
-    data.language || 'ESP',
+    data.distributor || null,
+    data.language || 'ING',
     data.brands_access ? JSON.stringify(data.brands_access) : null
   ).run()
   
-  return c.json({ success: true, id: result.meta.last_row_id })
+  return c.json({ success: true, id: result.meta.last_row_id, password })
 })
 
 app.put('/api/users/:id', async (c) => {
@@ -132,13 +147,14 @@ app.put('/api/users/:id', async (c) => {
   
   await c.env.DB.prepare(`
     UPDATE users 
-    SET name = ?, role = ?, region = ?, country = ?, language = ?, brands_access = ?, active = ?
+    SET name = ?, role = ?, region = ?, country = ?, distributor = ?, language = ?, brands_access = ?, active = ?
     WHERE id = ?
   `).bind(
     data.name,
     data.role,
     data.region,
     data.country,
+    data.distributor,
     data.language,
     data.brands_access ? JSON.stringify(data.brands_access) : null,
     data.active ? 1 : 0,
@@ -384,6 +400,95 @@ app.get('/api/stats', async (c) => {
     totalBrands: totalBrands?.count || 0,
     recentActivity: recentActivity.results
   })
+})
+
+// ============================================
+// API ROUTES - Password Management
+// ============================================
+
+app.get('/api/users/:id/password', async (c) => {
+  const id = c.req.param('id')
+  const currentUserId = c.req.query('currentUserId')
+  
+  // Solo admin puede ver contraseñas
+  const currentUser = await c.env.DB.prepare(`
+    SELECT role FROM users WHERE id = ?
+  `).bind(currentUserId).first()
+  
+  if (!currentUser || currentUser.role !== 'admin') {
+    return c.json({ error: 'Unauthorized' }, 403)
+  }
+  
+  const user = await c.env.DB.prepare(`
+    SELECT password_hash FROM users WHERE id = ?
+  `).bind(id).first()
+  
+  if (!user) {
+    return c.json({ error: 'User not found' }, 404)
+  }
+  
+  return c.json({ password: user.password_hash })
+})
+
+app.put('/api/users/:id/password', async (c) => {
+  const id = c.req.param('id')
+  const { newPassword, currentUserId } = await c.req.json()
+  
+  // Verificar permisos: admin puede cambiar cualquier contraseña, usuario solo la suya
+  const currentUser = await c.env.DB.prepare(`
+    SELECT id, role FROM users WHERE id = ?
+  `).bind(currentUserId).first()
+  
+  if (!currentUser) {
+    return c.json({ error: 'Unauthorized' }, 403)
+  }
+  
+  // Si no es admin, solo puede cambiar su propia contraseña
+  if (currentUser.role !== 'admin' && currentUser.id !== parseInt(id)) {
+    return c.json({ error: 'Unauthorized' }, 403)
+  }
+  
+  // En producción, hashear con bcrypt
+  await c.env.DB.prepare(`
+    UPDATE users SET password_hash = ? WHERE id = ?
+  `).bind(newPassword, id).run()
+  
+  // Log activity
+  await c.env.DB.prepare(`
+    INSERT INTO activity_log (user_id, action, details) 
+    VALUES (?, 'password_change', ?)
+  `).bind(id, JSON.stringify({ changed_by: currentUserId })).run()
+  
+  return c.json({ success: true })
+})
+
+app.post('/api/users/:id/reset-password', async (c) => {
+  const id = c.req.param('id')
+  const { currentUserId } = await c.req.json()
+  
+  // Solo admin puede resetear contraseñas
+  const currentUser = await c.env.DB.prepare(`
+    SELECT role FROM users WHERE id = ?
+  `).bind(currentUserId).first()
+  
+  if (!currentUser || currentUser.role !== 'admin') {
+    return c.json({ error: 'Unauthorized' }, 403)
+  }
+  
+  // Generar nueva contraseña aleatoria
+  const newPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase()
+  
+  await c.env.DB.prepare(`
+    UPDATE users SET password_hash = ? WHERE id = ?
+  `).bind(newPassword, id).run()
+  
+  // Log activity
+  await c.env.DB.prepare(`
+    INSERT INTO activity_log (user_id, action, details) 
+    VALUES (?, 'password_reset', ?)
+  `).bind(id, JSON.stringify({ reset_by: currentUserId })).run()
+  
+  return c.json({ success: true, newPassword })
 })
 
 // ============================================
