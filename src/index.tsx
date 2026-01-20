@@ -606,15 +606,14 @@ app.get('/', (c) => {
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Proteos Biotech - Brand Materials Catalog</title>
-        <script src="https://cdn.tailwindcss.com"></script>
+        <title>Proteos Biotech - Brand Center</title>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
-        <link href="/static/style.css?v=4" rel="stylesheet" />
+        <link href="/static/catalog.css?v=5" rel="stylesheet" />
       </head>
-      <body class="bg-gray-50">
+      <body>
         <div id="catalog"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/catalog.js?v=4"></script>
+        <script src="/static/catalog.js?v=5"></script>
       </body>
     </html>
   )
