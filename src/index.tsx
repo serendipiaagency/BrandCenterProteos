@@ -657,7 +657,10 @@ app.get('/api/public/brands', async (c) => {
 // Public material types
 app.get('/api/public/material-types', async (c) => {
   const result = await c.env.DB.prepare(`
-    SELECT * FROM material_types ORDER BY display_order, display_name
+    SELECT id, name, display_name_en as display_name, display_name_es, description, icon, sort_order, active
+    FROM material_types 
+    WHERE active = 1
+    ORDER BY sort_order, display_name_en
   `).all()
   
   return c.json({ materialTypes: result.results || [] })
