@@ -1241,67 +1241,98 @@ const renderUserModal = () => {
     <div class="modal-overlay" onclick="closeUserModal()">
       <div class="modal-content" onclick="event.stopPropagation()">
         <div class="modal-header">
-          <h3 class="modal-title">${userModal.id ? 'Edit User' : 'Add User'}</h3>
+          <h3 class="modal-title">
+            <i class="fas fa-${userModal.id ? 'user-edit' : 'user-plus'}"></i>
+            ${userModal.id ? 'Edit User' : 'Add New User'}
+          </h3>
           <button onclick="closeUserModal()" class="modal-close">
             <i class="fas fa-times"></i>
           </button>
         </div>
         
-        <form onsubmit="handleUserSubmit(event)" class="modal-body">
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Email *</label>
-              <input id="user-email" type="email" required value="${userModal.email || ''}" class="form-input" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Name *</label>
-              <input id="user-name" type="text" required value="${userModal.name || ''}" class="form-input" />
+        <form onsubmit="handleUserSubmit(event)">
+          <div class="modal-body">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="fas fa-envelope"></i>
+                  Email <span class="required">*</span>
+                </label>
+                <input id="user-email" type="email" required value="${userModal.email || ''}" class="form-input" placeholder="user@example.com" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="fas fa-user"></i>
+                  Full Name <span class="required">*</span>
+                </label>
+                <input id="user-name" type="text" required value="${userModal.name || ''}" class="form-input" placeholder="John Doe" />
             </div>
           </div>
           
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Role *</label>
+              <label class="form-label">
+                <i class="fas fa-user-tag"></i>
+                Role <span class="required">*</span>
+              </label>
               <select id="user-role" required class="form-input">
-                <option value="admin" ${userModal.role === 'admin' ? 'selected' : ''}>Admin</option>
-                <option value="marketing" ${userModal.role === 'marketing' ? 'selected' : ''}>Marketing</option>
-                <option value="distributor" ${userModal.role === 'distributor' ? 'selected' : ''}>Distributor</option>
-                <option value="agency" ${userModal.role === 'agency' ? 'selected' : ''}>Agency</option>
+                <option value="admin" ${userModal.role === 'admin' ? 'selected' : ''}>👑 Administrator</option>
+                <option value="marketing" ${userModal.role === 'marketing' ? 'selected' : ''}>📢 Marketing Team</option>
+                <option value="distributor" ${userModal.role === 'distributor' ? 'selected' : ''}>🤝 Distributor</option>
+                <option value="agency" ${userModal.role === 'agency' ? 'selected' : ''}>🎨 Agency</option>
               </select>
             </div>
-            
             <div class="form-group">
-              <label class="form-label">Language</label>
+              <label class="form-label">
+                <i class="fas fa-language"></i>
+                Language
+              </label>
               <select id="user-language" class="form-input">
-                <option value="ESP" ${userModal.language === 'ESP' ? 'selected' : ''}>Español</option>
-                <option value="ENG" ${userModal.language === 'ENG' ? 'selected' : ''}>English</option>
+                <option value="ESP" ${userModal.language === 'ESP' ? 'selected' : ''}>🇪🇸 Español</option>
+                <option value="ENG" ${userModal.language === 'ENG' ? 'selected' : ''}>🇬🇧 English</option>
               </select>
             </div>
           </div>
           
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Region</label>
-              <input id="user-region" type="text" value="${userModal.region || ''}" class="form-input" />
+              <label class="form-label">
+                <i class="fas fa-globe"></i>
+                Region
+              </label>
+              <input id="user-region" type="text" value="${userModal.region || ''}" class="form-input" placeholder="LATAM, EMEA, APAC..." />
             </div>
             <div class="form-group">
-              <label class="form-label">Country</label>
-              <input id="user-country" type="text" value="${userModal.country || ''}" class="form-input" />
+              <label class="form-label">
+                <i class="fas fa-flag"></i>
+                Country
+              </label>
+              <input id="user-country" type="text" value="${userModal.country || ''}" class="form-input" placeholder="Spain, Mexico, USA..." />
             </div>
           </div>
           
           <div class="form-group">
-            <label class="form-label">Distributor</label>
-            <input id="user-distributor" type="text" value="${userModal.distributor || ''}" class="form-input" />
+            <label class="form-label">
+              <i class="fas fa-building"></i>
+              Distributor / Company
+            </label>
+            <input id="user-distributor" type="text" value="${userModal.distributor || ''}" class="form-input" placeholder="Company name..." />
           </div>
           
           <div class="form-group">
-            <label class="form-label">Brand Access</label>
+            <label class="form-label">
+              <i class="fas fa-th-large"></i>
+              Brand Access
+              <small>(Select brands this user can access)</small>
+            </label>
             <div id="user-brands" class="checkbox-grid">
               ${state.brands.map(brand => `
                 <label class="checkbox-label">
                   <input type="checkbox" value="${brand.id}" ${(userModal.brands_access || []).includes(brand.id) ? 'checked' : ''} />
-                  <span>${brand.display_name}</span>
+                  <span>
+                    <span class="brand-badge" style="background-color: ${brand.color}; width: 12px; height: 12px; display: inline-block; border-radius: 50%; margin-right: 6px;"></span>
+                    ${brand.display_name}
+                  </span>
                 </label>
               `).join('')}
             </div>
@@ -1309,17 +1340,25 @@ const renderUserModal = () => {
           
           ${userModal.id ? `
             <div class="form-group">
-              <label class="checkbox-label">
+              <label class="checkbox-label" style="padding: 1rem; background: var(--gray-50); border-radius: 10px;">
                 <input id="user-active" type="checkbox" ${userModal.active ? 'checked' : ''} />
-                <span>Active</span>
+                <span>
+                  <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                  Account is Active
+                </span>
               </label>
             </div>
           ` : ''}
+          </div>
           
           <div class="modal-footer">
-            <button type="button" onclick="closeUserModal()" class="btn-secondary">Cancel</button>
+            <button type="button" onclick="closeUserModal()" class="btn-secondary">
+              <i class="fas fa-times"></i>
+              Cancel
+            </button>
             <button type="submit" class="btn-primary">
-              <i class="fas fa-save"></i>${userModal.id ? 'Update' : 'Create'}
+              <i class="fas fa-${userModal.id ? 'save' : 'plus'}"></i>
+              ${userModal.id ? 'Update User' : 'Create User'}
             </button>
           </div>
         </form>
@@ -1473,46 +1512,116 @@ const renderBrandModal = () => {
     <div class="modal-overlay" onclick="closeBrandModal()">
       <div class="modal-content" onclick="event.stopPropagation()">
         <div class="modal-header">
-          <h3 class="modal-title">${brandModal.id ? 'Edit Brand' : 'Add Brand'}</h3>
+          <h3 class="modal-title">
+            <i class="fas fa-${brandModal.id ? 'edit' : 'plus-circle'}"></i>
+            ${brandModal.id ? 'Edit Brand' : 'Add New Brand'}
+          </h3>
           <button onclick="closeBrandModal()" class="modal-close">
             <i class="fas fa-times"></i>
           </button>
         </div>
         
-        <form onsubmit="handleBrandSubmit(event)" class="modal-body">
-          <div class="form-group">
-            <label class="form-label">Name (ID) *</label>
-            <input id="brand-name" type="text" required value="${brandModal.name || ''}" class="form-input" placeholder="pbserum" />
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">Display Name *</label>
-            <input id="brand-display-name" type="text" required value="${brandModal.display_name || ''}" class="form-input" placeholder="pbserum" />
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">Description</label>
-            <textarea id="brand-description" rows="3" class="form-input" placeholder="Brand description">${brandModal.description || ''}</textarea>
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">Logo URL</label>
-            <input id="brand-logo-url" type="url" value="${brandModal.logo_url || ''}" class="form-input" placeholder="https://example.com/logo.png" />
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">Brand Color</label>
-            <div style="display: flex; gap: 1rem; align-items: center;">
-              <input id="brand-color" type="color" value="${brandModal.color || '#0ea5e9'}" style="width: 60px; height: 40px; border: none; border-radius: 4px; cursor: pointer;" />
-              <input type="text" value="${brandModal.color || '#0ea5e9'}" readonly class="form-input" style="flex: 1;" />
+        <form onsubmit="handleBrandSubmit(event)">
+          <div class="modal-body">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="fas fa-tag"></i>
+                  Internal Name (ID) <span class="required">*</span>
+                  <small>Unique identifier (lowercase, no spaces)</small>
+                </label>
+                <input 
+                  id="brand-name" 
+                  type="text" 
+                  required 
+                  value="${brandModal.name || ''}" 
+                  class="form-input" 
+                  placeholder="pbserum"
+                  pattern="[a-z0-9_-]+"
+                  title="Lowercase letters, numbers, underscore and hyphen only"
+                />
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="fas fa-heading"></i>
+                  Display Name <span class="required">*</span>
+                  <small>Public brand name</small>
+                </label>
+                <input 
+                  id="brand-display-name" 
+                  type="text" 
+                  required 
+                  value="${brandModal.display_name || ''}" 
+                  class="form-input" 
+                  placeholder="pbserum"
+                />
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-align-left"></i>
+                Brand Description
+                <small>Brief description of this brand</small>
+              </label>
+              <textarea 
+                id="brand-description" 
+                rows="3" 
+                class="form-textarea" 
+                placeholder="Enter brand description..."
+              >${brandModal.description || ''}</textarea>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-image"></i>
+                Logo URL
+                <small>Link to brand logo image</small>
+              </label>
+              <input 
+                id="brand-logo-url" 
+                type="url" 
+                value="${brandModal.logo_url || ''}" 
+                class="form-input" 
+                placeholder="https://example.com/logo.png"
+              />
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-palette"></i>
+                Brand Color
+                <small>Primary color for this brand</small>
+              </label>
+              <div class="color-picker-group">
+                <div class="color-picker-preview">
+                  <input 
+                    id="brand-color" 
+                    type="color" 
+                    value="${brandModal.color || '#0ea5e9'}"
+                    onchange="document.getElementById('brand-color-hex').value = this.value"
+                  />
+                </div>
+                <input 
+                  id="brand-color-hex"
+                  type="text" 
+                  value="${brandModal.color || '#0ea5e9'}" 
+                  readonly 
+                  class="color-hex-display"
+                />
+              </div>
             </div>
           </div>
           
           <div class="modal-footer">
-            <button type="button" onclick="closeBrandModal()" class="btn-secondary">Cancel</button>
+            <button type="button" onclick="closeBrandModal()" class="btn-secondary">
+              <i class="fas fa-times"></i>
+              Cancel
+            </button>
             <button type="submit" class="btn-primary">
-              <i class="fas fa-save"></i>
-              ${brandModal.id ? 'Update' : 'Create'} Brand
+              <i class="fas fa-${brandModal.id ? 'save' : 'plus'}"></i>
+              ${brandModal.id ? 'Update Brand' : 'Create Brand'}
             </button>
           </div>
         </form>
