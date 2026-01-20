@@ -5,6 +5,15 @@ Professional brand asset management system for Proteos Biotech, enabling distrib
 
 ## ✨ Features Completed
 
+### 🌍 Public Catalog (No Login Required)
+- **Public-facing catalog** for browsing all materials
+- **Advanced filtering** by brand, material type, region, and search
+- **Real-time statistics** showing available assets and brands
+- **Direct download** links for all materials
+- **Responsive design** optimized for all devices
+- **Hero section** with brand statistics
+- **SEO-friendly** structure for discoverability
+
 ### 🔐 Authentication & User Management
 - **Multi-role system**: Admin, Marketing Team, Distributor, Agency
 - **User administration panel** for creating and managing users
@@ -60,18 +69,31 @@ Brand (Level 1)
 ## 🌐 URLs
 
 ### Development (Sandbox)
-- **Application**: https://3000-ich0xjbt2qsykky4ri4zb-5634da27.sandbox.novita.ai
-- **Login**: admin@proteos.com / admin123
+- **Public Catalog**: https://3000-ich0xjbt2qsykky4ri4zb-5634da27.sandbox.novita.ai
+- **Admin Panel**: https://3000-ich0xjbt2qsykky4ri4zb-5634da27.sandbox.novita.ai/admin
+- **Admin Login**: admin@proteos.com / admin123
 
-### API Endpoints
+### Public API Endpoints (No authentication required)
+- `GET /api/public/brands` - List all active brands
+- `GET /api/public/material-types` - List all material categories
+- `GET /api/public/assets` - Browse and search assets with filters
+- `GET /api/public/stats` - Get catalog statistics
+
+### Protected API Endpoints (Authentication required)
 - `POST /api/auth/login` - User authentication
+- `GET /api/auth/session` - Verify session
 - `GET /api/brands` - List all brands
 - `GET /api/material-types` - List material categories
 - `GET /api/assets` - Search and filter assets
 - `POST /api/assets` - Create new asset
+- `DELETE /api/assets/:id` - Delete asset
 - `POST /api/upload` - Upload file to R2
 - `GET /api/users` - List users (admin only)
 - `POST /api/users` - Create user (admin only)
+- `PUT /api/users/:id` - Update user (admin only)
+- `DELETE /api/users/:id` - Delete user (admin only)
+- `GET /api/users/:id/password` - View user password (admin only)
+- `PUT /api/users/:id/password` - Change user password (admin only)
 
 ## 🚀 Deployment Status
 
@@ -87,6 +109,13 @@ Brand (Level 1)
 - **Process Manager**: PM2
 
 ## 📖 User Guide
+
+### For Public Visitors (No Login)
+1. **Visit the catalog** at the main URL
+2. **Browse materials** by brand, type, or region
+3. **Use search** to find specific assets
+4. **Download directly** any material you need
+5. **Filter by region** to find location-specific content
 
 ### For Administrators
 1. **Login** with admin credentials
