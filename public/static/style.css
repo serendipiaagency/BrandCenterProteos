@@ -1,1 +1,120 @@
-h1 { font-family: Arial, Helvetica, sans-serif; }
+/* Custom styles for Brand Portal */
+
+:root {
+  --primary-color: #1e3a8a;
+  --secondary-color: #0ea5e9;
+  --accent-color: #8b5cf6;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.brand-card {
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.brand-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border-color: var(--secondary-color);
+}
+
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.asset-item {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.asset-item:hover {
+  transform: scale(1.05);
+}
+
+.sidebar-item {
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-item:hover {
+  background-color: rgba(14, 165, 233, 0.1);
+}
+
+.sidebar-item.active {
+  background-color: rgba(14, 165, 233, 0.2);
+  border-left: 4px solid var(--secondary-color);
+}
+
+.modal-overlay {
+  backdrop-filter: blur(4px);
+}
+
+.file-upload-zone {
+  border: 2px dashed #cbd5e1;
+  transition: all 0.3s ease;
+}
+
+.file-upload-zone:hover,
+.file-upload-zone.dragover {
+  border-color: var(--secondary-color);
+  background-color: rgba(14, 165, 233, 0.05);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.3);
+}
+
+.login-container {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+}
+
+.login-card {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+/* Loading spinner */
+.spinner {
+  border: 3px solid #f3f4f6;
+  border-top: 3px solid var(--secondary-color);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* File type icons */
+.file-icon {
+  font-size: 3rem;
+  opacity: 0.7;
+}
+
+.file-icon.pdf { color: #dc2626; }
+.file-icon.doc { color: #2563eb; }
+.file-icon.img { color: #059669; }
+.file-icon.video { color: #7c3aed; }
+.file-icon.zip { color: #f59e0b; }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .asset-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+}
