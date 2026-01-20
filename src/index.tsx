@@ -504,12 +504,12 @@ app.get('/', (c) => {
         <title>Brand Portal - Proteos Biotech</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
-        <link href="/static/style.css" rel="stylesheet" />
+        <link href="/static/style.css?v=3" rel="stylesheet" />
       </head>
       <body class="bg-gray-50">
         <div id="app"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/app.js"></script>
+        <script src="/static/app.js?v=3"></script>
       </body>
     </html>
   )
