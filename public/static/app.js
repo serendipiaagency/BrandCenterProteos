@@ -35,9 +35,18 @@ const hideLoading = () => {
 
 const showNotification = (message, type = 'success') => {
   const notification = document.createElement('div')
-  notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white ${
-    type === 'success' ? 'bg-green-500' : 'bg-red-500'
-  } z-50 animate-fade-in`
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 1rem 1.5rem;
+    background: ${type === 'success' ? '#10b981' : '#ef4444'};
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    z-index: 1000;
+    font-weight: 500;
+  `
   notification.textContent = message
   document.body.appendChild(notification)
   
@@ -49,7 +58,7 @@ const showNotification = (message, type = 'success') => {
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
   const date = new Date(dateString)
-  return date.toLocaleDateString('es-ES', { 
+  return date.toLocaleDateString('en-US', { 
     year: 'numeric', 
     month: 'short', 
     day: 'numeric' 
@@ -79,17 +88,17 @@ const getFileIcon = (fileType) => {
 }
 
 const getFileIconColor = (fileType) => {
-  if (!fileType) return 'text-gray-400'
+  if (!fileType) return ''
   
-  if (fileType.includes('pdf')) return 'text-red-500'
-  if (fileType.includes('word') || fileType.includes('doc')) return 'text-blue-500'
-  if (fileType.includes('excel') || fileType.includes('sheet')) return 'text-green-500'
-  if (fileType.includes('powerpoint') || fileType.includes('presentation')) return 'text-orange-500'
-  if (fileType.includes('image')) return 'text-purple-500'
-  if (fileType.includes('video')) return 'text-pink-500'
-  if (fileType.includes('zip') || fileType.includes('rar')) return 'text-yellow-500'
+  if (fileType.includes('pdf')) return 'pdf-icon'
+  if (fileType.includes('word') || fileType.includes('doc')) return 'word-icon'
+  if (fileType.includes('excel') || fileType.includes('sheet')) return 'excel-icon'
+  if (fileType.includes('powerpoint') || fileType.includes('presentation')) return 'ppt-icon'
+  if (fileType.includes('image')) return 'image-icon'
+  if (fileType.includes('video')) return 'video-icon'
+  if (fileType.includes('zip') || fileType.includes('rar')) return 'zip-icon'
   
-  return 'text-gray-400'
+  return ''
 }
 
 // ============================================
@@ -154,7 +163,7 @@ const api = {
   },
   
   async getUsers() {
-    const response = await axios.get('/api/users')
+    const response = await axios.get(`/api/users?currentUserId=${state.currentUser.id}`)
     return response.data.users
   },
   
@@ -170,6 +179,16 @@ const api = {
   
   async deleteUser(id) {
     const response = await axios.delete(`/api/users/${id}`)
+    return response.data
+  },
+  
+  async getUserPassword(userId) {
+    const response = await axios.get(`/api/users/${userId}/password`)
+    return response.data
+  },
+  
+  async updateUserPassword(userId, newPassword) {
+    const response = await axios.put(`/api/users/${userId}/password`, { new_password: newPassword })
     return response.data
   },
   
@@ -390,6 +409,7 @@ const handleFileUpload = async (e) => {
 // ============================================
 
 let userModal = null
+let passwordModal = null
 
 const openUserModal = (user = null) => {
   userModal = user || { 
@@ -398,7 +418,8 @@ const openUserModal = (user = null) => {
     role: 'distributor',
     region: '',
     country: '',
-    language: 'ESP',
+    distributor: '',
+    language: 'ENG',
     brands_access: [],
     active: true
   }
@@ -410,6 +431,43 @@ const closeUserModal = () => {
   render()
 }
 
+const openPasswordModal = async (userId) => {
+  try {
+    const result = await api.getUserPassword(userId)
+    passwordModal = {
+      userId,
+      currentPassword: result.password
+    }
+    render()
+  } catch (error) {
+    console.error('Error loading password:', error)
+    showNotification('Error loading password', 'error')
+  }
+}
+
+const closePasswordModal = () => {
+  passwordModal = null
+  render()
+}
+
+const handlePasswordChange = async (e) => {
+  e.preventDefault()
+  
+  const newPassword = $('#new-password').value
+  
+  try {
+    showLoading()
+    await api.updateUserPassword(passwordModal.userId, newPassword)
+    showNotification('Password updated successfully!', 'success')
+    closePasswordModal()
+  } catch (error) {
+    console.error('Password update error:', error)
+    showNotification('Error updating password', 'error')
+  } finally {
+    hideLoading()
+  }
+}
+
 const handleUserSubmit = async (e) => {
   e.preventDefault()
   
@@ -419,6 +477,7 @@ const handleUserSubmit = async (e) => {
     role: $('#user-role').value,
     region: $('#user-region').value,
     country: $('#user-country').value,
+    distributor: $('#user-distributor').value,
     language: $('#user-language').value,
     brands_access: Array.from($$('#user-brands input:checked')).map(cb => parseInt(cb.value)),
     active: $('#user-active')?.checked ?? true
@@ -461,338 +520,6 @@ const handleDeleteUser = async (userId) => {
   }
 }
 
-// ============================================
-// Rendering Functions
-// ============================================
-
-const renderLoginPage = () => {
-  return `
-    <div class="login-container flex items-center justify-center p-4">
-      <div class="login-card w-full max-w-md p-8 rounded-2xl shadow-2xl">
-        <div class="text-center mb-8">
-          <h1 class="text-3xl font-bold text-gray-800 mb-2">Brand Portal</h1>
-          <p class="text-gray-600">Proteos Biotech</p>
-        </div>
-        
-        <form onsubmit="handleLogin(event)">
-          <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2">Email</label>
-            <input 
-              id="login-email" 
-              type="email" 
-              required
-              value="admin@proteos.com"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="your@email.com"
-            />
-          </div>
-          
-          <div class="mb-6">
-            <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
-            <input 
-              id="login-password" 
-              type="password" 
-              required
-              value="admin123"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="••••••••"
-            />
-          </div>
-          
-          <button 
-            type="submit"
-            class="w-full btn-primary text-white font-bold py-3 px-4 rounded-lg"
-          >
-            <i class="fas fa-sign-in-alt mr-2"></i>
-            Sign In
-          </button>
-        </form>
-        
-        <div class="mt-6 text-center text-sm text-gray-600">
-          <p>Demo: admin@proteos.com / admin123</p>
-        </div>
-      </div>
-    </div>
-  `
-}
-
-const renderHeader = () => {
-  return `
-    <header class="bg-white shadow-md">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div class="flex justify-between items-center">
-          <div class="flex items-center space-x-4">
-            <h1 class="text-2xl font-bold text-gray-800">
-              <i class="fas fa-cube text-blue-500 mr-2"></i>
-              Brand Portal
-            </h1>
-            <span class="text-sm text-gray-500">Proteos Biotech</span>
-          </div>
-          
-          <div class="flex items-center space-x-4">
-            <span class="text-sm text-gray-600">
-              <i class="fas fa-user-circle mr-2"></i>
-              ${state.currentUser.name} (${state.currentUser.role})
-            </span>
-            <button 
-              onclick="handleLogout()"
-              class="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition"
-            >
-              <i class="fas fa-sign-out-alt mr-2"></i>
-              Logout
-            </button>
-          </div>
-        </div>
-      </div>
-    </header>
-  `
-}
-
-const renderSidebar = () => {
-  return `
-    <aside class="w-64 bg-white shadow-lg h-screen sticky top-0 overflow-y-auto">
-      <nav class="p-4">
-        <div class="mb-6">
-          <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Navigation</h2>
-          
-          <button 
-            onclick="navigateTo('dashboard')"
-            class="sidebar-item w-full text-left px-4 py-3 rounded-lg mb-1 ${state.currentPage === 'dashboard' ? 'active' : ''}"
-          >
-            <i class="fas fa-home mr-3"></i>
-            Dashboard
-          </button>
-          
-          <button 
-            onclick="navigateTo('assets')"
-            class="sidebar-item w-full text-left px-4 py-3 rounded-lg mb-1 ${state.currentPage === 'assets' ? 'active' : ''}"
-          >
-            <i class="fas fa-folder-open mr-3"></i>
-            Assets
-          </button>
-          
-          ${state.currentUser.role === 'admin' ? `
-            <button 
-              onclick="navigateTo('users')"
-              class="sidebar-item w-full text-left px-4 py-3 rounded-lg mb-1 ${state.currentPage === 'users' ? 'active' : ''}"
-            >
-              <i class="fas fa-users mr-3"></i>
-              Users
-            </button>
-          ` : ''}
-        </div>
-        
-        <div class="mb-6">
-          <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Brands</h2>
-          ${state.brands.map(brand => `
-            <button 
-              onclick="selectBrand(${JSON.stringify(brand).replace(/"/g, '&quot;')})"
-              class="sidebar-item w-full text-left px-4 py-3 rounded-lg mb-1 ${state.selectedBrand?.id === brand.id ? 'active' : ''}"
-            >
-              <i class="fas fa-tag mr-3" style="color: ${brand.color}"></i>
-              ${brand.display_name}
-            </button>
-          `).join('')}
-        </div>
-        
-        <div class="mb-6">
-          <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Material Types</h2>
-          ${state.materialTypes.slice(0, 8).map(type => `
-            <button 
-              onclick="selectMaterialType(${JSON.stringify(type).replace(/"/g, '&quot;')})"
-              class="sidebar-item w-full text-left px-4 py-2 rounded-lg mb-1 text-sm ${state.selectedMaterialType?.id === type.id ? 'active' : ''}"
-            >
-              <i class="fas ${type.icon} mr-2"></i>
-              ${type.display_name}
-            </button>
-          `).join('')}
-        </div>
-      </nav>
-    </aside>
-  `
-}
-
-const renderDashboard = () => {
-  return `
-    <div class="p-8">
-      <div class="mb-8">
-        <h2 class="text-3xl font-bold text-gray-800 mb-2">Welcome back, ${state.currentUser.name}!</h2>
-        <p class="text-gray-600">Manage your brand assets and materials</p>
-      </div>
-      
-      <!-- Statistics Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white rounded-xl shadow-md p-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-500 mb-1">Total Assets</p>
-              <p class="text-3xl font-bold text-gray-800">${state.assets.length}</p>
-            </div>
-            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <i class="fas fa-file-alt text-2xl text-blue-500"></i>
-            </div>
-          </div>
-        </div>
-        
-        <div class="bg-white rounded-xl shadow-md p-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-500 mb-1">Brands</p>
-              <p class="text-3xl font-bold text-gray-800">${state.brands.length}</p>
-            </div>
-            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <i class="fas fa-tags text-2xl text-purple-500"></i>
-            </div>
-          </div>
-        </div>
-        
-        <div class="bg-white rounded-xl shadow-md p-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-500 mb-1">Material Types</p>
-              <p class="text-3xl font-bold text-gray-800">${state.materialTypes.length}</p>
-            </div>
-            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <i class="fas fa-layer-group text-2xl text-green-500"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Brands Grid -->
-      <div class="mb-8">
-        <h3 class="text-2xl font-bold text-gray-800 mb-4">Our Brands</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          ${state.brands.map(brand => `
-            <div 
-              class="brand-card bg-white rounded-xl shadow-md p-6 cursor-pointer"
-              onclick="selectBrand(${JSON.stringify(brand).replace(/"/g, '&quot;')}); navigateTo('assets')"
-            >
-              <div class="w-16 h-16 rounded-full mb-4 flex items-center justify-center" style="background-color: ${brand.color}20">
-                <i class="fas fa-cube text-3xl" style="color: ${brand.color}"></i>
-              </div>
-              <h4 class="text-xl font-bold text-gray-800 mb-2">${brand.display_name}</h4>
-              <p class="text-sm text-gray-600">${brand.description || 'Brand materials'}</p>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-      
-      <!-- Material Types -->
-      <div>
-        <h3 class="text-2xl font-bold text-gray-800 mb-4">Material Categories</h3>
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          ${state.materialTypes.map(type => `
-            <button 
-              onclick="selectMaterialType(${JSON.stringify(type).replace(/"/g, '&quot;')}); navigateTo('assets')"
-              class="bg-white rounded-lg shadow p-4 hover:shadow-lg transition text-center"
-            >
-              <i class="fas ${type.icon} text-3xl text-blue-500 mb-2"></i>
-              <p class="text-sm font-medium text-gray-800">${type.display_name}</p>
-            </button>
-          `).join('')}
-        </div>
-      </div>
-    </div>
-  `
-}
-
-const renderAssetsPage = () => {
-  return `
-    <div class="p-8">
-      <div class="flex justify-between items-center mb-6">
-        <div>
-          <h2 class="text-3xl font-bold text-gray-800 mb-2">Assets Library</h2>
-          <p class="text-gray-600">
-            ${state.selectedBrand ? `Brand: ${state.selectedBrand.display_name}` : 'All brands'}
-            ${state.selectedMaterialType ? ` | ${state.selectedMaterialType.display_name}` : ''}
-          </p>
-        </div>
-        
-        ${state.currentUser.role === 'admin' || state.currentUser.role === 'marketing' ? `
-          <button 
-            onclick="openUploadModal()"
-            class="btn-primary text-white px-6 py-3 rounded-lg font-bold"
-          >
-            <i class="fas fa-upload mr-2"></i>
-            Upload Asset
-          </button>
-        ` : ''}
-      </div>
-      
-      <!-- Filters -->
-      <div class="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div class="flex flex-wrap gap-4 items-center">
-          <div class="flex-1 min-w-[200px]">
-            <input 
-              type="text" 
-              placeholder="Search assets..."
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          
-          <button class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
-            <i class="fas fa-filter mr-2"></i>
-            Filters
-          </button>
-        </div>
-      </div>
-      
-      <!-- Assets Grid -->
-      ${state.assets.length === 0 ? `
-        <div class="text-center py-20">
-          <i class="fas fa-folder-open text-6xl text-gray-300 mb-4"></i>
-          <p class="text-xl text-gray-500">No assets found</p>
-          <p class="text-sm text-gray-400 mt-2">Upload your first asset to get started</p>
-        </div>
-      ` : `
-        <div class="asset-grid">
-          ${state.assets.map(asset => `
-            <div class="asset-item bg-white rounded-lg shadow-md overflow-hidden">
-              <div class="h-40 bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
-                <i class="fas ${getFileIcon(asset.file_type)} ${getFileIconColor(asset.file_type)} text-6xl"></i>
-              </div>
-              
-              <div class="p-4">
-                <h4 class="font-bold text-gray-800 mb-2 truncate">${asset.title || asset.original_filename}</h4>
-                <p class="text-xs text-gray-500 mb-3">
-                  ${asset.brand_name || 'N/A'} 
-                  ${asset.sub_brand_name ? `| ${asset.sub_brand_name}` : ''}
-                </p>
-                
-                <div class="flex items-center justify-between text-xs text-gray-500 mb-3">
-                  <span>${formatFileSize(asset.file_size)}</span>
-                  <span>${formatDate(asset.created_at)}</span>
-                </div>
-                
-                <div class="flex gap-2">
-                  <a 
-                    href="${asset.file_url}" 
-                    download
-                    class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm py-2 px-3 rounded text-center"
-                  >
-                    <i class="fas fa-download mr-1"></i>
-                    Download
-                  </a>
-                  
-                  ${state.currentUser.role === 'admin' ? `
-                    <button 
-                      onclick="handleDeleteAsset(${asset.id})"
-                      class="bg-red-500 hover:bg-red-600 text-white text-sm py-2 px-3 rounded"
-                    >
-                      <i class="fas fa-trash"></i>
-                    </button>
-                  ` : ''}
-                </div>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      `}
-    </div>
-  `
-}
-
 const handleDeleteAsset = async (assetId) => {
   if (!confirm('Are you sure you want to delete this asset?')) return
   
@@ -809,364 +536,8 @@ const handleDeleteAsset = async (assetId) => {
   }
 }
 
-// Continue in next part...
-
-const renderUsersPage = () => {
-  return `
-    <div class="p-8">
-      <div class="flex justify-between items-center mb-6">
-        <div>
-          <h2 class="text-3xl font-bold text-gray-800 mb-2">User Management</h2>
-          <p class="text-gray-600">Manage user accounts and permissions</p>
-        </div>
-        
-        <button 
-          onclick="openUserModal()"
-          class="btn-primary text-white px-6 py-3 rounded-lg font-bold"
-        >
-          <i class="fas fa-user-plus mr-2"></i>
-          Add User
-        </button>
-      </div>
-      
-      <div class="bg-white rounded-lg shadow-md overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Region</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Login</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            ${state.users.map(user => `
-              <tr>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="flex items-center">
-                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <i class="fas fa-user text-blue-500"></i>
-                    </div>
-                    <div class="ml-4">
-                      <div class="text-sm font-medium text-gray-900">${user.name}</div>
-                      <div class="text-sm text-gray-500">${user.email}</div>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                    ${user.role === 'admin' ? 'bg-red-100 text-red-800' : 
-                      user.role === 'marketing' ? 'bg-blue-100 text-blue-800' :
-                      user.role === 'distributor' ? 'bg-green-100 text-green-800' :
-                      'bg-gray-100 text-gray-800'}">
-                    ${user.role}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  ${user.region || 'N/A'} ${user.country ? `| ${user.country}` : ''}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  ${formatDate(user.last_login)}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                    ${user.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                    ${user.active ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button 
-                    onclick='openUserModal(${JSON.stringify(user).replace(/"/g, '&quot;')})'
-                    class="text-blue-600 hover:text-blue-900 mr-3"
-                  >
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button 
-                    onclick="handleDeleteUser(${user.id})"
-                    class="text-red-600 hover:text-red-900"
-                  >
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `
-}
-
-const renderUploadModal = () => {
-  if (!uploadModal) return ''
-  
-  return `
-    <div class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div class="p-6 border-b border-gray-200">
-          <div class="flex justify-between items-center">
-            <h3 class="text-2xl font-bold text-gray-800">Upload Asset</h3>
-            <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600">
-              <i class="fas fa-times text-2xl"></i>
-            </button>
-          </div>
-        </div>
-        
-        <form onsubmit="handleFileUpload(event)" class="p-6">
-          <div class="mb-6">
-            <label class="block text-sm font-bold text-gray-700 mb-2">File</label>
-            <div class="file-upload-zone p-8 rounded-lg text-center">
-              <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-4"></i>
-              <p class="text-gray-600 mb-2">Drop your file here or click to browse</p>
-              <input 
-                id="upload-file" 
-                type="file" 
-                required
-                class="w-full"
-              />
-            </div>
-          </div>
-          
-          <div class="mb-4">
-            <label class="block text-sm font-bold text-gray-700 mb-2">Title</label>
-            <input 
-              id="upload-title" 
-              type="text" 
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg"
-              placeholder="Asset title"
-            />
-          </div>
-          
-          <div class="mb-4">
-            <label class="block text-sm font-bold text-gray-700 mb-2">Description</label>
-            <textarea 
-              id="upload-description" 
-              rows="3"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg"
-              placeholder="Asset description"
-            ></textarea>
-          </div>
-          
-          <div class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-2">Brand *</label>
-              <select id="upload-brand" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                <option value="">Select brand</option>
-                ${state.brands.map(brand => `<option value="${brand.id}">${brand.display_name}</option>`).join('')}
-              </select>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-2">Sub-brand</label>
-              <select id="upload-subbrand" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                <option value="">None</option>
-              </select>
-            </div>
-          </div>
-          
-          <div class="mb-4">
-            <label class="block text-sm font-bold text-gray-700 mb-2">Material Type *</label>
-            <select id="upload-material-type" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-              <option value="">Select material type</option>
-              ${state.materialTypes.map(type => `<option value="${type.id}">${type.display_name}</option>`).join('')}
-            </select>
-          </div>
-          
-          <div class="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-2">Region</label>
-              <select id="upload-region" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                <option value="">Select region</option>
-                <option value="GLOBAL">GLOBAL</option>
-                <option value="USA">USA</option>
-                <option value="LATAM">LATAM</option>
-                <option value="EUROPA">EUROPA</option>
-                <option value="MENA">MENA</option>
-                <option value="ASIA">ASIA</option>
-              </select>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-2">Country</label>
-              <input id="upload-country" type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Country" />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-2">Regulatory</label>
-              <select id="upload-regulatory" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                <option value="GLOBAL">GLOBAL</option>
-                <option value="EU">EU</option>
-                <option value="NON-EU">NON-EU</option>
-              </select>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-2">Language</label>
-              <select id="upload-language" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                <option value="ESP">Español</option>
-                <option value="ING">English</option>
-                <option value="BRA">Português</option>
-                <option value="RUS">Русский</option>
-              </select>
-            </div>
-          </div>
-          
-          <div class="flex justify-end gap-3">
-            <button type="button" onclick="closeUploadModal()" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
-              Cancel
-            </button>
-            <button type="submit" class="btn-primary text-white px-6 py-2 rounded-lg">
-              <i class="fas fa-upload mr-2"></i>
-              Upload
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  `
-}
-
-const renderUserModal = () => {
-  if (!userModal) return ''
-  
-  return `
-    <div class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div class="p-6 border-b border-gray-200">
-          <div class="flex justify-between items-center">
-            <h3 class="text-2xl font-bold text-gray-800">${userModal.id ? 'Edit User' : 'Add User'}</h3>
-            <button onclick="closeUserModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-2xl"></i></button>
-          </div>
-        </div>
-        
-        <form onsubmit="handleUserSubmit(event)" class="p-6">
-          <div class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-2">Email *</label>
-              <input id="user-email" type="email" required value="${userModal.email || ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" />
-            </div>
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-2">Name *</label>
-              <input id="user-name" type="text" required value="${userModal.name || ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" />
-            </div>
-          </div>
-          
-          <div class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-2">Role *</label>
-              <select id="user-role" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                <option value="admin" ${userModal.role === 'admin' ? 'selected' : ''}>Admin</option>
-                <option value="marketing" ${userModal.role === 'marketing' ? 'selected' : ''}>Marketing</option>
-                <option value="distributor" ${userModal.role === 'distributor' ? 'selected' : ''}>Distributor</option>
-                <option value="agency" ${userModal.role === 'agency' ? 'selected' : ''}>Agency</option>
-              </select>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-2">Language</label>
-              <select id="user-language" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                <option value="ESP" ${userModal.language === 'ESP' ? 'selected' : ''}>Español</option>
-                <option value="ING" ${userModal.language === 'ING' ? 'selected' : ''}>English</option>
-              </select>
-            </div>
-          </div>
-          
-          <div class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-2">Region</label>
-              <input id="user-region" type="text" value="${userModal.region || ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" />
-            </div>
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-2">Country</label>
-              <input id="user-country" type="text" value="${userModal.country || ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" />
-            </div>
-          </div>
-          
-          <div class="mb-4">
-            <label class="block text-sm font-bold text-gray-700 mb-2">Brand Access</label>
-            <div id="user-brands" class="grid grid-cols-2 gap-2">
-              ${state.brands.map(brand => `
-                <label class="flex items-center space-x-2">
-                  <input type="checkbox" value="${brand.id}" ${userModal.brands_access?.includes(brand.id) ? 'checked' : ''} class="rounded text-blue-500" />
-                  <span class="text-sm">${brand.display_name}</span>
-                </label>
-              `).join('')}
-            </div>
-          </div>
-          
-          ${userModal.id ? `
-            <div class="mb-4">
-              <label class="flex items-center space-x-2">
-                <input id="user-active" type="checkbox" ${userModal.active ? 'checked' : ''} class="rounded text-blue-500" />
-                <span class="text-sm font-bold text-gray-700">Active</span>
-              </label>
-            </div>
-          ` : ''}
-          
-          <div class="flex justify-end gap-3">
-            <button type="button" onclick="closeUserModal()" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
-            <button type="submit" class="btn-primary text-white px-6 py-2 rounded-lg">
-              <i class="fas fa-save mr-2"></i>${userModal.id ? 'Update' : 'Create'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  `
-}
-
-const render = () => {
-  const app = $('#app')
-  
-  if (state.currentPage === 'login') {
-    app.innerHTML = renderLoginPage()
-    return
-  }
-  
-  let pageContent = ''
-  
-  switch (state.currentPage) {
-    case 'dashboard':
-      pageContent = renderDashboard()
-      break
-    case 'assets':
-      pageContent = renderAssetsPage()
-      break
-    case 'users':
-      pageContent = renderUsersPage()
-      break
-  }
-  
-  app.innerHTML = `
-    ${renderHeader()}
-    <div class="flex">
-      ${renderSidebar()}
-      <main class="flex-1 overflow-y-auto bg-gray-50">
-        ${pageContent}
-        ${renderUploadModal()}
-        ${renderUserModal()}
-      </main>
-    </div>
-    
-    ${state.loading ? `
-      <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white p-8 rounded-xl shadow-2xl text-center">
-          <div class="spinner mx-auto mb-4"></div>
-          <p class="text-gray-700">Loading...</p>
-        </div>
-      </div>
-    ` : ''}
-  `
-}
-
-document.addEventListener('DOMContentLoaded', async () => {
-  await checkAuth()
-  render()
-})
 // ============================================
-// RENDERING FUNCTIONS - CORPORATE DESIGN
+// RENDERING FUNCTIONS
 // ============================================
 
 const renderLoginPage = () => {
@@ -1394,11 +765,13 @@ const renderDashboard = () => {
 const renderAssetsPage = () => {
   return `
     <div class="page-header">
-      <h1 class="page-title">Assets Library</h1>
-      <p class="page-subtitle">
-        ${state.selectedBrand ? `Brand: ${state.selectedBrand.display_name}` : 'All brands'}
-        ${state.selectedMaterialType ? ` | ${state.selectedMaterialType.display_name}` : ''}
-      </p>
+      <div>
+        <h1 class="page-title">Assets Library</h1>
+        <p class="page-subtitle">
+          ${state.selectedBrand ? `Brand: ${state.selectedBrand.display_name}` : 'All brands'}
+          ${state.selectedMaterialType ? ` | ${state.selectedMaterialType.display_name}` : ''}
+        </p>
+      </div>
       
       ${state.currentUser.role === 'admin' || state.currentUser.role === 'marketing' ? `
         <div class="page-actions">
@@ -1458,9 +831,365 @@ const renderAssetsPage = () => {
   `
 }
 
+const renderUsersPage = () => {
+  return `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">User Management</h1>
+        <p class="page-subtitle">Manage user accounts and permissions</p>
+      </div>
+      
+      <div class="page-actions">
+        <button onclick="openUserModal()" class="btn-primary">
+          <i class="fas fa-user-plus"></i>
+          Add User
+        </button>
+      </div>
+    </div>
+    
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Role</th>
+            <th>Region / Country</th>
+            <th>Distributor</th>
+            <th>Last Login</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${state.users.map(user => `
+            <tr>
+              <td>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <div class="user-avatar-small">
+                    <i class="fas fa-user"></i>
+                  </div>
+                  <div>
+                    <div style="font-weight: 600; color: var(--gray-900);">${user.name}</div>
+                    <div style="font-size: 0.75rem; color: var(--gray-600);">${user.email}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge badge-${user.role}">
+                  ${user.role}
+                </span>
+              </td>
+              <td style="color: var(--gray-700);">
+                ${user.region || 'N/A'} ${user.country ? `/ ${user.country}` : ''}
+              </td>
+              <td style="color: var(--gray-700); font-size: 0.875rem;">
+                ${user.distributor || 'N/A'}
+              </td>
+              <td style="color: var(--gray-600); font-size: 0.875rem;">
+                ${formatDate(user.last_login)}
+              </td>
+              <td>
+                <span class="badge ${user.active ? 'badge-active' : 'badge-inactive'}">
+                  ${user.active ? 'Active' : 'Inactive'}
+                </span>
+              </td>
+              <td>
+                <div style="display: flex; gap: 0.5rem;">
+                  <button 
+                    onclick='openUserModal(${JSON.stringify(user).replace(/"/g, '&quot;')})'
+                    class="icon-btn"
+                    title="Edit user"
+                  >
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button 
+                    onclick="openPasswordModal(${user.id})"
+                    class="icon-btn"
+                    title="View/Change password"
+                  >
+                    <i class="fas fa-key"></i>
+                  </button>
+                  <button 
+                    onclick="handleDeleteUser(${user.id})"
+                    class="icon-btn danger"
+                    title="Delete user"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `
+}
 
-// Actualizar función render principal
-const renderMain = () => {
+const renderUploadModal = () => {
+  if (!uploadModal) return ''
+  
+  return `
+    <div class="modal-overlay" onclick="closeUploadModal()">
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h3 class="modal-title">Upload Asset</h3>
+          <button onclick="closeUploadModal()" class="modal-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <form onsubmit="handleFileUpload(event)" class="modal-body">
+          <div class="form-group">
+            <label class="form-label">File *</label>
+            <input 
+              id="upload-file" 
+              type="file" 
+              required
+              class="form-input"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Title</label>
+            <input 
+              id="upload-title" 
+              type="text" 
+              class="form-input"
+              placeholder="Asset title"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea 
+              id="upload-description" 
+              rows="3"
+              class="form-input"
+              placeholder="Asset description"
+            ></textarea>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Brand *</label>
+              <select id="upload-brand" required class="form-input">
+                <option value="">Select brand</option>
+                ${state.brands.map(brand => `<option value="${brand.id}">${brand.display_name}</option>`).join('')}
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Material Type *</label>
+              <select id="upload-material-type" required class="form-input">
+                <option value="">Select type</option>
+                ${state.materialTypes.map(type => `<option value="${type.id}">${type.display_name}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Region</label>
+              <select id="upload-region" class="form-input">
+                <option value="">Select region</option>
+                <option value="GLOBAL">GLOBAL</option>
+                <option value="USA">USA</option>
+                <option value="LATAM">LATAM</option>
+                <option value="EUROPA">EUROPA</option>
+                <option value="MENA">MENA</option>
+                <option value="ASIA">ASIA</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Country</label>
+              <input id="upload-country" type="text" class="form-input" placeholder="Country" />
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Regulatory</label>
+              <select id="upload-regulatory" class="form-input">
+                <option value="GLOBAL">GLOBAL</option>
+                <option value="EU">EU</option>
+                <option value="NON-EU">NON-EU</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Language</label>
+              <select id="upload-language" class="form-input">
+                <option value="ESP">Español</option>
+                <option value="ENG">English</option>
+                <option value="BRA">Português</option>
+                <option value="RUS">Русский</option>
+              </select>
+            </div>
+          </div>
+          
+          <input type="hidden" id="upload-subbrand" value="" />
+          
+          <div class="modal-footer">
+            <button type="button" onclick="closeUploadModal()" class="btn-secondary">
+              Cancel
+            </button>
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-upload"></i>
+              Upload
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `
+}
+
+const renderUserModal = () => {
+  if (!userModal) return ''
+  
+  return `
+    <div class="modal-overlay" onclick="closeUserModal()">
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h3 class="modal-title">${userModal.id ? 'Edit User' : 'Add User'}</h3>
+          <button onclick="closeUserModal()" class="modal-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <form onsubmit="handleUserSubmit(event)" class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Email *</label>
+              <input id="user-email" type="email" required value="${userModal.email || ''}" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Name *</label>
+              <input id="user-name" type="text" required value="${userModal.name || ''}" class="form-input" />
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Role *</label>
+              <select id="user-role" required class="form-input">
+                <option value="admin" ${userModal.role === 'admin' ? 'selected' : ''}>Admin</option>
+                <option value="marketing" ${userModal.role === 'marketing' ? 'selected' : ''}>Marketing</option>
+                <option value="distributor" ${userModal.role === 'distributor' ? 'selected' : ''}>Distributor</option>
+                <option value="agency" ${userModal.role === 'agency' ? 'selected' : ''}>Agency</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Language</label>
+              <select id="user-language" class="form-input">
+                <option value="ESP" ${userModal.language === 'ESP' ? 'selected' : ''}>Español</option>
+                <option value="ENG" ${userModal.language === 'ENG' ? 'selected' : ''}>English</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Region</label>
+              <input id="user-region" type="text" value="${userModal.region || ''}" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Country</label>
+              <input id="user-country" type="text" value="${userModal.country || ''}" class="form-input" />
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Distributor</label>
+            <input id="user-distributor" type="text" value="${userModal.distributor || ''}" class="form-input" />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Brand Access</label>
+            <div id="user-brands" class="checkbox-grid">
+              ${state.brands.map(brand => `
+                <label class="checkbox-label">
+                  <input type="checkbox" value="${brand.id}" ${(userModal.brands_access || []).includes(brand.id) ? 'checked' : ''} />
+                  <span>${brand.display_name}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+          
+          ${userModal.id ? `
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input id="user-active" type="checkbox" ${userModal.active ? 'checked' : ''} />
+                <span>Active</span>
+              </label>
+            </div>
+          ` : ''}
+          
+          <div class="modal-footer">
+            <button type="button" onclick="closeUserModal()" class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-save"></i>${userModal.id ? 'Update' : 'Create'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `
+}
+
+const renderPasswordModal = () => {
+  if (!passwordModal) return ''
+  
+  return `
+    <div class="modal-overlay" onclick="closePasswordModal()">
+      <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 400px;">
+        <div class="modal-header">
+          <h3 class="modal-title">Manage Password</h3>
+          <button onclick="closePasswordModal()" class="modal-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <form onsubmit="handlePasswordChange(event)" class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Current Password</label>
+            <div style="padding: 0.75rem; background: #f8f9fa; border-radius: 8px; font-family: monospace; font-size: 0.875rem; color: var(--gray-900);">
+              ${passwordModal.currentPassword}
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">New Password</label>
+            <input 
+              id="new-password" 
+              type="text" 
+              required
+              class="form-input"
+              placeholder="Enter new password"
+            />
+          </div>
+          
+          <div class="modal-footer">
+            <button type="button" onclick="closePasswordModal()" class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-save"></i>
+              Update Password
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `
+}
+
+// ============================================
+// Main Render Function
+// ============================================
+
+const render = () => {
   const app = $('#app')
   
   if (state.currentPage === 'login') {
@@ -1489,11 +1218,13 @@ const renderMain = () => {
         ${renderSidebar()}
         <main class="app-content">
           ${pageContent}
-          ${renderUploadModal()}
-          ${renderUserModal()}
         </main>
       </div>
     </div>
+    
+    ${renderUploadModal()}
+    ${renderUserModal()}
+    ${renderPasswordModal()}
     
     ${state.loading ? `
       <div class="loading-overlay">
@@ -1506,6 +1237,11 @@ const renderMain = () => {
   `
 }
 
-// Override render function
-window.render = renderMain
+// ============================================
+// Initialize Application
+// ============================================
 
+document.addEventListener('DOMContentLoaded', async () => {
+  await checkAuth()
+  render()
+})
