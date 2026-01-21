@@ -677,6 +677,43 @@ app.get('/api/public/stats', async (c) => {
   })
 })
 
+// Public request form submission
+app.post('/api/public/request', async (c) => {
+  try {
+    const body = await c.req.json()
+    const { name, email, subject, message, language } = body
+    
+    // Validate required fields
+    if (!name || !email || !subject || !message) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return c.json({ success: false, error: 'Invalid email format' }, 400)
+    }
+    
+    // Insert request into database
+    const result = await c.env.DB.prepare(`
+      INSERT INTO user_requests (name, email, subject, message, language, status, created_at)
+      VALUES (?, ?, ?, ?, ?, 'pending', datetime('now'))
+    `).bind(name, email, subject, message, language || 'en').run()
+    
+    // TODO: Send email notification to admin
+    // This would require email service integration (SendGrid, Mailgun, etc.)
+    
+    return c.json({ 
+      success: true, 
+      message: 'Request submitted successfully',
+      requestId: result.meta.last_row_id 
+    })
+  } catch (error) {
+    console.error('Error submitting request:', error)
+    return c.json({ success: false, error: 'Internal server error' }, 500)
+  }
+})
+
 // ============================================
 // MAIN PAGES
 // ============================================

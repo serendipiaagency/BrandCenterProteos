@@ -49,6 +49,27 @@ const translations = {
       download: 'Download',
       preview: 'Preview'
     },
+    // Request Form
+    requestForm: {
+      headerText: 'Need something specific?',
+      headerLink: 'Fill the form',
+      modalTitle: 'Request Specific Materials',
+      modalSubtitle: 'Tell us what you need and we\'ll get back to you as soon as possible.',
+      name: 'Your Name',
+      namePlaceholder: 'Enter your full name',
+      email: 'Email Address',
+      emailPlaceholder: 'your.email@example.com',
+      subject: 'Subject',
+      subjectPlaceholder: 'Brief description of your request',
+      message: 'Message',
+      messagePlaceholder: 'Please describe in detail what materials or resources you need...',
+      cancel: 'Cancel',
+      submit: 'Submit Request',
+      successTitle: 'Request Sent!',
+      successMessage: 'We have received your request and will get back to you shortly.',
+      errorTitle: 'Error',
+      errorMessage: 'There was an error sending your request. Please try again.'
+    },
     // Footer
     footer: {
       copyright: 'Proteos Biotech. All rights reserved.',
@@ -88,6 +109,27 @@ const translations = {
       noResultsDesc: 'Intenta ajustar tus filtros',
       download: 'Descargar',
       preview: 'Vista previa'
+    },
+    // Request Form
+    requestForm: {
+      headerText: '¿Necesitas algo específico?',
+      headerLink: 'Completa el formulario',
+      modalTitle: 'Solicitar Materiales Específicos',
+      modalSubtitle: 'Cuéntanos qué necesitas y nos pondremos en contacto contigo lo antes posible.',
+      name: 'Tu Nombre',
+      namePlaceholder: 'Ingresa tu nombre completo',
+      email: 'Correo Electrónico',
+      emailPlaceholder: 'tu.email@ejemplo.com',
+      subject: 'Asunto',
+      subjectPlaceholder: 'Breve descripción de tu solicitud',
+      message: 'Mensaje',
+      messagePlaceholder: 'Por favor describe en detalle qué materiales o recursos necesitas...',
+      cancel: 'Cancelar',
+      submit: 'Enviar Solicitud',
+      successTitle: '¡Solicitud Enviada!',
+      successMessage: 'Hemos recibido tu solicitud y nos pondremos en contacto contigo pronto.',
+      errorTitle: 'Error',
+      errorMessage: 'Hubo un error al enviar tu solicitud. Por favor intenta de nuevo.'
     },
     // Footer
     footer: {
@@ -277,6 +319,95 @@ const clearAllFilters = async () => {
 }
 
 // ============================================
+// Request Form Modal Functions
+// ============================================
+
+const openRequestModal = () => {
+  const modal = $('#request-modal')
+  if (modal) {
+    modal.style.display = 'flex'
+    document.body.style.overflow = 'hidden'
+  }
+}
+
+const closeRequestModal = () => {
+  const modal = $('#request-modal')
+  if (modal) {
+    modal.style.display = 'none'
+    document.body.style.overflow = 'auto'
+    // Reset form
+    const form = $('#request-form')
+    if (form) form.reset()
+  }
+}
+
+const submitRequestForm = async (event) => {
+  event.preventDefault()
+  
+  const form = event.target
+  const submitBtn = form.querySelector('button[type="submit"]')
+  const originalText = submitBtn.innerHTML
+  
+  // Get form data
+  const formData = {
+    name: form.name.value,
+    email: form.email.value,
+    subject: form.subject.value,
+    message: form.message.value,
+    language: state.language
+  }
+  
+  try {
+    // Show loading state
+    submitBtn.disabled = true
+    submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${state.language === 'en' ? 'Sending...' : 'Enviando...'}`
+    
+    // Send request to backend
+    const response = await axios.post('/api/public/request', formData)
+    
+    if (response.data.success) {
+      // Show success message
+      showNotification(t('requestForm.successTitle'), t('requestForm.successMessage'), 'success')
+      closeRequestModal()
+    } else {
+      throw new Error('Request failed')
+    }
+  } catch (error) {
+    console.error('Error submitting request:', error)
+    showNotification(t('requestForm.errorTitle'), t('requestForm.errorMessage'), 'error')
+    submitBtn.disabled = false
+    submitBtn.innerHTML = originalText
+  }
+}
+
+const showNotification = (title, message, type = 'success') => {
+  const notification = document.createElement('div')
+  notification.className = `notification notification-${type}`
+  notification.innerHTML = `
+    <div class="notification-content">
+      <div class="notification-icon">
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+      </div>
+      <div class="notification-text">
+        <h4>${title}</h4>
+        <p>${message}</p>
+      </div>
+      <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  `
+  
+  document.body.appendChild(notification)
+  
+  // Auto remove after 5 seconds
+  setTimeout(() => {
+    notification.style.opacity = '0'
+    setTimeout(() => notification.remove(), 300)
+  }, 5000)
+}
+
+// ============================================
 // Rendering Functions
 // ============================================
 
@@ -285,8 +416,8 @@ const renderHeader = () => {
     <header class="brand-header">
       <div class="header-top">
         <div class="header-top-left">
-          ${state.language === 'en' ? 'Need something specific?' : '¿Necesitas algo específico?'} 
-          <strong>${state.language === 'en' ? 'Fill the form' : 'Completa el formulario'}</strong>
+          ${t('requestForm.headerText')} 
+          <strong><a href="#" onclick="openRequestModal(); return false;" class="request-link">${t('requestForm.headerLink')}</a></strong>
         </div>
         <div class="header-top-right">
           <div class="language-selector">
@@ -530,6 +661,99 @@ const renderFooter = () => {
   `
 }
 
+const renderRequestModal = () => {
+  return `
+    <div id="request-modal" class="request-modal">
+      <div class="request-modal-overlay" onclick="closeRequestModal()"></div>
+      <div class="request-modal-content">
+        <button class="request-modal-close" onclick="closeRequestModal()">
+          <i class="fas fa-times"></i>
+        </button>
+        
+        <div class="request-modal-header">
+          <div class="request-modal-icon">
+            <i class="fas fa-envelope"></i>
+          </div>
+          <h2>${t('requestForm.modalTitle')}</h2>
+          <p>${t('requestForm.modalSubtitle')}</p>
+        </div>
+        
+        <form id="request-form" class="request-form" onsubmit="submitRequestForm(event)">
+          <div class="form-group">
+            <label for="request-name">
+              <i class="fas fa-user"></i>
+              ${t('requestForm.name')} <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="request-name" 
+              name="name" 
+              placeholder="${t('requestForm.namePlaceholder')}"
+              required
+              class="form-input"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label for="request-email">
+              <i class="fas fa-envelope"></i>
+              ${t('requestForm.email')} <span class="required">*</span>
+            </label>
+            <input 
+              type="email" 
+              id="request-email" 
+              name="email" 
+              placeholder="${t('requestForm.emailPlaceholder')}"
+              required
+              class="form-input"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label for="request-subject">
+              <i class="fas fa-tag"></i>
+              ${t('requestForm.subject')} <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="request-subject" 
+              name="subject" 
+              placeholder="${t('requestForm.subjectPlaceholder')}"
+              required
+              class="form-input"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label for="request-message">
+              <i class="fas fa-comment-alt"></i>
+              ${t('requestForm.message')} <span class="required">*</span>
+            </label>
+            <textarea 
+              id="request-message" 
+              name="message" 
+              rows="6" 
+              placeholder="${t('requestForm.messagePlaceholder')}"
+              required
+              class="form-textarea"
+            ></textarea>
+          </div>
+          
+          <div class="request-form-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeRequestModal()">
+              ${t('requestForm.cancel')}
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-paper-plane"></i>
+              ${t('requestForm.submit')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `
+}
+
 const render = () => {
   const catalog = $('#catalog')
   
@@ -549,6 +773,7 @@ const render = () => {
     </div>
     
     ${renderFooter()}
+    ${renderRequestModal()}
     
     ${state.loading ? `
       <div class="loading-overlay">
