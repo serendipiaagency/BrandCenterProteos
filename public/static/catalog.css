@@ -252,6 +252,16 @@ body {
   gap: 0.75rem;
 }
 
+/* Filter Count - Total Items */
+.filter-count {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+  margin-left: 0.25rem;
+}
+
 /* Filter Badge - Active Count */
 .filter-badge {
   display: inline-flex;

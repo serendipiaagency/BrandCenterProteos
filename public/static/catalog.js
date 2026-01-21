@@ -461,20 +461,25 @@ const renderSidebar = () => {
     subBrands: state.subBrands.filter(sb => sb.parent_brand_id === brand.id)
   }))
   
+  // Count total items in each filter
+  const totalBrands = state.brands.length
+  const totalMaterialTypes = state.materialTypes.length
+  
   return `
     <aside class="sidebar">
       <!-- Product Lines Filter -->
-      <div id="brands-filter" class="filter-section expanded">
+      <div id="brands-filter" class="filter-section">
         <button class="filter-header" onclick="toggleFilterSection('brands-filter')">
           <div class="filter-header-left">
             <i class="fas fa-tag filter-icon"></i>
             <h3 class="filter-title">${t('filters.productLines')}</h3>
+            <span class="filter-count">(${totalBrands})</span>
             ${state.selectedBrands.length > 0 ? `<span class="filter-badge">${state.selectedBrands.length}</span>` : ''}
           </div>
-          <i id="brands-filter-icon" class="fas fa-chevron-down filter-toggle" style="transform: rotate(180deg);"></i>
+          <i id="brands-filter-icon" class="fas fa-chevron-down filter-toggle"></i>
         </button>
         
-        <div id="brands-filter-content" class="filter-content" style="max-height: 1000px;">
+        <div id="brands-filter-content" class="filter-content">
           <ul class="filter-list">
             ${brandGroups.map(brand => `
               ${brand.subBrands.length > 0 ? `
@@ -518,17 +523,18 @@ const renderSidebar = () => {
       </div>
       
       <!-- Assets Category Filter -->
-      <div id="category-filter" class="filter-section expanded">
+      <div id="category-filter" class="filter-section">
         <button class="filter-header" onclick="toggleFilterSection('category-filter')">
           <div class="filter-header-left">
             <i class="fas fa-folder-open filter-icon"></i>
             <h3 class="filter-title">${t('filters.assetsCategory')}</h3>
+            <span class="filter-count">(${totalMaterialTypes})</span>
             ${state.selectedMaterialTypes.length > 0 ? `<span class="filter-badge">${state.selectedMaterialTypes.length}</span>` : ''}
           </div>
-          <i id="category-filter-icon" class="fas fa-chevron-down filter-toggle" style="transform: rotate(180deg);"></i>
+          <i id="category-filter-icon" class="fas fa-chevron-down filter-toggle"></i>
         </button>
         
-        <div id="category-filter-content" class="filter-content" style="max-height: 1000px;">
+        <div id="category-filter-content" class="filter-content">
           <ul class="filter-list">
             ${state.materialTypes.map(type => {
               // Use translated display name based on language
