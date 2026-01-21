@@ -66,6 +66,47 @@ body {
   color: var(--accent-gold);
 }
 
+/* Language Selector in Header */
+.language-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
+.language-selector i {
+  color: var(--accent-gold);
+  font-size: 1rem;
+}
+
+.language-dropdown,
+.footer-language-dropdown {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-light);
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.language-dropdown:hover,
+.footer-language-dropdown:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--accent-gold);
+}
+
+.language-dropdown option,
+.footer-language-dropdown option {
+  background: var(--primary-navy);
+  color: var(--text-light);
+  padding: 0.5rem;
+}
+
 .header-main {
   padding: 1.5rem 2rem;
   display: flex;
@@ -702,6 +743,76 @@ body {
 }
 
 /* ============================================
+   Footer Styles
+   ============================================ */
+
+.brand-footer {
+  background: linear-gradient(135deg, var(--primary-navy) 0%, var(--primary-dark) 100%);
+  color: var(--text-light);
+  padding: 2rem 0;
+  margin-top: 4rem;
+  border-top: 3px solid var(--accent-gold);
+}
+
+.footer-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.footer-left p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-gray);
+}
+
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.footer-language {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.footer-language i {
+  color: var(--accent-gold);
+  font-size: 1rem;
+}
+
+.footer-language span {
+  color: var(--text-gray);
+  font-weight: 500;
+}
+
+.footer-language-dropdown {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-light);
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.footer-language-dropdown:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--accent-gold);
+}
+
+/* ============================================
    Responsive Design
    ============================================ */
 
@@ -732,5 +843,14 @@ body {
   
   .assets-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .footer-right {
+    flex-direction: column;
   }
 }

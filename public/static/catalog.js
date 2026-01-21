@@ -11,7 +11,114 @@ const state = {
   assets: [],
   selectedBrands: [],
   selectedMaterialTypes: [],
-  loading: false
+  loading: false,
+  language: localStorage.getItem('brandPortalLanguage') || 'en' // Default English
+}
+
+// ============================================
+// Translations
+// ============================================
+
+const translations = {
+  en: {
+    // Header & Navigation
+    brandName: 'PROTEOS BIOTECH',
+    nav: {
+      assetsLibrary: 'Assets Library',
+      brandArchitecture: 'Brand Architecture',
+      brandGuidelines: 'Brand Guidelines',
+      creativeServices: 'Creative Services',
+      search: 'Search',
+      logout: 'Logout'
+    },
+    // Filters
+    filters: {
+      productLines: 'Product Lines',
+      assetsCategory: 'Assets Category',
+      clearAll: 'Clear all'
+    },
+    // Welcome Section
+    welcome: {
+      title: 'Welcome to our Brand Portal',
+      subtitle: 'Find all the files, templates and resources you need.'
+    },
+    // Assets
+    assets: {
+      noResults: 'No assets found',
+      noResultsDesc: 'Try adjusting your filters',
+      download: 'Download',
+      preview: 'Preview'
+    },
+    // Footer
+    footer: {
+      copyright: 'Proteos Biotech. All rights reserved.',
+      language: 'Language'
+    },
+    // Language Selector
+    languageSelector: {
+      english: 'English',
+      spanish: 'Español'
+    }
+  },
+  es: {
+    // Header & Navigation
+    brandName: 'PROTEOS BIOTECH',
+    nav: {
+      assetsLibrary: 'Biblioteca de Recursos',
+      brandArchitecture: 'Arquitectura de Marca',
+      brandGuidelines: 'Guías de Marca',
+      creativeServices: 'Servicios Creativos',
+      search: 'Buscar',
+      logout: 'Salir'
+    },
+    // Filters
+    filters: {
+      productLines: 'Líneas de Producto',
+      assetsCategory: 'Categoría de Recursos',
+      clearAll: 'Limpiar todo'
+    },
+    // Welcome Section
+    welcome: {
+      title: 'Bienvenido a nuestro Portal de Marca',
+      subtitle: 'Encuentra todos los archivos, plantillas y recursos que necesitas.'
+    },
+    // Assets
+    assets: {
+      noResults: 'No se encontraron recursos',
+      noResultsDesc: 'Intenta ajustar tus filtros',
+      download: 'Descargar',
+      preview: 'Vista previa'
+    },
+    // Footer
+    footer: {
+      copyright: 'Proteos Biotech. Todos los derechos reservados.',
+      language: 'Idioma'
+    },
+    // Language Selector
+    languageSelector: {
+      english: 'English',
+      spanish: 'Español'
+    }
+  }
+}
+
+// Get translation
+const t = (key) => {
+  const keys = key.split('.')
+  let value = translations[state.language]
+  
+  for (const k of keys) {
+    value = value?.[k]
+  }
+  
+  return value || key
+}
+
+// Change language
+const changeLanguage = (lang) => {
+  state.language = lang
+  localStorage.setItem('brandPortalLanguage', lang)
+  render()
 }
 
 // ============================================
@@ -178,26 +285,33 @@ const renderHeader = () => {
     <header class="brand-header">
       <div class="header-top">
         <div class="header-top-left">
-          Need something specific? <strong>Fill the form</strong>
+          ${state.language === 'en' ? 'Need something specific?' : '¿Necesitas algo específico?'} 
+          <strong>${state.language === 'en' ? 'Fill the form' : 'Completa el formulario'}</strong>
         </div>
         <div class="header-top-right">
-          <span>English</span>
+          <div class="language-selector">
+            <i class="fas fa-globe"></i>
+            <select id="language-select" onchange="changeLanguage(this.value)" class="language-dropdown">
+              <option value="en" ${state.language === 'en' ? 'selected' : ''}>English</option>
+              <option value="es" ${state.language === 'es' ? 'selected' : ''}>Español</option>
+            </select>
+          </div>
         </div>
       </div>
       
       <div class="header-main">
         <a href="/" class="brand-logo">
           <i class="fas fa-cube" style="font-size: 2rem;"></i>
-          <span>PROTEOS BIOTECH</span>
+          <span>${t('brandName')}</span>
         </a>
         
         <nav class="main-nav">
-          <a href="#" class="active">Assets Library</a>
-          <a href="#">Brand Architecture</a>
-          <a href="#">Brand Guidelines</a>
-          <a href="#">Creative Services</a>
-          <a href="#">Search</a>
-          <a href="/admin">Salir</a>
+          <a href="#" class="active">${t('nav.assetsLibrary')}</a>
+          <a href="#">${t('nav.brandArchitecture')}</a>
+          <a href="#">${t('nav.brandGuidelines')}</a>
+          <a href="#">${t('nav.creativeServices')}</a>
+          <a href="#">${t('nav.search')}</a>
+          <a href="/admin">${t('nav.logout')}</a>
         </nav>
       </div>
     </header>
@@ -235,7 +349,7 @@ const renderSidebar = () => {
         <button class="filter-header" onclick="toggleFilterSection('brands-filter')">
           <div class="filter-header-left">
             <i class="fas fa-tag filter-icon"></i>
-            <h3 class="filter-title">Product Lines</h3>
+            <h3 class="filter-title">${t('filters.productLines')}</h3>
             ${state.selectedBrands.length > 0 ? `<span class="filter-badge">${state.selectedBrands.length}</span>` : ''}
           </div>
           <i id="brands-filter-icon" class="fas fa-chevron-down filter-toggle" style="transform: rotate(180deg);"></i>
@@ -278,7 +392,7 @@ const renderSidebar = () => {
           
           ${state.selectedBrands.length > 0 ? `
             <button class="clear-filters-btn" onclick="clearBrandFilters()">
-              <i class="fas fa-times"></i> Clear all
+              <i class="fas fa-times"></i> ${t('filters.clearAll')}
             </button>
           ` : ''}
         </div>
@@ -289,7 +403,7 @@ const renderSidebar = () => {
         <button class="filter-header" onclick="toggleFilterSection('category-filter')">
           <div class="filter-header-left">
             <i class="fas fa-folder-open filter-icon"></i>
-            <h3 class="filter-title">Assets Category</h3>
+            <h3 class="filter-title">${t('filters.assetsCategory')}</h3>
             ${state.selectedMaterialTypes.length > 0 ? `<span class="filter-badge">${state.selectedMaterialTypes.length}</span>` : ''}
           </div>
           <i id="category-filter-icon" class="fas fa-chevron-down filter-toggle" style="transform: rotate(180deg);"></i>
@@ -297,25 +411,32 @@ const renderSidebar = () => {
         
         <div id="category-filter-content" class="filter-content" style="max-height: 1000px;">
           <ul class="filter-list">
-            ${state.materialTypes.map(type => `
-              <li class="filter-item">
-                <label class="filter-checkbox">
-                  <input 
-                    type="checkbox" 
-                    value="${type.id}"
-                    ${state.selectedMaterialTypes.includes(type.id) ? 'checked' : ''}
-                    onchange="toggleMaterialTypeFilter(${type.id})"
-                  />
-                  <span class="checkbox-custom"></span>
-                  <span class="checkbox-label">${type.display_name}</span>
-                </label>
-              </li>
-            `).join('')}
+            ${state.materialTypes.map(type => {
+              // Use translated display name based on language
+              const displayName = state.language === 'es' && type.display_name_es 
+                ? type.display_name_es 
+                : type.display_name;
+              
+              return `
+                <li class="filter-item">
+                  <label class="filter-checkbox">
+                    <input 
+                      type="checkbox" 
+                      value="${type.id}"
+                      ${state.selectedMaterialTypes.includes(type.id) ? 'checked' : ''}
+                      onchange="toggleMaterialTypeFilter(${type.id})"
+                    />
+                    <span class="checkbox-custom"></span>
+                    <span class="checkbox-label">${displayName}</span>
+                  </label>
+                </li>
+              `
+            }).join('')}
           </ul>
           
           ${state.selectedMaterialTypes.length > 0 ? `
             <button class="clear-filters-btn" onclick="clearCategoryFilters()">
-              <i class="fas fa-times"></i> Clear all
+              <i class="fas fa-times"></i> ${t('filters.clearAll')}
             </button>
           ` : ''}
         </div>
@@ -327,8 +448,8 @@ const renderSidebar = () => {
 const renderWelcome = () => {
   return `
     <div class="welcome-section">
-      <h1 class="welcome-title">Welcome to our Brand Portal</h1>
-      <p class="welcome-subtitle">Find all the files, templates and resources you need.</p>
+      <h1 class="welcome-title">${t('welcome.title')}</h1>
+      <p class="welcome-subtitle">${t('welcome.subtitle')}</p>
     </div>
   `
 }
@@ -338,8 +459,8 @@ const renderAssets = () => {
     return `
       <div class="empty-state">
         <i class="fas fa-folder-open"></i>
-        <h3>No assets found</h3>
-        <p>Try adjusting your filters</p>
+        <h3>${t('assets.noResults')}</h3>
+        <p>${t('assets.noResultsDesc')}</p>
       </div>
     `
   }
@@ -373,10 +494,10 @@ const renderAssets = () => {
               
               <div class="asset-actions">
                 <a href="${asset.file_url}" download class="btn btn-primary">
-                  Download
+                  ${t('assets.download')}
                 </a>
                 <a href="${asset.file_url}" target="_blank" class="btn btn-secondary">
-                  Preview
+                  ${t('assets.preview')}
                 </a>
               </div>
             </div>
@@ -391,7 +512,19 @@ const renderFooter = () => {
   return `
     <footer class="brand-footer">
       <div class="footer-content">
-        <p>Copyright ${new Date().getFullYear()} - Proteos Biotech - Brand Center</p>
+        <div class="footer-left">
+          <p>© ${new Date().getFullYear()} ${t('footer.copyright')}</p>
+        </div>
+        <div class="footer-right">
+          <div class="footer-language">
+            <i class="fas fa-globe"></i>
+            <span>${t('footer.language')}:</span>
+            <select id="footer-language-select" onchange="changeLanguage(this.value)" class="footer-language-dropdown">
+              <option value="en" ${state.language === 'en' ? 'selected' : ''}>${t('languageSelector.english')}</option>
+              <option value="es" ${state.language === 'es' ? 'selected' : ''}>${t('languageSelector.spanish')}</option>
+            </select>
+          </div>
+        </div>
       </div>
     </footer>
   `
