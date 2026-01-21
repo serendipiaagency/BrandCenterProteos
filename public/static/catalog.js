@@ -25,10 +25,6 @@ const translations = {
     brandName: 'PROTEOS BIOTECH',
     nav: {
       assetsLibrary: 'Assets Library',
-      brandArchitecture: 'Brand Architecture',
-      brandGuidelines: 'Brand Guidelines',
-      creativeServices: 'Creative Services',
-      search: 'Search',
       logout: 'Logout'
     },
     // Filters
@@ -86,10 +82,6 @@ const translations = {
     brandName: 'PROTEOS BIOTECH',
     nav: {
       assetsLibrary: 'Biblioteca de Recursos',
-      brandArchitecture: 'Arquitectura de Marca',
-      brandGuidelines: 'Guías de Marca',
-      creativeServices: 'Servicios Creativos',
-      search: 'Buscar',
       logout: 'Salir'
     },
     // Filters
@@ -438,10 +430,6 @@ const renderHeader = () => {
         
         <nav class="main-nav">
           <a href="#" class="active">${t('nav.assetsLibrary')}</a>
-          <a href="#">${t('nav.brandArchitecture')}</a>
-          <a href="#">${t('nav.brandGuidelines')}</a>
-          <a href="#">${t('nav.creativeServices')}</a>
-          <a href="#">${t('nav.search')}</a>
           <a href="/admin">${t('nav.logout')}</a>
         </nav>
       </div>
