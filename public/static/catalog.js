@@ -153,6 +153,22 @@ const toggleMaterialTypeFilter = async (typeId) => {
   await loadAssets()
 }
 
+const clearBrandFilters = async () => {
+  state.selectedBrands = []
+  await loadAssets()
+}
+
+const clearCategoryFilters = async () => {
+  state.selectedMaterialTypes = []
+  await loadAssets()
+}
+
+const clearAllFilters = async () => {
+  state.selectedBrands = []
+  state.selectedMaterialTypes = []
+  await loadAssets()
+}
+
 // ============================================
 // Rendering Functions
 // ============================================
@@ -188,6 +204,23 @@ const renderHeader = () => {
   `
 }
 
+// Toggle filter section collapse
+const toggleFilterSection = (sectionId) => {
+  const section = $(`#${sectionId}`)
+  const icon = $(`#${sectionId}-icon`)
+  const content = $(`#${sectionId}-content`)
+  
+  if (content.style.maxHeight) {
+    content.style.maxHeight = null
+    icon.style.transform = 'rotate(0deg)'
+    section.classList.remove('expanded')
+  } else {
+    content.style.maxHeight = content.scrollHeight + 'px'
+    icon.style.transform = 'rotate(180deg)'
+    section.classList.add('expanded')
+  }
+}
+
 const renderSidebar = () => {
   // Group sub-brands by parent brand
   const brandGroups = state.brands.map(brand => ({
@@ -198,12 +231,35 @@ const renderSidebar = () => {
   return `
     <aside class="sidebar">
       <!-- Product Lines Filter -->
-      <div class="filter-section">
-        <h3 class="filter-title">Product Lines</h3>
-        <ul class="filter-list">
-          ${brandGroups.map(brand => `
-            ${brand.subBrands.length > 0 ? `
-              ${brand.subBrands.map(subBrand => `
+      <div id="brands-filter" class="filter-section expanded">
+        <button class="filter-header" onclick="toggleFilterSection('brands-filter')">
+          <div class="filter-header-left">
+            <i class="fas fa-tag filter-icon"></i>
+            <h3 class="filter-title">Product Lines</h3>
+            ${state.selectedBrands.length > 0 ? `<span class="filter-badge">${state.selectedBrands.length}</span>` : ''}
+          </div>
+          <i id="brands-filter-icon" class="fas fa-chevron-down filter-toggle" style="transform: rotate(180deg);"></i>
+        </button>
+        
+        <div id="brands-filter-content" class="filter-content" style="max-height: 1000px;">
+          <ul class="filter-list">
+            ${brandGroups.map(brand => `
+              ${brand.subBrands.length > 0 ? `
+                ${brand.subBrands.map(subBrand => `
+                  <li class="filter-item">
+                    <label class="filter-checkbox">
+                      <input 
+                        type="checkbox" 
+                        value="${brand.id}"
+                        ${state.selectedBrands.includes(brand.id) ? 'checked' : ''}
+                        onchange="toggleBrandFilter(${brand.id})"
+                      />
+                      <span class="checkbox-custom"></span>
+                      <span class="checkbox-label">${subBrand.display_name}</span>
+                    </label>
+                  </li>
+                `).join('')}
+              ` : `
                 <li class="filter-item">
                   <label class="filter-checkbox">
                     <input 
@@ -212,45 +268,57 @@ const renderSidebar = () => {
                       ${state.selectedBrands.includes(brand.id) ? 'checked' : ''}
                       onchange="toggleBrandFilter(${brand.id})"
                     />
-                    <label>${subBrand.display_name}</label>
+                    <span class="checkbox-custom"></span>
+                    <span class="checkbox-label">${brand.display_name}</span>
                   </label>
                 </li>
-              `).join('')}
-            ` : `
+              `}
+            `).join('')}
+          </ul>
+          
+          ${state.selectedBrands.length > 0 ? `
+            <button class="clear-filters-btn" onclick="clearBrandFilters()">
+              <i class="fas fa-times"></i> Clear all
+            </button>
+          ` : ''}
+        </div>
+      </div>
+      
+      <!-- Assets Category Filter -->
+      <div id="category-filter" class="filter-section expanded">
+        <button class="filter-header" onclick="toggleFilterSection('category-filter')">
+          <div class="filter-header-left">
+            <i class="fas fa-folder-open filter-icon"></i>
+            <h3 class="filter-title">Assets Category</h3>
+            ${state.selectedMaterialTypes.length > 0 ? `<span class="filter-badge">${state.selectedMaterialTypes.length}</span>` : ''}
+          </div>
+          <i id="category-filter-icon" class="fas fa-chevron-down filter-toggle" style="transform: rotate(180deg);"></i>
+        </button>
+        
+        <div id="category-filter-content" class="filter-content" style="max-height: 1000px;">
+          <ul class="filter-list">
+            ${state.materialTypes.map(type => `
               <li class="filter-item">
                 <label class="filter-checkbox">
                   <input 
                     type="checkbox" 
-                    value="${brand.id}"
-                    ${state.selectedBrands.includes(brand.id) ? 'checked' : ''}
-                    onchange="toggleBrandFilter(${brand.id})"
+                    value="${type.id}"
+                    ${state.selectedMaterialTypes.includes(type.id) ? 'checked' : ''}
+                    onchange="toggleMaterialTypeFilter(${type.id})"
                   />
-                  <label>${brand.display_name}</label>
+                  <span class="checkbox-custom"></span>
+                  <span class="checkbox-label">${type.display_name}</span>
                 </label>
               </li>
-            `}
-          `).join('')}
-        </ul>
-      </div>
-      
-      <!-- Assets Category Filter -->
-      <div class="filter-section">
-        <h3 class="filter-title">Assets Category</h3>
-        <ul class="filter-list">
-          ${state.materialTypes.map(type => `
-            <li class="filter-item">
-              <label class="filter-checkbox">
-                <input 
-                  type="checkbox" 
-                  value="${type.id}"
-                  ${state.selectedMaterialTypes.includes(type.id) ? 'checked' : ''}
-                  onchange="toggleMaterialTypeFilter(${type.id})"
-                />
-                <label>${type.display_name}</label>
-              </label>
-            </li>
-          `).join('')}
-        </ul>
+            `).join('')}
+          </ul>
+          
+          ${state.selectedMaterialTypes.length > 0 ? `
+            <button class="clear-filters-btn" onclick="clearCategoryFilters()">
+              <i class="fas fa-times"></i> Clear all
+            </button>
+          ` : ''}
+        </div>
       </div>
     </aside>
   `
