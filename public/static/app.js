@@ -147,6 +147,11 @@ const api = {
     return response.data
   },
   
+  async updateAsset(id, data) {
+    const response = await axios.put(`/api/assets/${id}`, data)
+    return response.data
+  },
+  
   async deleteAsset(id) {
     const response = await axios.delete(`/api/assets/${id}`)
     return response.data
@@ -378,6 +383,7 @@ const selectMaterialType = async (materialType) => {
 // ============================================
 
 let uploadModal = null
+let assetEditModal = null
 
 const openUploadModal = () => {
   uploadModal = true
@@ -387,6 +393,61 @@ const openUploadModal = () => {
 const closeUploadModal = () => {
   uploadModal = null
   render()
+}
+
+const openAssetEditModal = async (assetId) => {
+  try {
+    const asset = state.assets.find(a => a.id === assetId)
+    if (!asset) {
+      showNotification('Asset not found', 'error')
+      return
+    }
+    
+    assetEditModal = { ...asset }
+    render()
+  } catch (error) {
+    console.error('Error opening asset modal:', error)
+    showNotification('Error loading asset', 'error')
+  }
+}
+
+const closeAssetEditModal = () => {
+  assetEditModal = null
+  render()
+}
+
+const handleAssetUpdate = async (e) => {
+  e.preventDefault()
+  
+  try {
+    showLoading()
+    
+    const brandValue = $('#edit-asset-brand').value
+    const materialTypeValue = $('#edit-asset-material-type').value
+    
+    const updateData = {
+      title: $('#edit-asset-title').value,
+      description: $('#edit-asset-description').value,
+      brand_id: brandValue ? parseInt(brandValue) : null,
+      sub_brand_id: $('#edit-asset-subbrand').value ? parseInt($('#edit-asset-subbrand').value) : null,
+      material_type_id: materialTypeValue ? parseInt(materialTypeValue) : null,
+      region: $('#edit-asset-region').value || null,
+      country: $('#edit-asset-country').value || null,
+      regulatory: $('#edit-asset-regulatory').value || 'GLOBAL',
+      language: $('#edit-asset-language').value || 'ENG'
+    }
+    
+    await api.updateAsset(assetEditModal.id, updateData)
+    
+    showNotification('Asset updated successfully!', 'success')
+    closeAssetEditModal()
+    await loadAssets()
+  } catch (error) {
+    console.error('Asset update error:', error)
+    showNotification('Error updating asset', 'error')
+  } finally {
+    hideLoading()
+  }
 }
 
 const handleFileUpload = async (e) => {
@@ -1011,12 +1072,18 @@ const renderAssetsPage = () => {
               </div>
               
               <div class="asset-actions">
-                <a href="${asset.file_url}" download class="btn-download">
+                ${state.currentUser.role === 'admin' || state.currentUser.role === 'marketing' ? `
+                  <button onclick="openAssetEditModal(${asset.id})" class="btn-secondary" style="flex: 1; margin-right: 0.5rem;">
+                    <i class="fas fa-edit"></i>
+                    Edit
+                  </button>
+                ` : ''}
+                <a href="${asset.file_url}" download class="btn-download" style="flex: 1;">
                   <i class="fas fa-download"></i>
                   Download
                 </a>
                 ${state.currentUser.role === 'admin' ? `
-                  <button onclick="handleDeleteAsset(${asset.id})" style="background: #dc2626; color: white; border: none; padding: 0.625rem; border-radius: 8px; cursor: pointer;">
+                  <button onclick="handleDeleteAsset(${asset.id})" style="background: #dc2626; color: white; border: none; padding: 0.625rem; border-radius: 8px; cursor: pointer; margin-left: 0.5rem;">
                     <i class="fas fa-trash"></i>
                   </button>
                 ` : ''}
@@ -1236,6 +1303,157 @@ const renderUploadModal = () => {
             <button type="submit" class="btn-primary">
               <i class="fas fa-upload"></i>
               Upload
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `
+}
+
+const renderAssetEditModal = () => {
+  if (!assetEditModal) return ''
+  
+  return `
+    <div class="modal-overlay" onclick="closeAssetEditModal()">
+      <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 800px;">
+        <div class="modal-header">
+          <h3 class="modal-title">Edit Asset</h3>
+          <button onclick="closeAssetEditModal()" class="modal-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <form onsubmit="handleAssetUpdate(event)" class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Original Filename</label>
+            <input 
+              type="text" 
+              value="${assetEditModal.original_filename}"
+              disabled
+              class="form-input"
+              style="background: #f3f4f6; cursor: not-allowed;"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Title</label>
+            <input 
+              id="edit-asset-title" 
+              type="text" 
+              value="${assetEditModal.title || ''}"
+              class="form-input"
+              placeholder="Asset title"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea 
+              id="edit-asset-description" 
+              rows="3"
+              class="form-input"
+              placeholder="Asset description"
+            >${assetEditModal.description || ''}</textarea>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Brand</label>
+              <select id="edit-asset-brand" class="form-input">
+                <option value="">No brand</option>
+                ${state.brands.map(brand => `
+                  <option value="${brand.id}" ${assetEditModal.brand_id === brand.id ? 'selected' : ''}>
+                    ${brand.display_name}
+                  </option>
+                `).join('')}
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Material Type</label>
+              <select id="edit-asset-material-type" class="form-input">
+                <option value="">No type</option>
+                ${state.materialTypes.map(type => `
+                  <option value="${type.id}" ${assetEditModal.material_type_id === type.id ? 'selected' : ''}>
+                    ${type.display_name}
+                  </option>
+                `).join('')}
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Region</label>
+              <select id="edit-asset-region" class="form-input">
+                <option value="">Select region</option>
+                <option value="GLOBAL" ${assetEditModal.region === 'GLOBAL' ? 'selected' : ''}>GLOBAL</option>
+                <option value="USA" ${assetEditModal.region === 'USA' ? 'selected' : ''}>USA</option>
+                <option value="LATAM" ${assetEditModal.region === 'LATAM' ? 'selected' : ''}>LATAM</option>
+                <option value="EUROPA" ${assetEditModal.region === 'EUROPA' ? 'selected' : ''}>EUROPA</option>
+                <option value="MENA" ${assetEditModal.region === 'MENA' ? 'selected' : ''}>MENA</option>
+                <option value="ASIA" ${assetEditModal.region === 'ASIA' ? 'selected' : ''}>ASIA</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Country</label>
+              <input 
+                id="edit-asset-country" 
+                type="text" 
+                value="${assetEditModal.country || ''}"
+                class="form-input" 
+                placeholder="Country" 
+              />
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Regulatory</label>
+              <select id="edit-asset-regulatory" class="form-input">
+                <option value="GLOBAL" ${assetEditModal.regulatory === 'GLOBAL' ? 'selected' : ''}>GLOBAL</option>
+                <option value="EU" ${assetEditModal.regulatory === 'EU' ? 'selected' : ''}>EU</option>
+                <option value="FDA" ${assetEditModal.regulatory === 'FDA' ? 'selected' : ''}>FDA</option>
+                <option value="COFEPRIS" ${assetEditModal.regulatory === 'COFEPRIS' ? 'selected' : ''}>COFEPRIS</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Language</label>
+              <select id="edit-asset-language" class="form-input">
+                <option value="ENG" ${assetEditModal.language === 'ENG' ? 'selected' : ''}>English</option>
+                <option value="ESP" ${assetEditModal.language === 'ESP' ? 'selected' : ''}>Spanish</option>
+                <option value="FRA" ${assetEditModal.language === 'FRA' ? 'selected' : ''}>French</option>
+                <option value="DEU" ${assetEditModal.language === 'DEU' ? 'selected' : ''}>German</option>
+                <option value="ITA" ${assetEditModal.language === 'ITA' ? 'selected' : ''}>Italian</option>
+                <option value="POR" ${assetEditModal.language === 'POR' ? 'selected' : ''}>Portuguese</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+            <div style="display: flex; gap: 0.5rem; font-size: 0.875rem; color: #6b7280;">
+              <div style="flex: 1;">
+                <strong>File Type:</strong> ${assetEditModal.file_type}
+              </div>
+              <div style="flex: 1;">
+                <strong>File Size:</strong> ${formatFileSize(assetEditModal.file_size)}
+              </div>
+              <div style="flex: 1;">
+                <strong>Created:</strong> ${formatDate(assetEditModal.created_at)}
+              </div>
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button type="button" onclick="closeAssetEditModal()" class="btn-secondary">
+              Cancel
+            </button>
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-save"></i>
+              Save Changes
             </button>
           </div>
         </form>
@@ -1794,6 +2012,7 @@ const render = () => {
     </div>
     
     ${renderUploadModal()}
+    ${renderAssetEditModal()}
     ${renderUserModal()}
     ${renderPasswordModal()}
     ${renderBrandModal()}
