@@ -19,13 +19,13 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: "Manrope", sans-serif !important;
 }
 
 body {
   background-color: var(--bg-light);
   color: #333;
   line-height: 1.6;
+  font-family: "Manrope", sans-serif;
 }
 
 /* ============================================
