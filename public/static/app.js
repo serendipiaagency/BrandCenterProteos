@@ -183,12 +183,17 @@ const api = {
   },
   
   async getUserPassword(userId) {
-    const response = await axios.get(`/api/users/${userId}/password`)
+    const currentUserId = state.currentUser?.id
+    const response = await axios.get(`/api/users/${userId}/password?currentUserId=${currentUserId}`)
     return response.data
   },
   
   async updateUserPassword(userId, newPassword) {
-    const response = await axios.put(`/api/users/${userId}/password`, { new_password: newPassword })
+    const currentUserId = state.currentUser?.id
+    const response = await axios.put(`/api/users/${userId}/password`, { 
+      newPassword: newPassword,
+      currentUserId: currentUserId 
+    })
     return response.data
   },
   
