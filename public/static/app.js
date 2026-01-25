@@ -303,11 +303,8 @@ const loadInitialData = async () => {
     state.brands = brands
     state.materialTypes = materialTypes
     
-    // Load assets for first brand if available
-    if (brands.length > 0) {
-      state.selectedBrand = brands[0]
-      await loadAssets()
-    }
+    // Load all assets by default (no filters)
+    await loadAssets()
   } catch (error) {
     console.error('Error loading data:', error)
     showNotification('Error loading data', 'error')
@@ -410,6 +407,9 @@ const handleFileUpload = async (e) => {
     const uploadResult = await api.uploadFile(file)
     
     // Create asset record
+    const brandValue = $('#upload-brand').value
+    const materialTypeValue = $('#upload-material-type').value
+    
     const assetData = {
       filename: uploadResult.filename,
       original_filename: file.name,
@@ -418,13 +418,13 @@ const handleFileUpload = async (e) => {
       file_type: uploadResult.fileType,
       file_size: uploadResult.fileSize,
       file_url: uploadResult.fileUrl,
-      brand_id: parseInt($('#upload-brand').value),
+      brand_id: brandValue ? parseInt(brandValue) : null,
       sub_brand_id: $('#upload-subbrand').value ? parseInt($('#upload-subbrand').value) : null,
-      material_type_id: parseInt($('#upload-material-type').value),
-      region: $('#upload-region').value,
-      country: $('#upload-country').value,
-      regulatory: $('#upload-regulatory').value,
-      language: $('#upload-language').value,
+      material_type_id: materialTypeValue ? parseInt(materialTypeValue) : null,
+      region: $('#upload-region').value || null,
+      country: $('#upload-country').value || null,
+      regulatory: $('#upload-regulatory').value || 'GLOBAL',
+      language: $('#upload-language').value || 'ENG',
       created_by: state.currentUser.id
     }
     
