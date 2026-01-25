@@ -605,7 +605,7 @@ app.get('/api/public/assets', async (c) => {
       b.display_name as brand_name,
       b.color as brand_color,
       sb.display_name as sub_brand_name,
-      mt.display_name as material_type_name,
+      mt.display_name_en as material_type_name,
       mt.icon as material_type_icon
     FROM assets a
     LEFT JOIN brands b ON a.brand_id = b.id
