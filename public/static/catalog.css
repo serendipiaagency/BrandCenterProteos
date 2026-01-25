@@ -375,6 +375,18 @@ body {
 .filter-item {
   margin-bottom: 0.35rem;
   animation: fadeInUp 0.3s ease-out backwards;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.filter-item.selected {
+  background: linear-gradient(135deg, rgba(245, 200, 66, 0.15), rgba(245, 200, 66, 0.08));
+  border: 1px solid rgba(245, 200, 66, 0.3);
+}
+
+.filter-item:hover {
+  background: rgba(245, 200, 66, 0.05);
 }
 
 .filter-item:nth-child(n) {

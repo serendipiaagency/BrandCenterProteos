@@ -481,16 +481,19 @@ const renderSidebar = () => {
         
         <div id="brands-filter-content" class="filter-content">
           <ul class="filter-list">
-            ${brandGroups.map(brand => `
+            ${brandGroups.map(brand => {
+              const isSelected = state.selectedBrands.includes(brand.id);
+              
+              return `
               ${brand.subBrands.length > 0 ? `
                 ${brand.subBrands.map(subBrand => `
-                  <li class="filter-item">
+                  <li class="filter-item ${isSelected ? 'selected' : ''}" onclick="toggleBrandFilter(${brand.id})">
                     <label class="filter-checkbox">
                       <input 
                         type="checkbox" 
                         value="${brand.id}"
-                        ${state.selectedBrands.includes(brand.id) ? 'checked' : ''}
-                        onchange="toggleBrandFilter(${brand.id})"
+                        ${isSelected ? 'checked' : ''}
+                        onchange="event.stopPropagation(); toggleBrandFilter(${brand.id})"
                       />
                       <span class="checkbox-custom"></span>
                       <span class="checkbox-label">${subBrand.display_name}</span>
@@ -498,20 +501,20 @@ const renderSidebar = () => {
                   </li>
                 `).join('')}
               ` : `
-                <li class="filter-item">
+                <li class="filter-item ${isSelected ? 'selected' : ''}" onclick="toggleBrandFilter(${brand.id})">
                   <label class="filter-checkbox">
                     <input 
                       type="checkbox" 
                       value="${brand.id}"
-                      ${state.selectedBrands.includes(brand.id) ? 'checked' : ''}
-                      onchange="toggleBrandFilter(${brand.id})"
+                      ${isSelected ? 'checked' : ''}
+                      onchange="event.stopPropagation(); toggleBrandFilter(${brand.id})"
                     />
                     <span class="checkbox-custom"></span>
                     <span class="checkbox-label">${brand.display_name}</span>
                   </label>
                 </li>
               `}
-            `).join('')}
+            `}).join('')}
           </ul>
           
           ${state.selectedBrands.length > 0 ? `
@@ -542,14 +545,16 @@ const renderSidebar = () => {
                 ? type.display_name_es 
                 : type.display_name;
               
+              const isSelected = state.selectedMaterialTypes.includes(type.id);
+              
               return `
-                <li class="filter-item">
+                <li class="filter-item ${isSelected ? 'selected' : ''}" onclick="toggleMaterialTypeFilter(${type.id})">
                   <label class="filter-checkbox">
                     <input 
                       type="checkbox" 
                       value="${type.id}"
-                      ${state.selectedMaterialTypes.includes(type.id) ? 'checked' : ''}
-                      onchange="toggleMaterialTypeFilter(${type.id})"
+                      ${isSelected ? 'checked' : ''}
+                      onchange="event.stopPropagation(); toggleMaterialTypeFilter(${type.id})"
                     />
                     <span class="checkbox-custom"></span>
                     <span class="checkbox-label">${displayName}</span>
