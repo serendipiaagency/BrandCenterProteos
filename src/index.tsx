@@ -405,33 +405,35 @@ app.put('/api/assets/:id', async (c) => {
   const id = c.req.param('id')
   const data = await c.req.json()
   
-  await c.env.DB.prepare(`
-    UPDATE assets SET
-      title = ?,
-      description = ?,
-      brand_id = ?,
-      sub_brand_id = ?,
-      material_type_id = ?,
-      region = ?,
-      country = ?,
-      regulatory = ?,
-      language = ?,
-      updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `).bind(
-    data.title,
-    data.description,
-    data.brand_id,
-    data.sub_brand_id,
-    data.material_type_id,
-    data.region,
-    data.country,
-    data.regulatory,
-    data.language,
-    id
-  ).run()
-  
-  return c.json({ success: true })
+  try {
+    const result = await c.env.DB.prepare(`
+      UPDATE assets SET
+        title = ?,
+        description = ?,
+        brand_id = ?,
+        material_type_id = ?,
+        region = ?,
+        country = ?,
+        regulatory = ?,
+        language = ?
+      WHERE id = ?
+    `).bind(
+      data.title,
+      data.description,
+      data.brand_id,
+      data.material_type_id,
+      data.region,
+      data.country,
+      data.regulatory,
+      data.language,
+      id
+    ).run()
+    
+    return c.json({ success: true, changes: result.meta.changes })
+  } catch (error: any) {
+    console.error('Error updating asset:', error)
+    return c.json({ error: 'Failed to update asset', message: error.message }, 500)
+  }
 })
 
 app.delete('/api/assets/:id', async (c) => {

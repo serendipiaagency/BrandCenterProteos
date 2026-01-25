@@ -429,7 +429,6 @@ const handleAssetUpdate = async (e) => {
       title: $('#edit-asset-title').value,
       description: $('#edit-asset-description').value,
       brand_id: brandValue ? parseInt(brandValue) : null,
-      sub_brand_id: $('#edit-asset-subbrand').value ? parseInt($('#edit-asset-subbrand').value) : null,
       material_type_id: materialTypeValue ? parseInt(materialTypeValue) : null,
       region: $('#edit-asset-region').value || null,
       country: $('#edit-asset-country').value || null,
