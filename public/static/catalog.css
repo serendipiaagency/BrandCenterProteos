@@ -549,33 +549,33 @@ body {
 /* Filter Actions Container */
 .filter-actions {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0 0 1rem 0;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 0.75rem 0.75rem 0.75rem;
   margin-bottom: 0.5rem;
   border-bottom: 1px solid rgba(0, 47, 86, 0.1);
 }
 
 /* Clear All Button - Top Position */
 .clear-filters-btn-top {
-  flex: 1;
-  padding: 0.65rem 1rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
   background: linear-gradient(135deg, var(--corporate-blue) 0%, var(--corporate-blue-light) 100%);
   border: none;
   border-radius: 8px;
   color: white;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   box-shadow: 0 2px 8px rgba(0, 47, 86, 0.15);
+  white-space: nowrap;
 }
 
 .clear-filters-btn-top:hover {
@@ -590,7 +590,7 @@ body {
 }
 
 .clear-filters-btn-top i {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   transition: transform 0.3s ease;
 }
 
@@ -602,19 +602,20 @@ body {
 .all-selected-badge {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.75rem;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.5rem;
   background: rgba(34, 197, 94, 0.1);
   border: 1px solid rgba(34, 197, 94, 0.3);
   border-radius: 6px;
   color: #16a34a;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   white-space: nowrap;
 }
 
 .all-selected-badge i {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
 }
 
 /* ============================================
@@ -1527,3 +1528,54 @@ body {
     width: 100%;
     min-width: 100%;
   }
+
+/* ============================================
+   Responsive Filter Actions
+   ============================================ */
+
+@media (max-width: 768px) {
+  .filter-actions {
+    padding: 0 0.5rem 0.5rem 0.5rem;
+  }
+  
+  .clear-filters-btn-top {
+    font-size: 0.7rem;
+    padding: 0.5rem 0.5rem;
+    gap: 0.3rem;
+  }
+  
+  .clear-filters-btn-top i {
+    font-size: 0.75rem;
+  }
+  
+  .all-selected-badge {
+    font-size: 0.65rem;
+    padding: 0.3rem 0.4rem;
+    gap: 0.3rem;
+  }
+  
+  .all-selected-badge i {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar-narrow {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .filter-actions {
+    padding: 0 0.5rem 0.5rem 0.5rem;
+  }
+  
+  .clear-filters-btn-top {
+    font-size: 0.65rem;
+    padding: 0.45rem 0.4rem;
+  }
+  
+  .all-selected-badge {
+    font-size: 0.6rem;
+    padding: 0.25rem 0.35rem;
+  }
+}
