@@ -440,6 +440,12 @@ const handleAssetUpdate = async (e) => {
     
     showNotification('Asset updated successfully!', 'success')
     closeAssetEditModal()
+    
+    // Clear filters to show the updated asset
+    state.selectedBrand = null
+    state.selectedSubBrand = null
+    state.selectedMaterialType = null
+    
     await loadAssets()
   } catch (error) {
     console.error('Asset update error:', error)
