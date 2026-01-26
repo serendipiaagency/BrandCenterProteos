@@ -233,40 +233,46 @@ const loadInitialData = async () => {
 
 const loadAssets = async () => {
   try {
-    // Build filters object
-    const filters = {}
-    
-    // If no filters selected, load all assets
-    if (state.selectedBrands.length === 0 && state.selectedMaterialTypes.length === 0) {
-      state.assets = await api.getAssets()
-      render()
-      return
-    }
+    console.log('🔄 Loading assets with filters:', {
+      brands: state.selectedBrands.length,
+      materialTypes: state.selectedMaterialTypes.length
+    })
     
     // Load all assets first
     const allAssets = await api.getAssets()
+    console.log('📦 Total assets loaded:', allAssets.length)
     
     // Apply filters client-side for better UX
     let filteredAssets = allAssets
     
-    // Filter by brands
+    // Filter by brands (only if some brands are selected, not all)
     if (state.selectedBrands.length > 0) {
       filteredAssets = filteredAssets.filter(asset => 
         state.selectedBrands.includes(asset.brand_id)
       )
+      console.log('🏷️  After brand filter:', filteredAssets.length, 'assets')
     }
     
-    // Filter by material types
-    if (state.selectedMaterialTypes.length > 0) {
+    // Filter by material types (only if some types are selected, not all or none)
+    // If ALL material types are selected, don't filter (show all)
+    if (state.selectedMaterialTypes.length > 0 && state.selectedMaterialTypes.length < state.materialTypes.length) {
       filteredAssets = filteredAssets.filter(asset => 
         state.selectedMaterialTypes.includes(asset.material_type_id)
       )
+      console.log('📁 After material type filter:', filteredAssets.length, 'assets')
+    }
+    
+    // If NO material types are selected, show empty
+    if (state.selectedMaterialTypes.length === 0) {
+      filteredAssets = []
+      console.log('⚠️  No material types selected, showing empty')
     }
     
     state.assets = filteredAssets
+    console.log('✅ Final assets to display:', state.assets.length)
     render()
   } catch (error) {
-    console.error('Error loading assets:', error)
+    console.error('❌ Error loading assets:', error)
     showNotification('Error loading assets', 'error')
   }
 }
