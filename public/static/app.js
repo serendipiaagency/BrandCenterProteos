@@ -16,7 +16,11 @@ const state = {
   loading: false,
   // Bulk edit state
   selectedAssets: [],  // Array of selected asset IDs
-  bulkEditMode: false  // Toggle bulk edit mode
+  bulkEditMode: false,  // Toggle bulk edit mode
+  // Password reset state
+  showForgotPasswordModal: false,
+  showResetPasswordForm: false,
+  resetToken: null
 }
 
 // ============================================
@@ -287,6 +291,92 @@ const handleLogout = () => {
   state.currentPage = 'login'
   localStorage.removeItem('userId')
   render()
+}
+
+const handleForgotPassword = async (e) => {
+  e.preventDefault()
+  
+  const email = $('#forgot-email').value.trim()
+  
+  if (!email) {
+    showNotification('Por favor ingresa tu email', 'error')
+    return
+  }
+  
+  try {
+    showLoading()
+    const response = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    })
+    
+    const result = await response.json()
+    
+    if (result.success) {
+      showNotification('✅ Si el email existe, recibirás instrucciones para recuperar tu contraseña', 'success')
+      state.showForgotPasswordModal = false
+      render()
+    } else {
+      showNotification('Error al procesar la solicitud', 'error')
+    }
+  } catch (error) {
+    console.error('Forgot password error:', error)
+    showNotification('Error al enviar la solicitud', 'error')
+  } finally {
+    hideLoading()
+  }
+}
+
+const handleResetPassword = async (e) => {
+  e.preventDefault()
+  
+  const newPassword = $('#new-password').value
+  const confirmPassword = $('#confirm-password').value
+  
+  if (!newPassword || !confirmPassword) {
+    showNotification('Por favor completa todos los campos', 'error')
+    return
+  }
+  
+  if (newPassword.length < 6) {
+    showNotification('La contraseña debe tener al menos 6 caracteres', 'error')
+    return
+  }
+  
+  if (newPassword !== confirmPassword) {
+    showNotification('Las contraseñas no coinciden', 'error')
+    return
+  }
+  
+  try {
+    showLoading()
+    const response = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        token: state.resetToken, 
+        newPassword 
+      })
+    })
+    
+    const result = await response.json()
+    
+    if (result.success) {
+      showNotification('✅ Contraseña actualizada exitosamente', 'success')
+      state.showResetPasswordForm = false
+      state.resetToken = null
+      state.currentPage = 'login'
+      render()
+    } else {
+      showNotification(result.message || 'Error al actualizar la contraseña', 'error')
+    }
+  } catch (error) {
+    console.error('Reset password error:', error)
+    showNotification('Error al actualizar la contraseña', 'error')
+  } finally {
+    hideLoading()
+  }
 }
 
 const checkAuth = async () => {
@@ -1147,6 +1237,12 @@ const renderLoginPage = () => {
               <i class="fas fa-sign-in-alt"></i>
               Sign In
             </button>
+            
+            <div style="text-align: center; margin-top: 1rem;">
+              <a href="#" onclick="state.showForgotPasswordModal = true; render(); return false;" style="color: #0066cc; text-decoration: none; font-size: 0.875rem;">
+                <i class="fas fa-key"></i> ¿Olvidaste tu contraseña?
+              </a>
+            </div>
           </form>
           
           <div class="login-footer">
@@ -1886,6 +1982,130 @@ const renderBulkEditModal = () => {
   `
 }
 
+const renderForgotPasswordModal = () => {
+  if (!state.showForgotPasswordModal) return ''
+  
+  return `
+    <div class="modal-overlay" onclick="state.showForgotPasswordModal = false; render()">
+      <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 500px;">
+        <div class="modal-header">
+          <h3 class="modal-title">
+            <i class="fas fa-key"></i>
+            Recuperar Contraseña
+          </h3>
+          <button onclick="state.showForgotPasswordModal = false; render()" class="modal-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <form onsubmit="handleForgotPassword(event)">
+          <div class="modal-body">
+            <p style="color: #6b7280; margin-bottom: 1.5rem; font-size: 0.875rem;">
+              Ingresa tu email y recibirás instrucciones para recuperar tu contraseña.
+            </p>
+            
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-envelope"></i>
+                Email
+              </label>
+              <input 
+                id="forgot-email" 
+                type="email" 
+                required
+                class="form-input"
+                placeholder="tu@email.com"
+                autocomplete="email"
+              />
+            </div>
+            
+            <div style="background: #e0f2fe; border: 1px solid #0284c7; border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+              <div style="display: flex; align-items: start; gap: 0.75rem;">
+                <i class="fas fa-info-circle" style="color: #0369a1; margin-top: 0.125rem;"></i>
+                <div style="font-size: 0.875rem; color: #075985;">
+                  Por seguridad, recibirás el mismo mensaje sin importar si el email existe o no.
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button type="button" onclick="state.showForgotPasswordModal = false; render()" class="btn-secondary">
+              Cancelar
+            </button>
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-paper-plane"></i>
+              Enviar Instrucciones
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `
+}
+
+const renderResetPasswordForm = () => {
+  if (!state.showResetPasswordForm) return ''
+  
+  return `
+    <div class="login-page">
+      <div class="login-container">
+        <div class="login-card">
+          <div class="login-header">
+            <div class="login-logo-placeholder" style="text-align: center; margin-bottom: 1.5rem;">
+              <i class="fas fa-key" style="font-size: 4rem; color: #0066cc;"></i>
+            </div>
+            <h1 class="login-title">Nueva Contraseña</h1>
+            <p class="login-subtitle">Ingresa tu nueva contraseña</p>
+          </div>
+          
+          <form onsubmit="handleResetPassword(event)">
+            <div class="form-group">
+              <label class="form-label">Nueva Contraseña</label>
+              <input 
+                id="new-password" 
+                type="password" 
+                required
+                minlength="6"
+                class="form-input"
+                placeholder="••••••••"
+                autocomplete="new-password"
+              />
+              <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem;">
+                Mínimo 6 caracteres
+              </p>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Confirmar Contraseña</label>
+              <input 
+                id="confirm-password" 
+                type="password" 
+                required
+                minlength="6"
+                class="form-input"
+                placeholder="••••••••"
+                autocomplete="new-password"
+              />
+            </div>
+            
+            <button type="submit" class="btn-login">
+              <i class="fas fa-check"></i>
+              Actualizar Contraseña
+            </button>
+          </form>
+          
+          <div class="login-footer">
+            <a href="/" onclick="state.showResetPasswordForm = false; state.resetToken = null; state.currentPage = 'login'; render(); return false;" style="color: #0066cc; text-decoration: none;">
+              <i class="fas fa-arrow-left"></i> Volver al login
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  `
+}
+
 const renderUserModal = () => {
   if (!userModal) return ''
   
@@ -2404,6 +2624,11 @@ const render = () => {
     return
   }
   
+  if (state.currentPage === 'reset-password') {
+    app.innerHTML = renderResetPasswordForm()
+    return
+  }
+  
   let pageContent = ''
   
   switch (state.currentPage) {
@@ -2438,6 +2663,8 @@ const render = () => {
     ${renderUploadModal()}
     ${renderAssetEditModal()}
     ${renderBulkEditModal()}
+    ${renderForgotPasswordModal()}
+    ${renderResetPasswordForm()}
     ${renderUserModal()}
     ${renderPasswordModal()}
     ${renderBrandModal()}
@@ -2459,6 +2686,29 @@ const render = () => {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Check for password reset token in URL
+  const urlParams = new URLSearchParams(window.location.search)
+  const resetToken = urlParams.get('token')
+  
+  if (resetToken) {
+    // Validate token and show reset password form
+    try {
+      const response = await fetch(`/api/auth/verify-reset-token?token=${resetToken}`)
+      const result = await response.json()
+      
+      if (result.valid) {
+        state.resetToken = resetToken
+        state.showResetPasswordForm = true
+        state.currentPage = 'reset-password'
+      } else {
+        showNotification('❌ El enlace de recuperación es inválido o ha expirado', 'error')
+      }
+    } catch (error) {
+      console.error('Token validation error:', error)
+      showNotification('Error al validar el enlace', 'error')
+    }
+  }
+  
   await checkAuth()
   render()
 })

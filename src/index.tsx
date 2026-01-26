@@ -93,6 +93,151 @@ app.get('/api/auth/session', async (c) => {
   })
 })
 
+// Password Reset - Request token
+app.post('/api/auth/forgot-password', async (c) => {
+  try {
+    const { email } = await c.req.json()
+    
+    if (!email) {
+      return c.json({ error: 'Email is required' }, 400)
+    }
+    
+    // Check if user exists
+    const user = await c.env.DB.prepare(`
+      SELECT id, email, name FROM users WHERE email = ? AND active = 1
+    `).bind(email).first()
+    
+    if (!user) {
+      // Don't reveal if email exists or not (security)
+      return c.json({ 
+        success: true, 
+        message: 'If the email exists, a password reset link has been sent.' 
+      })
+    }
+    
+    // Generate reset token (random string)
+    const token = Math.random().toString(36).substring(2) + Date.now().toString(36) + Math.random().toString(36).substring(2)
+    
+    // Token expires in 1 hour
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString()
+    
+    // Save token to database
+    await c.env.DB.prepare(`
+      INSERT INTO password_reset_tokens (user_id, token, expires_at)
+      VALUES (?, ?, ?)
+    `).bind(user.id, token, expiresAt).run()
+    
+    // In production, send email with reset link
+    // For now, we'll return the token in the response (DEV ONLY)
+    console.log(`🔑 Password reset token for ${email}: ${token}`)
+    console.log(`🔗 Reset link: /reset-password?token=${token}`)
+    
+    // Log activity
+    await c.env.DB.prepare(`
+      INSERT INTO activity_log (user_id, action, details) 
+      VALUES (?, 'password_reset_requested', ?)
+    `).bind(user.id, JSON.stringify({ email })).run()
+    
+    return c.json({ 
+      success: true, 
+      message: 'Password reset instructions have been sent to your email.',
+      // DEV ONLY: Include token in response
+      dev_token: token,
+      dev_reset_link: `/reset-password?token=${token}`
+    })
+    
+  } catch (error: any) {
+    console.error('❌ Error in forgot-password:', error)
+    return c.json({ error: 'Failed to process request' }, 500)
+  }
+})
+
+// Password Reset - Verify token
+app.get('/api/auth/verify-reset-token', async (c) => {
+  try {
+    const token = c.req.query('token')
+    
+    if (!token) {
+      return c.json({ valid: false, error: 'Token is required' }, 400)
+    }
+    
+    // Check if token exists and is valid
+    const resetToken = await c.env.DB.prepare(`
+      SELECT prt.*, u.email, u.name 
+      FROM password_reset_tokens prt
+      JOIN users u ON prt.user_id = u.id
+      WHERE prt.token = ? AND prt.used = 0 AND prt.expires_at > datetime('now')
+    `).bind(token).first()
+    
+    if (!resetToken) {
+      return c.json({ valid: false, error: 'Invalid or expired token' })
+    }
+    
+    return c.json({ 
+      valid: true,
+      email: resetToken.email,
+      name: resetToken.name
+    })
+    
+  } catch (error: any) {
+    console.error('❌ Error verifying token:', error)
+    return c.json({ valid: false, error: 'Failed to verify token' }, 500)
+  }
+})
+
+// Password Reset - Set new password
+app.post('/api/auth/reset-password', async (c) => {
+  try {
+    const { token, newPassword } = await c.req.json()
+    
+    if (!token || !newPassword) {
+      return c.json({ error: 'Token and new password are required' }, 400)
+    }
+    
+    if (newPassword.length < 6) {
+      return c.json({ error: 'Password must be at least 6 characters' }, 400)
+    }
+    
+    // Check if token is valid
+    const resetToken = await c.env.DB.prepare(`
+      SELECT * FROM password_reset_tokens 
+      WHERE token = ? AND used = 0 AND expires_at > datetime('now')
+    `).bind(token).first()
+    
+    if (!resetToken) {
+      return c.json({ error: 'Invalid or expired token' }, 400)
+    }
+    
+    // Update user password
+    // In production: hash with bcrypt
+    await c.env.DB.prepare(`
+      UPDATE users SET password_hash = ? WHERE id = ?
+    `).bind(newPassword, resetToken.user_id).run()
+    
+    // Mark token as used
+    await c.env.DB.prepare(`
+      UPDATE password_reset_tokens SET used = 1 WHERE token = ?
+    `).bind(token).run()
+    
+    // Log activity
+    await c.env.DB.prepare(`
+      INSERT INTO activity_log (user_id, action, details) 
+      VALUES (?, 'password_reset_completed', ?)
+    `).bind(resetToken.user_id, JSON.stringify({ token_id: resetToken.id })).run()
+    
+    console.log(`✅ Password reset successful for user ID: ${resetToken.user_id}`)
+    
+    return c.json({ 
+      success: true, 
+      message: 'Password has been reset successfully. You can now login with your new password.' 
+    })
+    
+  } catch (error: any) {
+    console.error('❌ Error resetting password:', error)
+    return c.json({ error: 'Failed to reset password' }, 500)
+  }
+})
+
 // ============================================
 // API ROUTES - Users Management
 // ============================================
