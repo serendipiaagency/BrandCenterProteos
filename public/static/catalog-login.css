@@ -256,7 +256,10 @@ body {
 .image-placeholder {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #002f56 0%, #003d70 50%, #0052a3 100%);
+  background-image: url('https://pub-e2645b5e04fb495db08b896c439dd18d.r2.dev/PBSerum/LandingPage/Slider%20principal.PNG');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
