@@ -457,8 +457,7 @@ const renderHeader = () => {
     <header class="brand-header">
       <div class="header-top">
         <div class="header-top-left">
-          ${t('requestForm.headerText')} 
-          <strong><a href="#" onclick="openRequestModal(); return false;" class="request-link">${t('requestForm.headerLink')}</a></strong>
+          <!-- OCULTO: Need something specific? Fill the form -->
         </div>
         <div class="header-top-right">
           <div class="language-selector">
