@@ -324,6 +324,7 @@ app.get('/api/assets', async (c) => {
   const subBrandId = c.req.query('sub_brand_id')
   const materialTypeId = c.req.query('material_type_id')
   const search = c.req.query('search')
+  const userId = c.req.query('userId')  // For brand permissions
   
   let query = `
     SELECT a.*, 
@@ -367,6 +368,23 @@ app.get('/api/assets', async (c) => {
   const stmt = c.env.DB.prepare(query)
   const { results } = await (params.length > 0 ? stmt.bind(...params) : stmt).all()
   
+  // Get user's brands_access if userId provided
+  let userBrandsAccess: number[] = []
+  if (userId) {
+    const user = await c.env.DB.prepare(`
+      SELECT brands_access, role FROM users WHERE id = ? AND active = 1
+    `).bind(userId).first()
+    
+    if (user) {
+      // Admin has access to all brands
+      if (user.role === 'admin') {
+        userBrandsAccess = [] // Empty means all brands
+      } else if (user.brands_access) {
+        userBrandsAccess = JSON.parse(user.brands_access as string)
+      }
+    }
+  }
+  
   // For each asset, fetch its associated brand_ids from asset_brands table
   const assetsWithBrands = await Promise.all(
     (results as any[]).map(async (asset) => {
@@ -381,7 +399,22 @@ app.get('/api/assets', async (c) => {
     })
   )
   
-  return c.json({ assets: assetsWithBrands })
+  // Filter assets based on user's brands_access
+  let filteredAssets = assetsWithBrands
+  
+  if (userId && userBrandsAccess.length > 0) {
+    // Filter: asset must have at least one brand_id in user's brands_access
+    filteredAssets = assetsWithBrands.filter((asset: any) => {
+      // If asset has brand_ids, check if any matches user's access
+      if (asset.brand_ids && asset.brand_ids.length > 0) {
+        return asset.brand_ids.some((brandId: number) => userBrandsAccess.includes(brandId))
+      }
+      // Fallback to old brand_id field
+      return asset.brand_id && userBrandsAccess.includes(asset.brand_id)
+    })
+  }
+  
+  return c.json({ assets: filteredAssets })
 })
 
 app.post('/api/assets', async (c) => {
@@ -536,6 +569,127 @@ app.put('/api/assets/:id', async (c) => {
     console.error('❌ Error updating asset:', error.message)
     console.error('Stack:', error.stack)
     return c.json({ error: 'Failed to update asset', message: error.message }, 500)
+  }
+})
+
+// Bulk edit assets
+app.post('/api/assets/bulk-edit', async (c) => {
+  try {
+    const data = await c.req.json()
+    const { asset_ids, operation, brand_ids } = data
+    
+    console.log('🔧 Bulk edit operation:', operation)
+    console.log('📦 Assets:', asset_ids)
+    console.log('🏷️  Brands:', brand_ids)
+    
+    if (!asset_ids || !Array.isArray(asset_ids) || asset_ids.length === 0) {
+      return c.json({ error: 'asset_ids is required and must be a non-empty array' }, 400)
+    }
+    
+    if (!operation) {
+      return c.json({ error: 'operation is required' }, 400)
+    }
+    
+    if (!brand_ids || !Array.isArray(brand_ids) || brand_ids.length === 0) {
+      return c.json({ error: 'brand_ids is required and must be a non-empty array' }, 400)
+    }
+    
+    let updatedCount = 0
+    
+    if (operation === 'set_brands') {
+      // Replace all brands with the new ones
+      for (const assetId of asset_ids) {
+        // Update primary brand_id for backward compatibility
+        await c.env.DB.prepare(`
+          UPDATE assets SET brand_id = ? WHERE id = ?
+        `).bind(brand_ids[0], assetId).run()
+        
+        // Delete existing brand associations
+        await c.env.DB.prepare(`
+          DELETE FROM asset_brands WHERE asset_id = ?
+        `).bind(assetId).run()
+        
+        // Insert new brand associations
+        for (const brandId of brand_ids) {
+          await c.env.DB.prepare(`
+            INSERT OR IGNORE INTO asset_brands (asset_id, brand_id)
+            VALUES (?, ?)
+          `).bind(assetId, brandId).run()
+        }
+        updatedCount++
+      }
+      
+    } else if (operation === 'add_brands') {
+      // Add brands to existing ones (no duplicates)
+      for (const assetId of asset_ids) {
+        for (const brandId of brand_ids) {
+          await c.env.DB.prepare(`
+            INSERT OR IGNORE INTO asset_brands (asset_id, brand_id)
+            VALUES (?, ?)
+          `).bind(assetId, brandId).run()
+        }
+        
+        // Update primary brand_id if not set
+        const asset = await c.env.DB.prepare(`
+          SELECT brand_id FROM assets WHERE id = ?
+        `).bind(assetId).first()
+        
+        if (!asset || !asset.brand_id) {
+          await c.env.DB.prepare(`
+            UPDATE assets SET brand_id = ? WHERE id = ?
+          `).bind(brand_ids[0], assetId).run()
+        }
+        
+        updatedCount++
+      }
+      
+    } else if (operation === 'remove_brands') {
+      // Remove specific brands from assets
+      for (const assetId of asset_ids) {
+        for (const brandId of brand_ids) {
+          await c.env.DB.prepare(`
+            DELETE FROM asset_brands WHERE asset_id = ? AND brand_id = ?
+          `).bind(assetId, brandId).run()
+        }
+        
+        // Update primary brand_id if the removed brand was the primary
+        const asset = await c.env.DB.prepare(`
+          SELECT brand_id FROM assets WHERE id = ?
+        `).bind(assetId).first()
+        
+        if (asset && brand_ids.includes(asset.brand_id as number)) {
+          // Get first remaining brand or set to null
+          const { results: remainingBrands } = await c.env.DB.prepare(`
+            SELECT brand_id FROM asset_brands WHERE asset_id = ? LIMIT 1
+          `).bind(assetId).all()
+          
+          const newPrimaryBrand = remainingBrands.length > 0 ? (remainingBrands[0] as any).brand_id : null
+          
+          await c.env.DB.prepare(`
+            UPDATE assets SET brand_id = ? WHERE id = ?
+          `).bind(newPrimaryBrand, assetId).run()
+        }
+        
+        updatedCount++
+      }
+      
+    } else {
+      return c.json({ error: 'Invalid operation. Must be: set_brands, add_brands, or remove_brands' }, 400)
+    }
+    
+    console.log(`✅ Bulk edit completed: ${updatedCount} asset(s) updated`)
+    
+    return c.json({ 
+      success: true, 
+      updated: updatedCount,
+      operation,
+      message: `Successfully updated ${updatedCount} asset(s)`
+    })
+    
+  } catch (error: any) {
+    console.error('❌ Error in bulk edit:', error.message)
+    console.error('Stack:', error.stack)
+    return c.json({ error: 'Failed to bulk edit assets', message: error.message }, 500)
   }
 })
 

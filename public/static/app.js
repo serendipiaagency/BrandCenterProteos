@@ -13,7 +13,10 @@ const state = {
   selectedBrand: null,
   selectedSubBrand: null,
   selectedMaterialType: null,
-  loading: false
+  loading: false,
+  // Bulk edit state
+  selectedAssets: [],  // Array of selected asset IDs
+  bulkEditMode: false  // Toggle bulk edit mode
 }
 
 // ============================================
@@ -138,6 +141,11 @@ const api = {
     if (filters.material_type_id) url += `material_type_id=${filters.material_type_id}&`
     if (filters.search) url += `search=${filters.search}&`
     
+    // Add userId for brand permissions filtering
+    if (state.currentUser) {
+      url += `userId=${state.currentUser.id}&`
+    }
+    
     const response = await axios.get(url)
     return response.data.assets
   },
@@ -149,6 +157,11 @@ const api = {
   
   async updateAsset(id, data) {
     const response = await axios.put(`/api/assets/${id}`, data)
+    return response.data
+  },
+  
+  async bulkEditAssets(data) {
+    const response = await axios.post('/api/assets/bulk-edit', data)
     return response.data
   },
   
@@ -305,7 +318,21 @@ const loadInitialData = async () => {
       api.getMaterialTypes('en') // Always use English for Material Types
     ])
     
-    state.brands = brands
+    // Filter brands based on user's brands_access
+    // Admin and marketing see all brands, others see only assigned brands
+    if (state.currentUser.role === 'admin' || state.currentUser.role === 'marketing') {
+      state.brands = brands
+    } else {
+      const userBrandsAccess = state.currentUser.brands_access || []
+      if (userBrandsAccess.length === 0) {
+        // No brands assigned, show none
+        state.brands = []
+      } else {
+        // Filter to only show assigned brands
+        state.brands = brands.filter(brand => userBrandsAccess.includes(brand.id))
+      }
+    }
+    
     state.materialTypes = materialTypes
     
     // Load all assets by default (no filters)
@@ -316,6 +343,36 @@ const loadInitialData = async () => {
   } finally {
     hideLoading()
   }
+}
+
+// ============================================
+// Bulk Edit Functions
+// ============================================
+
+const toggleBulkEditMode = () => {
+  state.bulkEditMode = !state.bulkEditMode
+  state.selectedAssets = []  // Clear selections when toggling
+  render()
+}
+
+const toggleAssetSelection = (assetId) => {
+  const index = state.selectedAssets.indexOf(assetId)
+  if (index > -1) {
+    state.selectedAssets.splice(index, 1)
+  } else {
+    state.selectedAssets.push(assetId)
+  }
+  render()
+}
+
+const selectAllAssets = () => {
+  state.selectedAssets = state.assets.map(a => a.id)
+  render()
+}
+
+const deselectAllAssets = () => {
+  state.selectedAssets = []
+  render()
 }
 
 const loadAssets = async () => {
@@ -384,6 +441,7 @@ const selectMaterialType = async (materialType) => {
 
 let uploadModal = null
 let assetEditModal = null
+let bulkEditModalOpen = false
 
 const openUploadModal = () => {
   uploadModal = true
@@ -393,6 +451,131 @@ const openUploadModal = () => {
 const closeUploadModal = () => {
   uploadModal = null
   render()
+}
+
+const openBulkEditModal = () => {
+  if (state.selectedAssets.length === 0) {
+    showNotification('Please select at least one asset', 'error')
+    return
+  }
+  bulkEditModalOpen = true
+  render()
+}
+
+const closeBulkEditModal = () => {
+  bulkEditModalOpen = false
+  render()
+}
+
+const handleBulkEdit = async (e) => {
+  e.preventDefault()
+  
+  if (state.selectedAssets.length === 0) {
+    showNotification('No assets selected', 'error')
+    return
+  }
+  
+  try {
+    showLoading()
+    
+    // Get selected operation
+    const operation = $('#bulk-edit-operation').value
+    
+    if (operation === 'set_brands') {
+      // Get selected brands
+      const brandSelect = $('#bulk-edit-brands')
+      const selectedOptions = Array.from(brandSelect.selectedOptions)
+      const brandIds = selectedOptions.map(option => parseInt(option.value)).filter(id => id && !isNaN(id))
+      
+      if (brandIds.length === 0) {
+        showNotification('Please select at least one brand', 'error')
+        hideLoading()
+        return
+      }
+      
+      console.log('🔄 Bulk edit: Setting brands', brandIds, 'for assets:', state.selectedAssets)
+      
+      // Call bulk edit API
+      const response = await api.bulkEditAssets({
+        asset_ids: state.selectedAssets,
+        operation: 'set_brands',
+        brand_ids: brandIds
+      })
+      
+      console.log('✅ Bulk edit response:', response)
+      
+      // Close modal FIRST
+      closeBulkEditModal()
+      
+      // Exit bulk edit mode
+      state.bulkEditMode = false
+      state.selectedAssets = []
+      
+      // Reload assets
+      state.assets = await api.getAssets({})
+      render()
+      
+      showNotification(`Successfully updated ${response.updated} asset(s)`, 'success')
+      
+    } else if (operation === 'add_brands') {
+      // Add brands to existing ones
+      const brandSelect = $('#bulk-edit-brands')
+      const selectedOptions = Array.from(brandSelect.selectedOptions)
+      const brandIds = selectedOptions.map(option => parseInt(option.value)).filter(id => id && !isNaN(id))
+      
+      if (brandIds.length === 0) {
+        showNotification('Please select at least one brand', 'error')
+        hideLoading()
+        return
+      }
+      
+      const response = await api.bulkEditAssets({
+        asset_ids: state.selectedAssets,
+        operation: 'add_brands',
+        brand_ids: brandIds
+      })
+      
+      closeBulkEditModal()
+      state.bulkEditMode = false
+      state.selectedAssets = []
+      state.assets = await api.getAssets({})
+      render()
+      
+      showNotification(`Successfully updated ${response.updated} asset(s)`, 'success')
+      
+    } else if (operation === 'remove_brands') {
+      // Remove brands from assets
+      const brandSelect = $('#bulk-edit-brands')
+      const selectedOptions = Array.from(brandSelect.selectedOptions)
+      const brandIds = selectedOptions.map(option => parseInt(option.value)).filter(id => id && !isNaN(id))
+      
+      if (brandIds.length === 0) {
+        showNotification('Please select at least one brand', 'error')
+        hideLoading()
+        return
+      }
+      
+      const response = await api.bulkEditAssets({
+        asset_ids: state.selectedAssets,
+        operation: 'remove_brands',
+        brand_ids: brandIds
+      })
+      
+      closeBulkEditModal()
+      state.bulkEditMode = false
+      state.selectedAssets = []
+      state.assets = await api.getAssets({})
+      render()
+      
+      showNotification(`Successfully updated ${response.updated} asset(s)`, 'success')
+    }
+    
+  } catch (error) {
+    console.error('❌ Error in bulk edit:', error)
+    showNotification('Error updating assets', 'error')
+  } finally {
+    hideLoading()
+  }
 }
 
 const openAssetEditModal = async (assetId) => {
@@ -1173,11 +1356,26 @@ const renderAssetsPage = () => {
       </div>
       
       ${state.currentUser.role === 'admin' || state.currentUser.role === 'marketing' ? `
-        <div class="page-actions">
-          <button onclick="openUploadModal()" class="btn-primary">
-            <i class="fas fa-upload"></i>
-            Upload Asset
-          </button>
+        <div class="page-actions" style="display: flex; gap: 0.75rem;">
+          ${state.bulkEditMode ? `
+            <button onclick="toggleBulkEditMode()" class="btn-secondary">
+              <i class="fas fa-times"></i>
+              Cancel Bulk Edit
+            </button>
+            <button onclick="openBulkEditModal()" class="btn-primary" ${state.selectedAssets.length === 0 ? 'disabled' : ''}>
+              <i class="fas fa-edit"></i>
+              Edit ${state.selectedAssets.length} Selected
+            </button>
+          ` : `
+            <button onclick="toggleBulkEditMode()" class="btn-secondary">
+              <i class="fas fa-check-square"></i>
+              Bulk Edit
+            </button>
+            <button onclick="openUploadModal()" class="btn-primary">
+              <i class="fas fa-upload"></i>
+              Upload Asset
+            </button>
+          `}
         </div>
       ` : ''}
     </div>
@@ -1193,7 +1391,19 @@ const renderAssetsPage = () => {
     ` : `
       <div class="asset-grid">
         ${state.assets.map(asset => `
-          <div class="asset-card">
+          <div class="asset-card" style="position: relative;">
+            ${state.bulkEditMode ? `
+              <div style="position: absolute; top: 0.75rem; left: 0.75rem; z-index: 10;">
+                <input 
+                  type="checkbox" 
+                  id="asset-checkbox-${asset.id}" 
+                  ${state.selectedAssets.includes(asset.id) ? 'checked' : ''}
+                  onchange="toggleAssetSelection(${asset.id})"
+                  style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary-600);"
+                />
+              </div>
+            ` : ''}
+            
             <div class="asset-thumbnail">
               <i class="fas ${getFileIcon(asset.file_type)} ${getFileIconColor(asset.file_type)}"></i>
             </div>
@@ -1592,6 +1802,82 @@ const renderAssetEditModal = () => {
             <button type="submit" class="btn-primary">
               <i class="fas fa-save"></i>
               Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `
+}
+
+const renderBulkEditModal = () => {
+  if (!bulkEditModalOpen) return ''
+  
+  return `
+    <div class="modal-overlay" onclick="closeBulkEditModal()">
+      <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 600px;">
+        <div class="modal-header">
+          <h3 class="modal-title">
+            <i class="fas fa-edit"></i>
+            Bulk Edit Assets (${state.selectedAssets.length} selected)
+          </h3>
+          <button onclick="closeBulkEditModal()" class="modal-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <form onsubmit="handleBulkEdit(event)">
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-tasks"></i>
+                Operation
+              </label>
+              <select id="bulk-edit-operation" class="form-input" onchange="render()">
+                <option value="set_brands">Replace brands (overwrite existing)</option>
+                <option value="add_brands">Add brands (keep existing + add new)</option>
+                <option value="remove_brands">Remove brands (remove selected from assets)</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-tag"></i>
+                Select Brands (hold Ctrl/Cmd for multiple)
+              </label>
+              <select id="bulk-edit-brands" class="form-input" multiple size="8" style="height: auto;">
+                ${state.brands.map(brand => `
+                  <option value="${brand.id}">
+                    ${brand.display_name}
+                  </option>
+                `).join('')}
+              </select>
+            </div>
+            
+            <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+              <div style="display: flex; align-items: start; gap: 0.75rem;">
+                <i class="fas fa-exclamation-triangle" style="color: #d97706; margin-top: 0.125rem;"></i>
+                <div style="font-size: 0.875rem; color: #92400e;">
+                  <strong>Warning:</strong> This will update <strong>${state.selectedAssets.length} asset(s)</strong>.
+                  <br/>
+                  ${$('#bulk-edit-operation')?.value === 'set_brands' ? 
+                    'This will <strong>replace all existing brands</strong> with the selected ones.' : 
+                    $('#bulk-edit-operation')?.value === 'add_brands' ? 
+                    'This will <strong>add the selected brands</strong> to existing ones.' : 
+                    'This will <strong>remove the selected brands</strong> from the assets.'
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button type="button" onclick="closeBulkEditModal()" class="btn-secondary">
+              Cancel
+            </button>
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-check"></i>
+              Apply Changes
             </button>
           </div>
         </form>
@@ -2151,6 +2437,7 @@ const render = () => {
     
     ${renderUploadModal()}
     ${renderAssetEditModal()}
+    ${renderBulkEditModal()}
     ${renderUserModal()}
     ${renderPasswordModal()}
     ${renderBrandModal()}
