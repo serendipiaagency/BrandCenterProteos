@@ -411,12 +411,28 @@ app.put('/api/assets/:id', async (c) => {
   const id = c.req.param('id')
   const data = await c.req.json()
   
+  console.log('📥 PUT /api/assets/' + id)
+  console.log('📦 Request data:', JSON.stringify(data, null, 2))
+  
   try {
     // Sanitize data: convert empty strings and undefined to null
     const sanitize = (value: any) => {
-      if (value === '' || value === undefined || value === 'undefined') return null
+      if (value === '' || value === undefined || value === 'undefined' || value === 'null') return null
       return value
     }
+    
+    const sanitizedData = {
+      title: sanitize(data.title),
+      description: sanitize(data.description),
+      brand_id: sanitize(data.brand_id),
+      material_type_id: sanitize(data.material_type_id),
+      region: sanitize(data.region),
+      country: sanitize(data.country),
+      regulatory: sanitize(data.regulatory) || 'GLOBAL',
+      language: sanitize(data.language) || 'ENG'
+    }
+    
+    console.log('🧹 Sanitized data:', JSON.stringify(sanitizedData, null, 2))
     
     const result = await c.env.DB.prepare(`
       UPDATE assets SET
@@ -430,20 +446,23 @@ app.put('/api/assets/:id', async (c) => {
         language = ?
       WHERE id = ?
     `).bind(
-      sanitize(data.title),
-      sanitize(data.description),
-      sanitize(data.brand_id),
-      sanitize(data.material_type_id),
-      sanitize(data.region),
-      sanitize(data.country),
-      sanitize(data.regulatory),
-      sanitize(data.language),
+      sanitizedData.title,
+      sanitizedData.description,
+      sanitizedData.brand_id,
+      sanitizedData.material_type_id,
+      sanitizedData.region,
+      sanitizedData.country,
+      sanitizedData.regulatory,
+      sanitizedData.language,
       id
     ).run()
     
+    console.log('✅ Update result:', result.meta.changes, 'row(s) affected')
+    
     return c.json({ success: true, changes: result.meta.changes })
   } catch (error: any) {
-    console.error('Error updating asset:', error)
+    console.error('❌ Error updating asset:', error.message)
+    console.error('Stack:', error.stack)
     return c.json({ error: 'Failed to update asset', message: error.message }, 500)
   }
 })

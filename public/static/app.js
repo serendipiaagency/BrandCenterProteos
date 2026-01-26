@@ -422,29 +422,57 @@ const handleAssetUpdate = async (e) => {
   try {
     showLoading()
     
+    // Get all form values
+    const titleValue = $('#edit-asset-title').value.trim()
+    const descriptionValue = $('#edit-asset-description').value.trim()
     const brandValue = $('#edit-asset-brand').value
     const materialTypeValue = $('#edit-asset-material-type').value
     const regionValue = $('#edit-asset-region').value
-    const countryValue = $('#edit-asset-country').value
+    const countryValue = $('#edit-asset-country').value.trim()
     const regulatoryValue = $('#edit-asset-regulatory').value
     const languageValue = $('#edit-asset-language').value
     
-    const updateData = {
-      title: $('#edit-asset-title').value || null,
-      description: $('#edit-asset-description').value || null,
-      brand_id: brandValue && brandValue !== '' ? parseInt(brandValue) : null,
-      material_type_id: materialTypeValue && materialTypeValue !== '' ? parseInt(materialTypeValue) : null,
-      region: regionValue && regionValue !== '' && regionValue !== 'Select region' ? regionValue : null,
-      country: countryValue && countryValue !== '' ? countryValue : null,
-      regulatory: regulatoryValue && regulatoryValue !== '' ? regulatoryValue : 'GLOBAL',
-      language: languageValue && languageValue !== '' ? languageValue : 'ENG'
+    // Validate required fields
+    if (!titleValue) {
+      showNotification('Title is required', 'error')
+      hideLoading()
+      return
     }
     
-    console.log('Updating asset with data:', updateData)
+    // Build update data with proper validation
+    const updateData = {
+      title: titleValue,
+      description: descriptionValue || null,
+      brand_id: brandValue && brandValue !== '' && brandValue !== 'Select brand' 
+        ? parseInt(brandValue, 10) 
+        : null,
+      material_type_id: materialTypeValue && materialTypeValue !== '' && materialTypeValue !== 'Select type' 
+        ? parseInt(materialTypeValue, 10) 
+        : null,
+      region: regionValue && regionValue !== '' && regionValue !== 'Select region' 
+        ? regionValue 
+        : null,
+      country: countryValue || null,
+      regulatory: regulatoryValue && regulatoryValue !== '' 
+        ? regulatoryValue 
+        : 'GLOBAL',
+      language: languageValue && languageValue !== '' 
+        ? languageValue 
+        : 'ENG'
+    }
     
-    await api.updateAsset(assetEditModal.id, updateData)
+    console.log('🔄 Updating asset ID:', assetEditModal.id)
+    console.log('📦 Update data:', updateData)
     
+    // Call API to update asset
+    const response = await api.updateAsset(assetEditModal.id, updateData)
+    
+    console.log('✅ Update response:', response)
+    
+    // Show success message
     showNotification('Asset updated successfully!', 'success')
+    
+    // Close modal
     closeAssetEditModal()
     
     // Clear filters to show the updated asset
@@ -452,10 +480,15 @@ const handleAssetUpdate = async (e) => {
     state.selectedSubBrand = null
     state.selectedMaterialType = null
     
+    // Reload assets
     await loadAssets()
+    
+    console.log('✅ Assets reloaded successfully')
+    
   } catch (error) {
-    console.error('Asset update error:', error)
-    showNotification('Error updating asset', 'error')
+    console.error('❌ Asset update error:', error)
+    console.error('Error details:', error.response ? error.response.data : error.message)
+    showNotification('Error updating asset: ' + (error.response?.data?.message || error.message), 'error')
   } finally {
     hideLoading()
   }
