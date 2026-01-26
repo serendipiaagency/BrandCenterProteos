@@ -302,7 +302,7 @@ const loadInitialData = async () => {
     
     const [brands, materialTypes] = await Promise.all([
       api.getBrands(),
-      api.getMaterialTypes(state.currentUser?.language === 'ESP' ? 'es' : 'en')
+      api.getMaterialTypes('en') // Always use English for Material Types
     ])
     
     state.brands = brands
