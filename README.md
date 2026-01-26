@@ -5,26 +5,29 @@ Professional brand asset management system for Proteos Biotech, enabling distrib
 
 ## ✨ Features Completed
 
-### 🌍 Public Catalog (No Login Required)
-- **Public-facing catalog** for browsing all materials
+### 🌍 Public Catalog (Login Required)
+- **🔐 Protected catalog** with authentication system
 - **Advanced filtering** by brand, material type, region, and search
 - **Real-time statistics** showing available assets and brands
 - **Direct download** links for all materials
 - **Responsive design** optimized for all devices
+- **Multi-language support** (English/Spanish)
 - **Hero section** with brand statistics
-- **SEO-friendly** structure for discoverability
 
 ### 🔐 Authentication & User Management
 - **Multi-role system**: Admin, Marketing Team, Distributor, Agency
 - **User administration panel** for creating and managing users
 - **Role-based permissions** with brand access control
 - **Region and country-specific access**
+- **🆕 Brand Permissions**: Users only see assets from assigned brands
+- **Session management** with persistent login
 
 ### 🏢 Brand & Asset Organization
 - **Hierarchical structure**: Brand → Sub-Brand → Material Type
 - **4 Main Brands**: PROTEOS BIOTECH, pbserum, WAID, FIBRORESTIL
 - **8 Sub-brands** under pbserum (HA, REVEAL, PLUS, SPECIFIC, VELURIA, etc.)
 - **15 Material categories**: Brand Books, Logos, Typography, Packshots, Images, Videos, Slide Kits, Sales Materials, Marketing, Training, Medical, Events, Social Media, Press, Graphics
+- **🆕 Multi-Brand Assets**: Assets can belong to multiple brands simultaneously
 
 ### 📁 Asset Management
 - **File upload system** with drag-and-drop support
@@ -32,6 +35,11 @@ Professional brand asset management system for Proteos Biotech, enabling distrib
 - **File type support**: PDF, Images, Videos, ZIP, Office files
 - **Asset library** with filtering by brand, sub-brand, and material type
 - **Download tracking** and activity logs
+- **🆕 Bulk Edit**: Edit brands for multiple assets at once
+  - Replace brands (overwrite existing)
+  - Add brands (keep existing + add new)
+  - Remove brands (remove specific brands)
+- **🆕 Multi-brand assignment**: Assign assets to multiple brands during upload/edit
 
 ### 🎨 User Interface
 - **Elegant corporate design** inspired by modern brand portals
@@ -46,12 +54,14 @@ Professional brand asset management system for Proteos Biotech, enabling distrib
 ## 🗄️ Data Architecture
 
 ### Database (Cloudflare D1 - SQLite)
-- **users**: User accounts with role-based access
+- **users**: User accounts with role-based access and brand permissions
 - **brands**: Main brand catalog
 - **sub_brands**: Product lines under each brand
 - **material_types**: 15 predefined asset categories
 - **assets**: File metadata with taxonomy
+- **🆕 asset_brands**: Many-to-many relationship for multi-brand assets
 - **activity_log**: Audit trail for all actions
+- **user_requests**: Customer requests for specific materials
 
 ### Storage (Cloudflare R2)
 - File storage with unique identifiers
@@ -64,14 +74,24 @@ Brand (Level 1)
   └── Sub-Brand (Level 2)
       └── Material Type (Level 3)
           └── Assets
+              └── 🆕 Multiple Brands (M2M relationship)
 ```
 
 ## 🌐 URLs
+
+### Production (Cloudflare Pages)
+- **🌐 Primary Domain**: https://brandcenter.pbserum.com ⭐ **(CONFIGURAR DNS)**
+- **📦 Catalog**: https://brandcenter.pbserum.com/catalog
+- **🔧 Admin Panel**: https://brandcenter.pbserum.com/admin
+- **🔗 Backup URL**: https://brand-portal-proteos.pages.dev
 
 ### Development (Sandbox)
 - **Public Catalog**: https://3000-ich0xjbt2qsykky4ri4zb-5634da27.sandbox.novita.ai
 - **Admin Panel**: https://3000-ich0xjbt2qsykky4ri4zb-5634da27.sandbox.novita.ai/admin
 - **Admin Login**: admin@proteos.com / admin123
+
+### 🔧 Custom Domain Setup
+Para configurar `brandcenter.pbserum.com`, consulta: **[DOMAIN_SETUP.md](./DOMAIN_SETUP.md)**
 
 ### Public API Endpoints (No authentication required)
 - `GET /api/public/brands` - List all active brands
@@ -84,8 +104,10 @@ Brand (Level 1)
 - `GET /api/auth/session` - Verify session
 - `GET /api/brands` - List all brands
 - `GET /api/material-types` - List material categories
-- `GET /api/assets` - Search and filter assets
-- `POST /api/assets` - Create new asset
+- `GET /api/assets?userId=X` - Search and filter assets (with brand permissions)
+- `POST /api/assets` - Create new asset with multiple brands
+- `PUT /api/assets/:id` - Update asset with multiple brands
+- `🆕 POST /api/assets/bulk-edit` - Bulk edit multiple assets
 - `DELETE /api/assets/:id` - Delete asset
 - `POST /api/upload` - Upload file to R2
 - `GET /api/users` - List users (admin only)
@@ -97,45 +119,56 @@ Brand (Level 1)
 
 ## 🚀 Deployment Status
 
-### Current Status: ✅ Development Server Running
+### Current Status: ✅ Production Ready
+
+### Live URLs
+- **Production**: https://brandcenter.pbserum.com (DNS pending)
+- **Cloudflare**: https://brand-portal-proteos.pages.dev
+- **Latest Deployment**: https://d967882e.brand-portal-proteos.pages.dev
 
 ### Technology Stack
-- **Backend**: Hono (v4.11.4) - Fast, lightweight web framework
-- **Frontend**: Vanilla JavaScript with TailwindCSS
-- **Database**: Cloudflare D1 (SQLite)
-- **Storage**: Cloudflare R2 (S3-compatible)
-- **Runtime**: Cloudflare Workers
-- **Build**: Vite (v6.3.5)
-- **Process Manager**: PM2
+- **Backend**: Hono (v4.0.0) - Fast, lightweight web framework
+- **Frontend**: Vanilla JavaScript with TailwindCSS CDN
+- **Database**: Cloudflare D1 (SQLite) - Global distributed
+- **Storage**: Cloudflare R2 (S3-compatible) - Object storage
+- **Runtime**: Cloudflare Workers - Edge computing
+- **Build**: Vite (v6.4.1) - Lightning fast bundler
+- **Process Manager**: PM2 (development)
+- **Deployment**: Cloudflare Pages - Automatic CI/CD
 
 ## 📖 User Guide
 
-### For Public Visitors (No Login)
-1. **Visit the catalog** at the main URL
-2. **Browse materials** by brand, type, or region
-3. **Use search** to find specific assets
-4. **Download directly** any material you need
-5. **Filter by region** to find location-specific content
+### For Public Catalog Users
+1. **Login** at https://brandcenter.pbserum.com/login
+2. **Use credentials** provided by administrator
+3. **Browse materials** by brand, type, or region
+4. **Use search** to find specific assets
+5. **Download directly** any material you need
+6. **Filter by region** to find location-specific content
 
 ### For Administrators
-1. **Login** with admin credentials
+1. **Login** with admin credentials at /admin
 2. **Navigate to Users** to create distributor/agency accounts
 3. **Assign brand access** based on distribution agreements
-4. **Upload assets** through the Upload button
-5. **Monitor activity** in the dashboard
+4. **Upload assets** through the Upload button (supports multi-brand)
+5. **Use Bulk Edit** to assign multiple assets to brands at once
+6. **Monitor activity** in the dashboard
 
 ### For Distributors
 1. **Login** with provided credentials
-2. **Browse brands** you have access to
+2. **Browse brands** you have access to (filtered automatically)
 3. **Filter assets** by material type (logos, packshots, etc.)
 4. **Download materials** for your region/market
 5. **View metadata** (regulatory status, language, etc.)
+6. **Only see assets** from brands assigned to your account
 
 ### For Marketing Team
 1. **Full access** to all brands and materials
 2. **Upload new assets** with proper metadata
-3. **Manage materials** across all brands
-4. **Track downloads** and usage
+3. **Assign assets to multiple brands** simultaneously
+4. **Manage materials** across all brands
+5. **Use Bulk Edit** for efficient asset management
+6. **Track downloads** and usage
 
 ## 🔧 Development
 
@@ -182,38 +215,47 @@ npm run db:console:local
 
 ### Phase 2 - Advanced Features
 - [ ] **Advanced search** with full-text search
-- [ ] **Bulk upload** functionality
 - [ ] **Asset versions** and revision history
 - [ ] **Download as ZIP** for multiple files
 - [ ] **Favorites/Collections** for users
 - [ ] **Comments** on assets
 - [ ] **Expiration dates** for time-limited materials
 - [ ] **Usage analytics** dashboard
+- [ ] **Email notifications** for new uploads
 
 ### Phase 3 - Enterprise Features
 - [ ] **Custom workflows** for asset approval
-- [ ] **Email notifications** for new uploads
 - [ ] **API access** for third-party integrations
 - [ ] **CDN integration** for global delivery
 - [ ] **Advanced permissions** (view/download/edit)
 - [ ] **Multi-language UI** (currently English/Spanish metadata only)
 - [ ] **Mobile app** version
+- [ ] **Asset sharing** via public links
+
+### ✅ Recently Completed
+- [x] **Multi-brand assets** (assets can belong to multiple brands)
+- [x] **Bulk edit** functionality (edit multiple assets at once)
+- [x] **Brand permissions** (users only see assigned brands)
+- [x] **Protected catalog** (login required)
+- [x] **Many-to-many relationship** (asset_brands table)
 
 ## 🎯 Recommended Next Steps
 
 ### Immediate (Week 1)
-1. **Test file uploads** to Cloudflare R2 (requires R2 bucket setup)
-2. **Configure production database** (create D1 database in Cloudflare)
-3. **Set up Cloudflare account** and deploy to Pages
-4. **Create real user accounts** for testing
-5. **Upload sample assets** for each brand
+1. ✅ **Configure custom domain** `brandcenter.pbserum.com` (see DOMAIN_SETUP.md)
+2. ✅ **Test multi-brand assets** and bulk edit features
+3. ✅ **Verify brand permissions** for different user roles
+4. **Create production user accounts** for distributors/agencies
+5. **Upload real brand assets** for each brand
+6. **Train users** on new bulk edit and multi-brand features
 
 ### Short-term (Month 1)
-1. **Implement password hashing** with bcrypt for production
-2. **Add JWT authentication** for secure API access
+1. ✅ **Implement password hashing** with bcrypt for production
+2. ✅ **Add JWT authentication** for secure API access
 3. **Create admin documentation** for user management
-4. **Train initial users** on the platform
+4. **Set up monitoring** and error tracking
 5. **Gather feedback** and iterate on UX
+6. **Test brand permissions** with real distributors
 
 ### Long-term (Quarter 1)
 1. **Scale to handle thousands of assets**
@@ -221,6 +263,7 @@ npm run db:console:local
 3. **Implement analytics** for usage tracking
 4. **Integrate with existing systems** (CRM, etc.)
 5. **Expand to additional brands/regions**
+6. **Implement asset versioning** system
 
 ## 🔒 Security Notes
 
@@ -251,6 +294,13 @@ Proprietary - Proteos Biotech © 2026
 
 ---
 
-**Last Updated**: 2026-01-20
-**Version**: 1.0.0
-**Status**: Development Active ✅
+**Last Updated**: 2026-01-26
+**Version**: 2.0.0
+**Status**: Production Ready ✅
+
+### Recent Updates (v2.0.0)
+- ✅ Multi-brand assets with M2M relationship
+- ✅ Bulk edit functionality for assets
+- ✅ Brand permissions system
+- ✅ Protected catalog with login
+- ✅ Custom domain setup (brandcenter.pbserum.com)
