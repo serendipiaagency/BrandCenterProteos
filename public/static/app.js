@@ -422,43 +422,81 @@ const handleAssetUpdate = async (e) => {
   try {
     showLoading()
     
+    console.log('🎯 Starting asset update for ID:', assetEditModal.id)
+    console.log('📋 Asset modal data:', assetEditModal)
+    
     // Get all form values
-    const titleValue = $('#edit-asset-title').value.trim()
-    const descriptionValue = $('#edit-asset-description').value.trim()
-    const brandValue = $('#edit-asset-brand').value
-    const materialTypeValue = $('#edit-asset-material-type').value
-    const regionValue = $('#edit-asset-region').value
-    const countryValue = $('#edit-asset-country').value.trim()
-    const regulatoryValue = $('#edit-asset-regulatory').value
-    const languageValue = $('#edit-asset-language').value
+    const titleValue = $('#edit-asset-title')?.value?.trim()
+    const descriptionValue = $('#edit-asset-description')?.value?.trim()
+    const brandValue = $('#edit-asset-brand')?.value
+    const materialTypeValue = $('#edit-asset-material-type')?.value
+    const regionValue = $('#edit-asset-region')?.value
+    const countryValue = $('#edit-asset-country')?.value?.trim()
+    const regulatoryValue = $('#edit-asset-regulatory')?.value
+    const languageValue = $('#edit-asset-language')?.value
+    
+    console.log('📝 RAW Form values:')
+    console.log('  title:', titleValue, typeof titleValue)
+    console.log('  description:', descriptionValue, typeof descriptionValue)
+    console.log('  brand:', brandValue, typeof brandValue)
+    console.log('  materialType:', materialTypeValue, typeof materialTypeValue)
+    console.log('  region:', regionValue, typeof regionValue)
+    console.log('  country:', countryValue, typeof countryValue)
+    console.log('  regulatory:', regulatoryValue, typeof regulatoryValue)
+    console.log('  language:', languageValue, typeof languageValue)
     
     // Validate required fields
     if (!titleValue) {
+      console.error('❌ Title is empty!')
       showNotification('Title is required', 'error')
       hideLoading()
       return
     }
     
-    // Build update data with proper validation
+    // Helper function to safely parse values
+    const safeValue = (val) => {
+      if (val === undefined || val === null || val === '' || val === 'undefined' || val === 'null') {
+        return null
+      }
+      return val
+    }
+    
+    const safeInt = (val) => {
+      const cleaned = safeValue(val)
+      if (cleaned === null) return null
+      const parsed = parseInt(cleaned, 10)
+      return isNaN(parsed) ? null : parsed
+    }
+    
+    // Build update data with SAFE validation
     const updateData = {
-      title: titleValue,
-      description: descriptionValue || null,
-      brand_id: brandValue && brandValue !== '' && brandValue !== 'Select brand' 
-        ? parseInt(brandValue, 10) 
-        : null,
-      material_type_id: materialTypeValue && materialTypeValue !== '' && materialTypeValue !== 'Select type' 
-        ? parseInt(materialTypeValue, 10) 
-        : null,
-      region: regionValue && regionValue !== '' && regionValue !== 'Select region' 
-        ? regionValue 
-        : null,
-      country: countryValue || null,
-      regulatory: regulatoryValue && regulatoryValue !== '' 
-        ? regulatoryValue 
-        : 'GLOBAL',
-      language: languageValue && languageValue !== '' 
-        ? languageValue 
-        : 'ENG'
+      title: safeValue(titleValue) || 'Untitled',
+      description: safeValue(descriptionValue),
+      brand_id: safeInt(brandValue),
+      material_type_id: safeInt(materialTypeValue),
+      region: safeValue(regionValue),
+      country: safeValue(countryValue),
+      regulatory: safeValue(regulatoryValue) || 'GLOBAL',
+      language: safeValue(languageValue) || 'ENG'
+    }
+    
+    console.log('🧹 SANITIZED Update data:')
+    console.log('  title:', updateData.title, typeof updateData.title)
+    console.log('  description:', updateData.description, typeof updateData.description)
+    console.log('  brand_id:', updateData.brand_id, typeof updateData.brand_id)
+    console.log('  material_type_id:', updateData.material_type_id, typeof updateData.material_type_id)
+    console.log('  region:', updateData.region, typeof updateData.region)
+    console.log('  country:', updateData.country, typeof updateData.country)
+    console.log('  regulatory:', updateData.regulatory, typeof updateData.regulatory)
+    console.log('  language:', updateData.language, typeof updateData.language)
+    
+    // FINAL CHECK: verify NO undefined values
+    const hasUndefined = Object.entries(updateData).some(([key, value]) => value === undefined)
+    if (hasUndefined) {
+      console.error('❌ CRITICAL: Update data contains undefined values!', updateData)
+      showNotification('Error: Invalid form data', 'error')
+      hideLoading()
+      return
     }
     
     console.log('🔄 Updating asset ID:', assetEditModal.id)

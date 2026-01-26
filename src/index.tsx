@@ -412,7 +412,12 @@ app.put('/api/assets/:id', async (c) => {
   const data = await c.req.json()
   
   console.log('📥 PUT /api/assets/' + id)
-  console.log('📦 Request data:', JSON.stringify(data, null, 2))
+  console.log('📦 RAW Request data:', data)
+  console.log('📦 Request data (stringified):', JSON.stringify(data, null, 2))
+  console.log('📊 Data types:')
+  Object.keys(data).forEach(key => {
+    console.log(`  ${key}: ${typeof data[key]} = ${data[key]}`)
+  })
   
   try {
     // Sanitize data: convert empty strings and undefined to null
