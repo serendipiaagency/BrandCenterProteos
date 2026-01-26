@@ -571,6 +571,9 @@ const handleFileUpload = async (e) => {
     const regulatoryValue = $('#upload-regulatory').value
     const languageValue = $('#upload-language').value
     
+    // 🎯 DEFAULT BRAND: pbserum (ID: 2)
+    const DEFAULT_BRAND_ID = 2  // pbserum
+    
     // Create asset record with sanitized data
     const assetData = {
       filename: uploadResult.filename,
@@ -580,7 +583,9 @@ const handleFileUpload = async (e) => {
       file_type: uploadResult.fileType,
       file_size: uploadResult.fileSize,
       file_url: uploadResult.fileUrl,
-      brand_id: brandValue && brandValue !== '' && brandValue !== 'Select brand' ? parseInt(brandValue) : null,
+      brand_id: brandValue && brandValue !== '' && brandValue !== 'Select brand' 
+        ? parseInt(brandValue) 
+        : DEFAULT_BRAND_ID,  // ← Asignar pbserum por defecto
       sub_brand_id: subBrandValue && subBrandValue !== '' ? parseInt(subBrandValue) : null,
       material_type_id: materialTypeValue && materialTypeValue !== '' && materialTypeValue !== 'Select type' ? parseInt(materialTypeValue) : null,
       region: regionValue && regionValue !== '' && regionValue !== 'Select region' ? regionValue : null,
@@ -1362,7 +1367,7 @@ const renderUploadModal = () => {
               <label class="form-label">Brand</label>
               <select id="upload-brand" class="form-input">
                 <option value="">Select brand</option>
-                ${state.brands.map(brand => `<option value="${brand.id}">${brand.display_name}</option>`).join('')}
+                ${state.brands.map(brand => `<option value="${brand.id}" ${brand.id === 2 ? 'selected' : ''}>${brand.display_name}</option>`).join('')}
               </select>
             </div>
             

@@ -911,20 +911,21 @@ body {
    ============================================ */
 
 .request-link {
-  color: var(--corporate-blue);
+  color: white;
   text-decoration: none;
   font-weight: 700;
   transition: all 0.3s ease;
   position: relative;
   cursor: pointer;
-  border-bottom: 2px solid var(--corporate-blue);
+  border-bottom: 2px solid white;
   padding-bottom: 2px;
 }
 
 .request-link:hover {
-  color: var(--corporate-blue-light);
-  border-bottom-color: var(--corporate-blue-light);
+  color: rgba(255, 255, 255, 0.9);
+  border-bottom-color: rgba(255, 255, 255, 0.9);
   transform: translateY(-1px);
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
 }
 
 .request-link::after {
@@ -934,13 +935,13 @@ body {
   left: 0;
   width: 100%;
   height: 2px;
-  background: var(--corporate-blue);
+  background: white;
   transition: all 0.3s ease;
 }
 
 .request-link:hover::after {
-  background: var(--corporate-blue-light);
-  box-shadow: 0 2px 8px rgba(0, 47, 86, 0.3);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.4);
 }
 
 /* ============================================
