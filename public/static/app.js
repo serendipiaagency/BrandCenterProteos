@@ -424,17 +424,23 @@ const handleAssetUpdate = async (e) => {
     
     const brandValue = $('#edit-asset-brand').value
     const materialTypeValue = $('#edit-asset-material-type').value
+    const regionValue = $('#edit-asset-region').value
+    const countryValue = $('#edit-asset-country').value
+    const regulatoryValue = $('#edit-asset-regulatory').value
+    const languageValue = $('#edit-asset-language').value
     
     const updateData = {
-      title: $('#edit-asset-title').value,
-      description: $('#edit-asset-description').value,
-      brand_id: brandValue ? parseInt(brandValue) : null,
-      material_type_id: materialTypeValue ? parseInt(materialTypeValue) : null,
-      region: $('#edit-asset-region').value || null,
-      country: $('#edit-asset-country').value || null,
-      regulatory: $('#edit-asset-regulatory').value || 'GLOBAL',
-      language: $('#edit-asset-language').value || 'ENG'
+      title: $('#edit-asset-title').value || null,
+      description: $('#edit-asset-description').value || null,
+      brand_id: brandValue && brandValue !== '' ? parseInt(brandValue) : null,
+      material_type_id: materialTypeValue && materialTypeValue !== '' ? parseInt(materialTypeValue) : null,
+      region: regionValue && regionValue !== '' && regionValue !== 'Select region' ? regionValue : null,
+      country: countryValue && countryValue !== '' ? countryValue : null,
+      regulatory: regulatoryValue && regulatoryValue !== '' ? regulatoryValue : 'GLOBAL',
+      language: languageValue && languageValue !== '' ? languageValue : 'ENG'
     }
+    
+    console.log('Updating asset with data:', updateData)
     
     await api.updateAsset(assetEditModal.id, updateData)
     

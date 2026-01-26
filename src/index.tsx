@@ -406,6 +406,12 @@ app.put('/api/assets/:id', async (c) => {
   const data = await c.req.json()
   
   try {
+    // Sanitize data: convert empty strings and undefined to null
+    const sanitize = (value: any) => {
+      if (value === '' || value === undefined || value === 'undefined') return null
+      return value
+    }
+    
     const result = await c.env.DB.prepare(`
       UPDATE assets SET
         title = ?,
@@ -418,14 +424,14 @@ app.put('/api/assets/:id', async (c) => {
         language = ?
       WHERE id = ?
     `).bind(
-      data.title,
-      data.description,
-      data.brand_id,
-      data.material_type_id,
-      data.region,
-      data.country,
-      data.regulatory,
-      data.language,
+      sanitize(data.title),
+      sanitize(data.description),
+      sanitize(data.brand_id),
+      sanitize(data.material_type_id),
+      sanitize(data.region),
+      sanitize(data.country),
+      sanitize(data.regulatory),
+      sanitize(data.language),
       id
     ).run()
     
