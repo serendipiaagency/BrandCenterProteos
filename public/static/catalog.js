@@ -3,6 +3,41 @@
 // Design based on: https://coworkingdf.com/ProteosBrandCenter/
 // ============================================
 
+// ============================================
+// Authentication Check
+// ============================================
+
+const checkAuth = async () => {
+  const token = localStorage.getItem('catalog_token') || sessionStorage.getItem('catalog_token')
+  
+  if (!token) {
+    console.log('🔒 No token found, redirecting to login')
+    window.location.href = '/login'
+    return false
+  }
+  
+  try {
+    const response = await axios.post('/api/public/verify-token', { token })
+    
+    if (!response.data.valid) {
+      console.log('🔒 Invalid token, redirecting to login')
+      localStorage.removeItem('catalog_token')
+      sessionStorage.removeItem('catalog_token')
+      localStorage.removeItem('catalog_user')
+      sessionStorage.removeItem('catalog_user')
+      window.location.href = '/login'
+      return false
+    }
+    
+    console.log('✅ Authentication verified')
+    return true
+  } catch (error) {
+    console.error('❌ Auth verification failed:', error)
+    window.location.href = '/login'
+    return false
+  }
+}
+
 // Global state
 const state = {
   brands: [],
@@ -785,5 +820,10 @@ const render = () => {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await loadInitialData()
+  // Check authentication first
+  const isAuthenticated = await checkAuth()
+  
+  if (isAuthenticated) {
+    await loadInitialData()
+  }
 })

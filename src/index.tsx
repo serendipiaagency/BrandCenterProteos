@@ -814,7 +814,145 @@ app.get('/admin', (c) => {
 })
 
 // Public catalog page (no login required)
-app.get('/', (c) => {
+// ============================================
+// Public Catalog Authentication
+// ============================================
+
+app.post('/api/public/login', async (c) => {
+  try {
+    const { email, password } = await c.req.json()
+    
+    console.log('📥 Public login attempt:', email)
+    
+    // Verify credentials against users table
+    const user = await c.env.DB.prepare(`
+      SELECT id, email, name, role, active
+      FROM users
+      WHERE email = ? AND password = ? AND active = 1
+    `).bind(email, password).first()
+    
+    if (!user) {
+      return c.json({ success: false, message: 'Invalid credentials' }, 401)
+    }
+    
+    // Generate simple token (in production, use JWT)
+    const token = Buffer.from(`${user.id}:${user.email}:${Date.now()}`).toString('base64')
+    
+    return c.json({
+      success: true,
+      token: token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      }
+    })
+  } catch (error: any) {
+    console.error('❌ Login error:', error.message)
+    return c.json({ success: false, message: 'Login failed' }, 500)
+  }
+})
+
+app.post('/api/public/verify-token', async (c) => {
+  try {
+    const { token } = await c.req.json()
+    
+    if (!token) {
+      return c.json({ valid: false }, 401)
+    }
+    
+    // Decode token
+    const decoded = Buffer.from(token, 'base64').toString('utf-8')
+    const [userId] = decoded.split(':')
+    
+    // Verify user still exists and is active
+    const user = await c.env.DB.prepare(`
+      SELECT id, email, name, role
+      FROM users
+      WHERE id = ? AND active = 1
+    `).bind(userId).first()
+    
+    if (!user) {
+      return c.json({ valid: false }, 401)
+    }
+    
+    return c.json({ valid: true, user })
+  } catch (error) {
+    return c.json({ valid: false }, 401)
+  }
+})
+
+// ============================================
+// Public Catalog Routes (Protected)
+// ============================================
+
+// Login page
+app.get('/login', (c) => {
+  return c.html(
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Login - Proteos Biotech Brand Portal</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet" />
+        <link href="/static/catalog-login.css" rel="stylesheet" />
+      </head>
+      <body>
+        <div class="login-container">
+          <div class="login-left">
+            <div class="login-form-wrapper">
+              <div class="login-header">
+                <h2 class="login-title">Login required</h2>
+                <div class="login-subtitle">
+                  <div class="blue-bar"></div>
+                  <p>Find all the files, templates, and resources you need.</p>
+                </div>
+              </div>
+              <form id="login-form" class="login-form">
+                <div class="form-group">
+                  <label class="form-label">Username or email address *</label>
+                  <input type="text" id="username" class="form-input" placeholder="admin" required />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Password *</label>
+                  <input type="password" id="password" class="form-input" placeholder="••••••••••" required />
+                </div>
+                <div class="form-group-checkbox">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="remember" />
+                    <span>Remember me</span>
+                  </label>
+                </div>
+                <button type="submit" class="login-button">Login</button>
+                <div class="login-footer">
+                  <a href="#" class="forgot-password">Lost your password?</a>
+                </div>
+              </form>
+              <div id="error-message" class="error-message" style="display: none;"></div>
+            </div>
+          </div>
+          <div class="login-right">
+            <div class="welcome-content">
+              <h3 class="welcome-subtitle">Welcome to</h3>
+              <h1 class="welcome-title">PROTEOS BIOTECH Brand Portal</h1>
+              <div class="hero-image">
+                <div class="image-placeholder"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+        <script src="/static/catalog-login.js"></script>
+      </body>
+    </html>
+  )
+})
+
+// Catalog page (redirect to login or serve catalog)
+app.get('/catalog', (c) => {
   return c.html(
     <html lang="en">
       <head>
@@ -830,10 +968,15 @@ app.get('/', (c) => {
       <body>
         <div id="catalog"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/catalog.js?v=6"></script>
+        <script src="/static/catalog.js?v=7"></script>
       </body>
     </html>
   )
+})
+
+// Root redirects to login
+app.get('/', (c) => {
+  return c.redirect('/login')
 })
 
 export default app
