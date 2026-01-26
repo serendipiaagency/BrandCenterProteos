@@ -546,6 +546,77 @@ body {
   transform: rotate(90deg);
 }
 
+/* Filter Actions Container */
+.filter-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 0 1rem 0;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(0, 47, 86, 0.1);
+}
+
+/* Clear All Button - Top Position */
+.clear-filters-btn-top {
+  flex: 1;
+  padding: 0.65rem 1rem;
+  background: linear-gradient(135deg, var(--corporate-blue) 0%, var(--corporate-blue-light) 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(0, 47, 86, 0.15);
+}
+
+.clear-filters-btn-top:hover {
+  background: linear-gradient(135deg, var(--corporate-blue-dark) 0%, var(--corporate-blue) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 47, 86, 0.25);
+}
+
+.clear-filters-btn-top:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 47, 86, 0.2);
+}
+
+.clear-filters-btn-top i {
+  font-size: 0.875rem;
+  transition: transform 0.3s ease;
+}
+
+.clear-filters-btn-top:hover i {
+  transform: rotate(180deg);
+}
+
+/* All Selected Badge */
+.all-selected-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 6px;
+  color: #16a34a;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.all-selected-badge i {
+  font-size: 0.875rem;
+}
+
 /* ============================================
    Main Content Area
    ============================================ */

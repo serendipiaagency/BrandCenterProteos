@@ -209,6 +209,9 @@ const loadInitialData = async () => {
     state.brands = brands
     state.materialTypes = materialTypes
     
+    // 🎯 SELECT ALL MATERIAL TYPES BY DEFAULT
+    state.selectedMaterialTypes = materialTypes.map(type => type.id)
+    
     // Load sub-brands for all brands
     for (const brand of brands) {
       try {
@@ -454,6 +457,7 @@ const toggleFilterSection = (sectionId) => {
 
 const renderSidebar = () => {
   const totalMaterialTypes = state.materialTypes.length
+  const selectedCount = state.selectedMaterialTypes.length
   
   return `
     <aside class="sidebar sidebar-narrow">
@@ -464,12 +468,26 @@ const renderSidebar = () => {
             <i class="fas fa-folder-open filter-icon"></i>
             <h3 class="filter-title">${t('filters.assetsCategory')}</h3>
             <span class="filter-count">(${totalMaterialTypes})</span>
-            ${state.selectedMaterialTypes.length > 0 ? `<span class="filter-badge">${state.selectedMaterialTypes.length}</span>` : ''}
+            ${selectedCount > 0 && selectedCount < totalMaterialTypes ? `<span class="filter-badge">${selectedCount}</span>` : ''}
           </div>
           <i id="category-filter-icon" class="fas fa-chevron-up filter-toggle"></i>
         </button>
         
         <div id="category-filter-content" class="filter-content" style="display: block;">
+          <!-- Clear All Button (Always visible at top) -->
+          <div class="filter-actions">
+            <button class="clear-filters-btn-top" onclick="clearCategoryFilters()">
+              <i class="fas fa-times-circle"></i>
+              ${t('filters.clearAll')}
+            </button>
+            ${selectedCount === totalMaterialTypes ? `
+              <span class="all-selected-badge">
+                <i class="fas fa-check-circle"></i>
+                All selected
+              </span>
+            ` : ''}
+          </div>
+          
           <ul class="filter-list">
             ${state.materialTypes.map(type => {
               const displayName = type.display_name;
@@ -491,12 +509,6 @@ const renderSidebar = () => {
               `
             }).join('')}
           </ul>
-          
-          ${state.selectedMaterialTypes.length > 0 ? `
-            <button class="clear-filters-btn" onclick="clearCategoryFilters()">
-              <i class="fas fa-times"></i> ${t('filters.clearAll')}
-            </button>
-          ` : ''}
         </div>
       </div>
     </aside>
