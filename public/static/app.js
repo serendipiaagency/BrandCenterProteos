@@ -397,16 +397,23 @@ const closeUploadModal = () => {
 
 const openAssetEditModal = async (assetId) => {
   try {
+    console.log('🔍 Opening edit modal for asset ID:', assetId)
     const asset = state.assets.find(a => a.id === assetId)
     if (!asset) {
+      console.error('❌ Asset not found in state.assets')
       showNotification('Asset not found', 'error')
       return
     }
     
+    console.log('📋 Found asset:', asset)
+    console.log('  brand_id:', asset.brand_id, typeof asset.brand_id)
+    console.log('  material_type_id:', asset.material_type_id, typeof asset.material_type_id)
+    
     assetEditModal = { ...asset }
+    console.log('✅ assetEditModal set:', assetEditModal)
     render()
   } catch (error) {
-    console.error('Error opening asset modal:', error)
+    console.error('❌ Error opening asset modal:', error)
     showNotification('Error loading asset', 'error')
   }
 }
@@ -1478,7 +1485,7 @@ const renderAssetEditModal = () => {
               <select id="edit-asset-brand" class="form-input">
                 <option value="">No brand</option>
                 ${state.brands.map(brand => `
-                  <option value="${brand.id}" ${assetEditModal.brand_id === brand.id ? 'selected' : ''}>
+                  <option value="${brand.id}" ${assetEditModal.brand_id == brand.id ? 'selected' : ''}>
                     ${brand.display_name}
                   </option>
                 `).join('')}
@@ -1490,7 +1497,7 @@ const renderAssetEditModal = () => {
               <select id="edit-asset-material-type" class="form-input">
                 <option value="">No type</option>
                 ${state.materialTypes.map(type => `
-                  <option value="${type.id}" ${assetEditModal.material_type_id === type.id ? 'selected' : ''}>
+                  <option value="${type.id}" ${assetEditModal.material_type_id == type.id ? 'selected' : ''}>
                     ${type.display_name}
                   </option>
                 `).join('')}
