@@ -230,43 +230,41 @@ const loadInitialData = async () => {
 
 const loadAssets = async () => {
   try {
+    // Build filters object
+    const filters = {}
+    
+    // If no filters selected, load all assets
     if (state.selectedBrands.length === 0 && state.selectedMaterialTypes.length === 0) {
       state.assets = await api.getAssets()
-    } else {
-      const allAssets = []
-      
-      if (state.selectedBrands.length > 0) {
-        for (const brandId of state.selectedBrands) {
-          const assets = await api.getAssets({ brand_id: brandId })
-          allAssets.push(...assets)
-        }
-      }
-      
-      if (state.selectedMaterialTypes.length > 0 && state.selectedBrands.length === 0) {
-        for (const typeId of state.selectedMaterialTypes) {
-          const assets = await api.getAssets({ material_type_id: typeId })
-          allAssets.push(...assets)
-        }
-      } else if (state.selectedMaterialTypes.length > 0) {
-        const filtered = allAssets.filter(asset => 
-          state.selectedMaterialTypes.includes(asset.material_type_id)
-        )
-        state.assets = filtered
-        render()
-        return
-      }
-      
-      // Remove duplicates
-      const uniqueAssets = allAssets.filter((asset, index, self) =>
-        index === self.findIndex((a) => a.id === asset.id)
-      )
-      
-      state.assets = uniqueAssets
+      render()
+      return
     }
     
+    // Load all assets first
+    const allAssets = await api.getAssets()
+    
+    // Apply filters client-side for better UX
+    let filteredAssets = allAssets
+    
+    // Filter by brands
+    if (state.selectedBrands.length > 0) {
+      filteredAssets = filteredAssets.filter(asset => 
+        state.selectedBrands.includes(asset.brand_id)
+      )
+    }
+    
+    // Filter by material types
+    if (state.selectedMaterialTypes.length > 0) {
+      filteredAssets = filteredAssets.filter(asset => 
+        state.selectedMaterialTypes.includes(asset.material_type_id)
+      )
+    }
+    
+    state.assets = filteredAssets
     render()
   } catch (error) {
     console.error('Error loading assets:', error)
+    showNotification('Error loading assets', 'error')
   }
 }
 
