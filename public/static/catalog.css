@@ -1303,3 +1303,156 @@ body {
     min-width: auto;
   }
 }
+}
+
+/* ============================================
+   Horizontal Brand Filter
+   ============================================ */
+
+.horizontal-filter-container {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.horizontal-filter-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.horizontal-filter-header .filter-icon {
+  font-size: 1.25rem;
+  color: var(--corporate-blue);
+}
+
+.horizontal-filter-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--corporate-blue);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.clear-filters-btn-inline {
+  margin-left: auto;
+  background: #f3f4f6;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.clear-filters-btn-inline:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.horizontal-filter-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.horizontal-filter-chip {
+  background: white;
+  border: 2px solid var(--border-color);
+  padding: 0.65rem 1.25rem;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.horizontal-filter-chip:hover {
+  border-color: var(--corporate-blue);
+  color: var(--corporate-blue);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 47, 86, 0.15);
+}
+
+.horizontal-filter-chip.selected {
+  background: var(--corporate-blue);
+  border-color: var(--corporate-blue);
+  color: white;
+}
+
+.horizontal-filter-chip.selected:hover {
+  background: var(--corporate-blue-light);
+  border-color: var(--corporate-blue-light);
+}
+
+.horizontal-filter-chip i {
+  font-size: 0.85rem;
+}
+
+/* ============================================
+   Narrow Sidebar
+   ============================================ */
+
+.sidebar-narrow {
+  width: 240px;
+  min-width: 240px;
+}
+
+/* Expanded filter section by default */
+.filter-section.expanded .filter-content {
+  display: block;
+}
+
+.filter-section.expanded .filter-toggle {
+  transform: rotate(180deg);
+}
+
+/* ============================================
+   Responsive Adjustments
+   ============================================ */
+
+@media (max-width: 1024px) {
+  .sidebar-narrow {
+    width: 220px;
+    min-width: 220px;
+  }
+  
+  .horizontal-filter-chip {
+    font-size: 0.85rem;
+    padding: 0.6rem 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .horizontal-filter-container {
+    padding: 1rem;
+  }
+  
+  .horizontal-filter-items {
+    gap: 0.5rem;
+  }
+  
+  .horizontal-filter-chip {
+    font-size: 0.8rem;
+    padding: 0.5rem 0.85rem;
+  }
+  
+  .sidebar-narrow {
+    width: 100%;
+    min-width: 100%;
+  }

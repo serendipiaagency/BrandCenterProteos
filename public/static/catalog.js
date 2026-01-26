@@ -455,78 +455,12 @@ const toggleFilterSection = (sectionId) => {
 }
 
 const renderSidebar = () => {
-  // Group sub-brands by parent brand
-  const brandGroups = state.brands.map(brand => ({
-    ...brand,
-    subBrands: state.subBrands.filter(sb => sb.parent_brand_id === brand.id)
-  }))
-  
-  // Count total items in each filter
-  const totalBrands = state.brands.length
   const totalMaterialTypes = state.materialTypes.length
   
   return `
-    <aside class="sidebar">
-      <!-- Product Lines Filter -->
-      <div id="brands-filter" class="filter-section">
-        <button class="filter-header" onclick="toggleFilterSection('brands-filter')">
-          <div class="filter-header-left">
-            <i class="fas fa-tag filter-icon"></i>
-            <h3 class="filter-title">${t('filters.productLines')}</h3>
-            <span class="filter-count">(${totalBrands})</span>
-            ${state.selectedBrands.length > 0 ? `<span class="filter-badge">${state.selectedBrands.length}</span>` : ''}
-          </div>
-          <i id="brands-filter-icon" class="fas fa-chevron-down filter-toggle"></i>
-        </button>
-        
-        <div id="brands-filter-content" class="filter-content">
-          <ul class="filter-list">
-            ${brandGroups.map(brand => {
-              const isSelected = state.selectedBrands.includes(brand.id);
-              
-              return `
-              ${brand.subBrands.length > 0 ? `
-                ${brand.subBrands.map(subBrand => `
-                  <li class="filter-item ${isSelected ? 'selected' : ''}" onclick="toggleBrandFilter(${brand.id})">
-                    <label class="filter-checkbox">
-                      <input 
-                        type="checkbox" 
-                        value="${brand.id}"
-                        ${isSelected ? 'checked' : ''}
-                        onchange="event.stopPropagation(); toggleBrandFilter(${brand.id})"
-                      />
-                      <span class="checkbox-custom"></span>
-                      <span class="checkbox-label">${subBrand.display_name}</span>
-                    </label>
-                  </li>
-                `).join('')}
-              ` : `
-                <li class="filter-item ${isSelected ? 'selected' : ''}" onclick="toggleBrandFilter(${brand.id})">
-                  <label class="filter-checkbox">
-                    <input 
-                      type="checkbox" 
-                      value="${brand.id}"
-                      ${isSelected ? 'checked' : ''}
-                      onchange="event.stopPropagation(); toggleBrandFilter(${brand.id})"
-                    />
-                    <span class="checkbox-custom"></span>
-                    <span class="checkbox-label">${brand.display_name}</span>
-                  </label>
-                </li>
-              `}
-            `}).join('')}
-          </ul>
-          
-          ${state.selectedBrands.length > 0 ? `
-            <button class="clear-filters-btn" onclick="clearBrandFilters()">
-              <i class="fas fa-times"></i> ${t('filters.clearAll')}
-            </button>
-          ` : ''}
-        </div>
-      </div>
-      
-      <!-- Assets Category Filter -->
-      <div id="category-filter" class="filter-section">
+    <aside class="sidebar sidebar-narrow">
+      <!-- Assets Category Filter (Always expanded by default) -->
+      <div id="category-filter" class="filter-section expanded">
         <button class="filter-header" onclick="toggleFilterSection('category-filter')">
           <div class="filter-header-left">
             <i class="fas fa-folder-open filter-icon"></i>
@@ -534,17 +468,13 @@ const renderSidebar = () => {
             <span class="filter-count">(${totalMaterialTypes})</span>
             ${state.selectedMaterialTypes.length > 0 ? `<span class="filter-badge">${state.selectedMaterialTypes.length}</span>` : ''}
           </div>
-          <i id="category-filter-icon" class="fas fa-chevron-down filter-toggle"></i>
+          <i id="category-filter-icon" class="fas fa-chevron-up filter-toggle"></i>
         </button>
         
-        <div id="category-filter-content" class="filter-content">
+        <div id="category-filter-content" class="filter-content" style="display: block;">
           <ul class="filter-list">
             ${state.materialTypes.map(type => {
-              // Use translated display name based on language
-              const displayName = state.language === 'es' && type.display_name_es 
-                ? type.display_name_es 
-                : type.display_name;
-              
+              const displayName = type.display_name;
               const isSelected = state.selectedMaterialTypes.includes(type.id);
               
               return `
@@ -580,6 +510,57 @@ const renderWelcome = () => {
     <div class="welcome-section">
       <h1 class="welcome-title">${t('welcome.title')}</h1>
       <p class="welcome-subtitle">${t('welcome.subtitle')}</p>
+    </div>
+  `
+}
+
+// Horizontal Product Lines Filter
+const renderHorizontalBrandFilter = () => {
+  const brandGroups = state.brands.map(brand => ({
+    ...brand,
+    subBrands: state.subBrands.filter(sb => sb.parent_brand_id === brand.id)
+  }))
+  
+  return `
+    <div class="horizontal-filter-container">
+      <div class="horizontal-filter-header">
+        <i class="fas fa-tag filter-icon"></i>
+        <h3 class="horizontal-filter-title">${t('filters.productLines')}</h3>
+        ${state.selectedBrands.length > 0 ? `
+          <button onclick="clearBrandFilters()" class="clear-filters-btn-inline">
+            <i class="fas fa-times-circle"></i>
+            ${t('filters.clearAll')}
+          </button>
+        ` : ''}
+      </div>
+      <div class="horizontal-filter-items">
+        ${brandGroups.map(brand => {
+          const isSelected = state.selectedBrands.includes(brand.id);
+          
+          // If brand has sub-brands, show sub-brand names
+          if (brand.subBrands.length > 0) {
+            return brand.subBrands.map(subBrand => `
+              <button 
+                class="horizontal-filter-chip ${isSelected ? 'selected' : ''}"
+                onclick="toggleBrandFilter(${brand.id})"
+              >
+                ${subBrand.display_name}
+                ${isSelected ? '<i class="fas fa-check-circle"></i>' : ''}
+              </button>
+            `).join('')
+          } else {
+            return `
+              <button 
+                class="horizontal-filter-chip ${isSelected ? 'selected' : ''}"
+                onclick="toggleBrandFilter(${brand.id})"
+              >
+                ${brand.display_name}
+                ${isSelected ? '<i class="fas fa-check-circle"></i>' : ''}
+              </button>
+            `
+          }
+        }).join('')}
+      </div>
     </div>
   `
 }
@@ -761,6 +742,7 @@ const render = () => {
     
     <div class="catalog-container">
       ${renderWelcome()}
+      ${renderHorizontalBrandFilter()}
       
       <div class="catalog-layout">
         ${renderSidebar()}
