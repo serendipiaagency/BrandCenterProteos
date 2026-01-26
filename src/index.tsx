@@ -367,7 +367,21 @@ app.get('/api/assets', async (c) => {
   const stmt = c.env.DB.prepare(query)
   const { results } = await (params.length > 0 ? stmt.bind(...params) : stmt).all()
   
-  return c.json({ assets: results })
+  // For each asset, fetch its associated brand_ids from asset_brands table
+  const assetsWithBrands = await Promise.all(
+    (results as any[]).map(async (asset) => {
+      const { results: brandResults } = await c.env.DB.prepare(`
+        SELECT brand_id FROM asset_brands WHERE asset_id = ?
+      `).bind(asset.id).all()
+      
+      return {
+        ...asset,
+        brand_ids: brandResults.map((b: any) => b.brand_id)
+      }
+    })
+  )
+  
+  return c.json({ assets: assetsWithBrands })
 })
 
 app.post('/api/assets', async (c) => {
@@ -378,6 +392,12 @@ app.post('/api/assets', async (c) => {
     if (value === '' || value === undefined || value === 'undefined') return null
     return value
   }
+  
+  // First, create the asset record
+  // Keep brand_id for backward compatibility (use first brand if multiple)
+  const primaryBrandId = Array.isArray(data.brand_ids) && data.brand_ids.length > 0 
+    ? data.brand_ids[0] 
+    : sanitize(data.brand_id)
   
   const result = await c.env.DB.prepare(`
     INSERT INTO assets (
@@ -393,7 +413,7 @@ app.post('/api/assets', async (c) => {
     data.file_type,
     data.file_size,
     data.file_url,
-    sanitize(data.brand_id),
+    primaryBrandId,
     sanitize(data.sub_brand_id),
     sanitize(data.material_type_id),
     sanitize(data.region),
@@ -404,7 +424,25 @@ app.post('/api/assets', async (c) => {
     data.created_by
   ).run()
   
-  return c.json({ success: true, id: result.meta.last_row_id })
+  const assetId = result.meta.last_row_id
+  
+  // Now, insert all brand associations into asset_brands
+  const brandIds = Array.isArray(data.brand_ids) ? data.brand_ids : (data.brand_id ? [data.brand_id] : [])
+  
+  if (brandIds.length > 0) {
+    for (const brandId of brandIds) {
+      if (brandId) {
+        await c.env.DB.prepare(`
+          INSERT OR IGNORE INTO asset_brands (asset_id, brand_id)
+          VALUES (?, ?)
+        `).bind(assetId, brandId).run()
+      }
+    }
+  }
+  
+  console.log(`✅ Asset ${assetId} created and associated with brands: ${brandIds.join(', ')}`)
+  
+  return c.json({ success: true, id: assetId })
 })
 
 app.put('/api/assets/:id', async (c) => {
@@ -426,10 +464,18 @@ app.put('/api/assets/:id', async (c) => {
       return value
     }
     
+    // Handle brand_ids (can be single or array)
+    const brandIds = data.brand_ids ? 
+      (Array.isArray(data.brand_ids) ? data.brand_ids : [data.brand_ids]) :
+      (data.brand_id ? [data.brand_id] : [])
+    
+    // Primary brand_id for backward compatibility (use first brand)
+    const primaryBrandId = brandIds.length > 0 ? brandIds[0] : null
+    
     const sanitizedData = {
       title: sanitize(data.title),
       description: sanitize(data.description),
-      brand_id: sanitize(data.brand_id),
+      brand_id: sanitize(primaryBrandId),
       material_type_id: sanitize(data.material_type_id),
       region: sanitize(data.region),
       country: sanitize(data.country),
@@ -438,6 +484,7 @@ app.put('/api/assets/:id', async (c) => {
     }
     
     console.log('🧹 Sanitized data:', JSON.stringify(sanitizedData, null, 2))
+    console.log('🏷️ Brand IDs to associate:', brandIds)
     
     const result = await c.env.DB.prepare(`
       UPDATE assets SET
@@ -463,6 +510,26 @@ app.put('/api/assets/:id', async (c) => {
     ).run()
     
     console.log('✅ Update result:', result.meta.changes, 'row(s) affected')
+    
+    // Update brand associations in asset_brands table
+    // First, delete existing associations
+    await c.env.DB.prepare(`
+      DELETE FROM asset_brands WHERE asset_id = ?
+    `).bind(id).run()
+    
+    // Then, insert new associations
+    if (brandIds.length > 0) {
+      for (const brandId of brandIds) {
+        if (brandId) {
+          await c.env.DB.prepare(`
+            INSERT OR IGNORE INTO asset_brands (asset_id, brand_id)
+            VALUES (?, ?)
+          `).bind(id, brandId).run()
+        }
+      }
+    }
+    
+    console.log(`✅ Asset ${id} now associated with brands: ${brandIds.join(', ')}`)
     
     return c.json({ success: true, changes: result.meta.changes })
   } catch (error: any) {
@@ -713,7 +780,21 @@ app.get('/api/public/assets', async (c) => {
   const stmt = c.env.DB.prepare(query)
   const result = await stmt.bind(...params).all()
   
-  return c.json({ assets: result.results || [] })
+  // Add brand_ids to each asset
+  const assetsWithBrands = await Promise.all(
+    (result.results || []).map(async (asset: any) => {
+      const { results: brandResults } = await c.env.DB.prepare(`
+        SELECT brand_id FROM asset_brands WHERE asset_id = ?
+      `).bind(asset.id).all()
+      
+      return {
+        ...asset,
+        brand_ids: brandResults.map((b: any) => b.brand_id)
+      }
+    })
+  )
+  
+  return c.json({ assets: assetsWithBrands })
 })
 
 // Public brands list

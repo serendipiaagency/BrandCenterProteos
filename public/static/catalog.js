@@ -281,10 +281,17 @@ const loadAssets = async () => {
     let filteredAssets = allAssets
     
     // Filter by brands (only if some brands are selected, not all)
+    // An asset matches if ANY of its brand_ids is in the selected brands
     if (state.selectedBrands.length > 0) {
-      filteredAssets = filteredAssets.filter(asset => 
-        state.selectedBrands.includes(asset.brand_id)
-      )
+      filteredAssets = filteredAssets.filter(asset => {
+        // Check if asset has brand_ids array
+        if (asset.brand_ids && Array.isArray(asset.brand_ids)) {
+          // Asset matches if it has at least one brand in common with selected brands
+          return asset.brand_ids.some(brandId => state.selectedBrands.includes(brandId))
+        }
+        // Fallback to old brand_id field for backward compatibility
+        return state.selectedBrands.includes(asset.brand_id)
+      })
       console.log('🏷️  After brand filter:', filteredAssets.length, 'assets')
     }
     

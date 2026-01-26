@@ -435,7 +435,12 @@ const handleAssetUpdate = async (e) => {
     // Get all form values
     const titleValue = $('#edit-asset-title')?.value?.trim()
     const descriptionValue = $('#edit-asset-description')?.value?.trim()
-    const brandValue = $('#edit-asset-brand')?.value
+    
+    // Get selected brands (multi-select)
+    const brandSelect = $('#edit-asset-brand')
+    const selectedOptions = Array.from(brandSelect.selectedOptions)
+    const brandIds = selectedOptions.map(option => parseInt(option.value)).filter(id => id && !isNaN(id))
+    
     const materialTypeValue = $('#edit-asset-material-type')?.value
     const regionValue = $('#edit-asset-region')?.value
     const countryValue = $('#edit-asset-country')?.value?.trim()
@@ -445,7 +450,7 @@ const handleAssetUpdate = async (e) => {
     console.log('📝 RAW Form values:')
     console.log('  title:', titleValue, typeof titleValue)
     console.log('  description:', descriptionValue, typeof descriptionValue)
-    console.log('  brand:', brandValue, typeof brandValue)
+    console.log('  brandIds:', brandIds)
     console.log('  materialType:', materialTypeValue, typeof materialTypeValue)
     console.log('  region:', regionValue, typeof regionValue)
     console.log('  country:', countryValue, typeof countryValue)
@@ -479,7 +484,7 @@ const handleAssetUpdate = async (e) => {
     const updateData = {
       title: safeValue(titleValue) || 'Untitled',
       description: safeValue(descriptionValue),
-      brand_id: safeInt(brandValue),
+      brand_ids: brandIds,  // ← Array of brand IDs
       material_type_id: safeInt(materialTypeValue),
       region: safeValue(regionValue),
       country: safeValue(countryValue),
@@ -490,7 +495,7 @@ const handleAssetUpdate = async (e) => {
     console.log('🧹 SANITIZED Update data:')
     console.log('  title:', updateData.title, typeof updateData.title)
     console.log('  description:', updateData.description, typeof updateData.description)
-    console.log('  brand_id:', updateData.brand_id, typeof updateData.brand_id)
+    console.log('  brand_ids:', updateData.brand_ids)
     console.log('  material_type_id:', updateData.material_type_id, typeof updateData.material_type_id)
     console.log('  region:', updateData.region, typeof updateData.region)
     console.log('  country:', updateData.country, typeof updateData.country)
@@ -563,16 +568,25 @@ const handleFileUpload = async (e) => {
     const uploadResult = await api.uploadFile(file)
     
     // Get form values
-    const brandValue = $('#upload-brand').value
+    // Get selected brands (multi-select)
+    const brandSelect = $('#upload-brand')
+    const selectedOptions = Array.from(brandSelect.selectedOptions)
+    const brandIds = selectedOptions.map(option => parseInt(option.value)).filter(id => id && !isNaN(id))
+    
+    // 🎯 DEFAULT BRAND: pbserum (ID: 2)
+    const DEFAULT_BRAND_ID = 2  // pbserum
+    
+    // If no brands selected, use default
+    if (brandIds.length === 0) {
+      brandIds.push(DEFAULT_BRAND_ID)
+    }
+    
     const subBrandValue = $('#upload-subbrand') ? $('#upload-subbrand').value : null
     const materialTypeValue = $('#upload-material-type').value
     const regionValue = $('#upload-region').value
     const countryValue = $('#upload-country').value
     const regulatoryValue = $('#upload-regulatory').value
     const languageValue = $('#upload-language').value
-    
-    // 🎯 DEFAULT BRAND: pbserum (ID: 2)
-    const DEFAULT_BRAND_ID = 2  // pbserum
     
     // Create asset record with sanitized data
     const assetData = {
@@ -583,9 +597,7 @@ const handleFileUpload = async (e) => {
       file_type: uploadResult.fileType,
       file_size: uploadResult.fileSize,
       file_url: uploadResult.fileUrl,
-      brand_id: brandValue && brandValue !== '' && brandValue !== 'Select brand' 
-        ? parseInt(brandValue) 
-        : DEFAULT_BRAND_ID,  // ← Asignar pbserum por defecto
+      brand_ids: brandIds,  // ← Array of brand IDs
       sub_brand_id: subBrandValue && subBrandValue !== '' ? parseInt(subBrandValue) : null,
       material_type_id: materialTypeValue && materialTypeValue !== '' && materialTypeValue !== 'Select type' ? parseInt(materialTypeValue) : null,
       region: regionValue && regionValue !== '' && regionValue !== 'Select region' ? regionValue : null,
@@ -595,6 +607,7 @@ const handleFileUpload = async (e) => {
       created_by: state.currentUser.id
     }
     
+    console.log('🔄 Creating asset with brand_ids:', brandIds)
     console.log('🔄 Creating asset with data:', assetData)
     
     const createResponse = await api.createAsset(assetData)
@@ -1364,9 +1377,8 @@ const renderUploadModal = () => {
           
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Brand</label>
-              <select id="upload-brand" class="form-input">
-                <option value="">Select brand</option>
+              <label class="form-label">Brands (hold Ctrl/Cmd to select multiple)</label>
+              <select id="upload-brand" class="form-input" multiple size="5" style="height: auto;">
                 ${state.brands.map(brand => `<option value="${brand.id}" ${brand.id === 2 ? 'selected' : ''}>${brand.display_name}</option>`).join('')}
               </select>
             </div>
@@ -1486,11 +1498,10 @@ const renderAssetEditModal = () => {
           
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Brand</label>
-              <select id="edit-asset-brand" class="form-input">
-                <option value="">No brand</option>
+              <label class="form-label">Brands (hold Ctrl/Cmd to select multiple)</label>
+              <select id="edit-asset-brand" class="form-input" multiple size="5" style="height: auto;">
                 ${state.brands.map(brand => `
-                  <option value="${brand.id}" ${assetEditModal.brand_id == brand.id ? 'selected' : ''}>
+                  <option value="${brand.id}" ${assetEditModal.brand_ids && assetEditModal.brand_ids.includes(brand.id) ? 'selected' : ''}>
                     ${brand.display_name}
                   </option>
                 `).join('')}
