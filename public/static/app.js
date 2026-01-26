@@ -1617,7 +1617,7 @@ const renderUploadModal = () => {
             </div>
             
             <div class="form-group">
-              <label class="form-label">Country</label>
+              <label class="form-label">Country <span style="color: #9ca3af; font-size: 0.75rem; font-weight: 400;">(Optional)</span></label>
               <input id="upload-country" type="text" class="form-input" placeholder="Country" />
             </div>
           </div>
@@ -1633,7 +1633,7 @@ const renderUploadModal = () => {
             </div>
             
             <div class="form-group">
-              <label class="form-label">Language</label>
+              <label class="form-label">Language <span style="color: #9ca3af; font-size: 0.75rem; font-weight: 400;">(Optional)</span></label>
               <select id="upload-language" class="form-input">
                 <option value="ESP">Español</option>
                 <option value="ENG">English</option>
@@ -1746,7 +1746,7 @@ const renderAssetEditModal = () => {
             </div>
             
             <div class="form-group">
-              <label class="form-label">Country</label>
+              <label class="form-label">Country <span style="color: #9ca3af; font-size: 0.75rem; font-weight: 400;">(Optional)</span></label>
               <input 
                 id="edit-asset-country" 
                 type="text" 
@@ -1769,7 +1769,7 @@ const renderAssetEditModal = () => {
             </div>
             
             <div class="form-group">
-              <label class="form-label">Language</label>
+              <label class="form-label">Language <span style="color: #9ca3af; font-size: 0.75rem; font-weight: 400;">(Optional)</span></label>
               <select id="edit-asset-language" class="form-input">
                 <option value="ENG" ${assetEditModal.language === 'ENG' ? 'selected' : ''}>English</option>
                 <option value="ESP" ${assetEditModal.language === 'ESP' ? 'selected' : ''}>Spanish</option>
