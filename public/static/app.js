@@ -478,27 +478,35 @@ const handleFileUpload = async (e) => {
     // Upload file to R2
     const uploadResult = await api.uploadFile(file)
     
-    // Create asset record
+    // Get form values
     const brandValue = $('#upload-brand').value
+    const subBrandValue = $('#upload-subbrand') ? $('#upload-subbrand').value : null
     const materialTypeValue = $('#upload-material-type').value
+    const regionValue = $('#upload-region').value
+    const countryValue = $('#upload-country').value
+    const regulatoryValue = $('#upload-regulatory').value
+    const languageValue = $('#upload-language').value
     
+    // Create asset record with sanitized data
     const assetData = {
       filename: uploadResult.filename,
       original_filename: file.name,
       title: $('#upload-title').value || file.name,
-      description: $('#upload-description').value,
+      description: $('#upload-description').value || null,
       file_type: uploadResult.fileType,
       file_size: uploadResult.fileSize,
       file_url: uploadResult.fileUrl,
-      brand_id: brandValue ? parseInt(brandValue) : null,
-      sub_brand_id: $('#upload-subbrand').value ? parseInt($('#upload-subbrand').value) : null,
-      material_type_id: materialTypeValue ? parseInt(materialTypeValue) : null,
-      region: $('#upload-region').value || null,
-      country: $('#upload-country').value || null,
-      regulatory: $('#upload-regulatory').value || 'GLOBAL',
-      language: $('#upload-language').value || 'ENG',
+      brand_id: brandValue && brandValue !== '' && brandValue !== 'Select brand' ? parseInt(brandValue) : null,
+      sub_brand_id: subBrandValue && subBrandValue !== '' ? parseInt(subBrandValue) : null,
+      material_type_id: materialTypeValue && materialTypeValue !== '' && materialTypeValue !== 'Select type' ? parseInt(materialTypeValue) : null,
+      region: regionValue && regionValue !== '' && regionValue !== 'Select region' ? regionValue : null,
+      country: countryValue && countryValue !== '' ? countryValue : null,
+      regulatory: regulatoryValue && regulatoryValue !== '' ? regulatoryValue : 'GLOBAL',
+      language: languageValue && languageValue !== '' ? languageValue : 'ENG',
       created_by: state.currentUser.id
     }
+    
+    console.log('Creating asset with data:', assetData)
     
     await api.createAsset(assetData)
     
@@ -1248,16 +1256,16 @@ const renderUploadModal = () => {
           
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Brand *</label>
-              <select id="upload-brand" required class="form-input">
+              <label class="form-label">Brand</label>
+              <select id="upload-brand" class="form-input">
                 <option value="">Select brand</option>
                 ${state.brands.map(brand => `<option value="${brand.id}">${brand.display_name}</option>`).join('')}
               </select>
             </div>
             
             <div class="form-group">
-              <label class="form-label">Material Type *</label>
-              <select id="upload-material-type" required class="form-input">
+              <label class="form-label">Material Type</label>
+              <select id="upload-material-type" class="form-input">
                 <option value="">Select type</option>
                 ${state.materialTypes.map(type => `<option value="${type.id}">${type.display_name}</option>`).join('')}
               </select>

@@ -373,6 +373,12 @@ app.get('/api/assets', async (c) => {
 app.post('/api/assets', async (c) => {
   const data = await c.req.json()
   
+  // Sanitize data: convert empty strings and undefined to null
+  const sanitize = (value: any) => {
+    if (value === '' || value === undefined || value === 'undefined') return null
+    return value
+  }
+  
   const result = await c.env.DB.prepare(`
     INSERT INTO assets (
       filename, original_filename, title, description, file_type, file_size, file_url,
@@ -382,18 +388,18 @@ app.post('/api/assets', async (c) => {
   `).bind(
     data.filename,
     data.original_filename,
-    data.title,
-    data.description,
+    sanitize(data.title),
+    sanitize(data.description),
     data.file_type,
     data.file_size,
     data.file_url,
-    data.brand_id,
-    data.sub_brand_id,
-    data.material_type_id,
-    data.region,
-    data.country,
-    data.regulatory,
-    data.language,
+    sanitize(data.brand_id),
+    sanitize(data.sub_brand_id),
+    sanitize(data.material_type_id),
+    sanitize(data.region),
+    sanitize(data.country),
+    sanitize(data.regulatory) || 'GLOBAL',
+    sanitize(data.language) || 'ENG',
     data.tags ? JSON.stringify(data.tags) : null,
     data.created_by
   ).run()
