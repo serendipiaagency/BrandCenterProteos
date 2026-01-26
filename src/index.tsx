@@ -7,6 +7,7 @@ import type { FC } from 'hono/jsx'
 type Bindings = {
   DB: D1Database
   R2: R2Bucket
+  RESEND_API_KEY?: string  // Optional for backward compatibility
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -127,10 +128,93 @@ app.post('/api/auth/forgot-password', async (c) => {
       VALUES (?, ?, ?)
     `).bind(user.id, token, expiresAt).run()
     
-    // In production, send email with reset link
-    // For now, we'll return the token in the response (DEV ONLY)
-    console.log(`🔑 Password reset token for ${email}: ${token}`)
-    console.log(`🔗 Reset link: /reset-password?token=${token}`)
+    // Send email with Resend (if API key is configured)
+    const resetLink = `https://brandcenter.pbserum.com/reset-password?token=${token}`
+    
+    if (c.env.RESEND_API_KEY) {
+      try {
+        const resendResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${c.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'Brand Portal <noreply@pbserum.com>',
+            to: [email],
+            subject: 'Recuperación de Contraseña - Brand Portal',
+            html: `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <meta charset="utf-8">
+                <style>
+                  body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                  .header { background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+                  .content { background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; }
+                  .button { display: inline-block; background: #0066cc; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+                  .footer { background: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; border-radius: 0 0 8px 8px; }
+                  .warning { background: #fef3c7; border-left: 4px solid #fbbf24; padding: 15px; margin: 20px 0; }
+                </style>
+              </head>
+              <body>
+                <div class="container">
+                  <div class="header">
+                    <h1 style="margin: 0; font-size: 28px;">🔑 Recuperación de Contraseña</h1>
+                  </div>
+                  <div class="content">
+                    <p>Hola <strong>${user.name}</strong>,</p>
+                    
+                    <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en <strong>Brand Portal</strong>.</p>
+                    
+                    <p>Haz clic en el siguiente botón para crear una nueva contraseña:</p>
+                    
+                    <div style="text-align: center;">
+                      <a href="${resetLink}" class="button">Restablecer Contraseña</a>
+                    </div>
+                    
+                    <p>O copia y pega este enlace en tu navegador:</p>
+                    <p style="background: #f3f4f6; padding: 12px; border-radius: 4px; word-break: break-all; font-size: 14px;">
+                      ${resetLink}
+                    </p>
+                    
+                    <div class="warning">
+                      <strong>⚠️ Importante:</strong>
+                      <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+                        <li>Este enlace expira en <strong>1 hora</strong></li>
+                        <li>Solo se puede usar una vez</li>
+                        <li>Si no solicitaste esto, ignora este email</li>
+                      </ul>
+                    </div>
+                    
+                    <p>Saludos,<br><strong>Equipo de Brand Portal</strong></p>
+                  </div>
+                  <div class="footer">
+                    <p>Proteos Biotech - Brand Portal</p>
+                    <p>Este es un email automático, por favor no respondas.</p>
+                  </div>
+                </div>
+              </body>
+              </html>
+            `
+          })
+        })
+        
+        if (!resendResponse.ok) {
+          console.error('❌ Resend API error:', await resendResponse.text())
+        } else {
+          console.log('✅ Email sent successfully via Resend')
+        }
+      } catch (emailError) {
+        console.error('❌ Error sending email:', emailError)
+        // Continue anyway - don't fail the request if email fails
+      }
+    } else {
+      // DEV MODE: No email service configured
+      console.log(`🔑 Password reset token for ${email}: ${token}`)
+      console.log(`🔗 Reset link: ${resetLink}`)
+    }
     
     // Log activity
     await c.env.DB.prepare(`
@@ -138,13 +222,19 @@ app.post('/api/auth/forgot-password', async (c) => {
       VALUES (?, 'password_reset_requested', ?)
     `).bind(user.id, JSON.stringify({ email })).run()
     
-    return c.json({ 
+    // Response (same for both dev and production for security)
+    const response: any = { 
       success: true, 
-      message: 'Password reset instructions have been sent to your email.',
-      // DEV ONLY: Include token in response
-      dev_token: token,
-      dev_reset_link: `/reset-password?token=${token}`
-    })
+      message: 'Si el email existe, recibirás instrucciones para recuperar tu contraseña.'
+    }
+    
+    // DEV ONLY: Include token in response if no Resend API key
+    if (!c.env.RESEND_API_KEY) {
+      response.dev_token = token
+      response.dev_reset_link = resetLink
+    }
+    
+    return c.json(response)
     
   } catch (error: any) {
     console.error('❌ Error in forgot-password:', error)
