@@ -826,12 +826,12 @@ app.post('/api/public/login', async (c) => {
     
     // Verify credentials against users table
     const user = await c.env.DB.prepare(`
-      SELECT id, email, name, role, active
+      SELECT id, email, name, role, active, password_hash
       FROM users
-      WHERE email = ? AND password = ? AND active = 1
-    `).bind(email, password).first()
+      WHERE email = ? AND active = 1
+    `).bind(email).first()
     
-    if (!user) {
+    if (!user || user.password_hash !== password) {
       return c.json({ success: false, message: 'Invalid credentials' }, 401)
     }
     
