@@ -469,10 +469,7 @@ const handleAssetUpdate = async (e) => {
     
     console.log('✅ Update response:', response)
     
-    // Show success message
-    showNotification('Asset updated successfully!', 'success')
-    
-    // Close modal
+    // Close modal FIRST
     closeAssetEditModal()
     
     // Clear filters to show the updated asset
@@ -480,10 +477,19 @@ const handleAssetUpdate = async (e) => {
     state.selectedSubBrand = null
     state.selectedMaterialType = null
     
-    // Reload assets
-    await loadAssets()
+    console.log('🔄 Reloading assets with cleared filters...')
     
-    console.log('✅ Assets reloaded successfully')
+    // Force reload assets from server
+    try {
+      state.assets = await api.getAssets({})
+      console.log('✅ Assets reloaded successfully:', state.assets.length, 'assets')
+      render()
+    } catch (reloadError) {
+      console.error('❌ Error reloading assets:', reloadError)
+    }
+    
+    // Show success message AFTER reload
+    showNotification('Asset updated successfully!', 'success')
     
   } catch (error) {
     console.error('❌ Asset update error:', error)
@@ -539,13 +545,32 @@ const handleFileUpload = async (e) => {
       created_by: state.currentUser.id
     }
     
-    console.log('Creating asset with data:', assetData)
+    console.log('🔄 Creating asset with data:', assetData)
     
-    await api.createAsset(assetData)
+    const createResponse = await api.createAsset(assetData)
+    console.log('✅ Asset created:', createResponse)
     
-    showNotification('File uploaded successfully!', 'success')
+    // Close modal FIRST
     closeUploadModal()
-    await loadAssets()
+    
+    // Clear filters
+    state.selectedBrand = null
+    state.selectedSubBrand = null
+    state.selectedMaterialType = null
+    
+    console.log('🔄 Reloading assets after creation...')
+    
+    // Force reload assets from server
+    try {
+      state.assets = await api.getAssets({})
+      console.log('✅ Assets reloaded successfully:', state.assets.length, 'assets')
+      render()
+    } catch (reloadError) {
+      console.error('❌ Error reloading assets:', reloadError)
+    }
+    
+    // Show success message AFTER reload
+    showNotification('File uploaded successfully!', 'success')
   } catch (error) {
     console.error('Upload error:', error)
     showNotification('Error uploading file', 'error')
