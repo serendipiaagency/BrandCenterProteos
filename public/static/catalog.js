@@ -222,7 +222,15 @@ const api = {
     if (filters.brand_id) url += `brand_id=${filters.brand_id}&`
     if (filters.material_type_id) url += `material_type_id=${filters.material_type_id}&`
     
-    const response = await axios.get(url)
+    // Add cache-busting timestamp to force fresh data
+    url += `_t=${Date.now()}&`
+    
+    const response = await axios.get(url, {
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    })
     return response.data.assets
   }
 }

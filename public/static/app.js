@@ -150,7 +150,15 @@ const api = {
       url += `userId=${state.currentUser.id}&`
     }
     
-    const response = await axios.get(url)
+    // Add cache-busting timestamp to force fresh data
+    url += `_t=${Date.now()}&`
+    
+    const response = await axios.get(url, {
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    })
     return response.data.assets
   },
   

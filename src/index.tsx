@@ -649,7 +649,13 @@ app.get('/api/assets', async (c) => {
     })
   }
   
-  return c.json({ assets: filteredAssets })
+  return c.json({ assets: filteredAssets }, {
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    }
+  })
 })
 
 app.post('/api/assets', async (c) => {
@@ -830,7 +836,13 @@ app.put('/api/assets/:id', async (c) => {
     
     console.log(`✅ Asset ${id} now associated with brands: ${brandIds.join(', ')}`)
     
-    return c.json({ success: true, changes: result.meta.changes })
+    return c.json({ success: true, changes: result.meta.changes }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
   } catch (error: any) {
     console.error('❌ Error updating asset:', error.message)
     console.error('Stack:', error.stack)
@@ -1214,7 +1226,13 @@ app.get('/api/public/assets', async (c) => {
     })
   )
   
-  return c.json({ assets: assetsWithBrands })
+  return c.json({ assets: assetsWithBrands }, {
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    }
+  })
 })
 
 // Public brands list
