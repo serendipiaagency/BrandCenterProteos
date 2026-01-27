@@ -244,6 +244,9 @@ const loadInitialData = async () => {
     state.brands = brands
     state.materialTypes = materialTypes
     
+    // 🎯 SELECT ALL BRANDS BY DEFAULT (user's accessible brands)
+    state.selectedBrands = brands.map(brand => brand.id)
+    
     // 🎯 SELECT ALL MATERIAL TYPES BY DEFAULT
     state.selectedMaterialTypes = materialTypes.map(type => type.id)
     
@@ -280,9 +283,13 @@ const loadAssets = async () => {
     // Apply filters client-side for better UX
     let filteredAssets = allAssets
     
-    // Filter by brands (only if some brands are selected, not all)
-    // An asset matches if ANY of its brand_ids is in the selected brands
-    if (state.selectedBrands.length > 0) {
+    // Filter by brands
+    // If NO brands are selected, show empty (user must select at least one brand)
+    if (state.selectedBrands.length === 0) {
+      filteredAssets = []
+      console.log('⚠️  No brands selected, showing empty')
+    } else if (state.selectedBrands.length > 0 && state.selectedBrands.length < state.brands.length) {
+      // If SOME brands are selected (not all), filter by those brands
       filteredAssets = filteredAssets.filter(asset => {
         // Check if asset has brand_ids array
         if (asset.brand_ids && Array.isArray(asset.brand_ids)) {
@@ -294,6 +301,7 @@ const loadAssets = async () => {
       })
       console.log('🏷️  After brand filter:', filteredAssets.length, 'assets')
     }
+    // If ALL brands are selected, don't filter (show all assets from accessible brands)
     
     // Filter by material types (only if some types are selected, not all or none)
     // If ALL material types are selected, don't filter (show all)
