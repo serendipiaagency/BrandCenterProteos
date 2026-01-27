@@ -733,9 +733,17 @@ app.put('/api/assets/:id', async (c) => {
   })
   
   try {
-    // Sanitize data: convert empty strings and undefined to null
+    // Sanitize data: convert empty strings, undefined, and literal string 'null' to null
+    // BUT preserve actual text values (including whitespace-only if trimmed)
     const sanitize = (value: any) => {
-      if (value === '' || value === undefined || value === 'undefined' || value === 'null') return null
+      if (value === '' || value === undefined || value === 'undefined' || value === 'null' || value === null) {
+        return null
+      }
+      // If it's a string, trim it and check if it's empty
+      if (typeof value === 'string') {
+        const trimmed = value.trim()
+        return trimmed === '' ? null : trimmed
+      }
       return value
     }
     
@@ -759,6 +767,16 @@ app.put('/api/assets/:id', async (c) => {
     }
     
     console.log('🧹 Sanitized data:', JSON.stringify(sanitizedData, null, 2))
+    console.log('📝 Title sanitized:', {
+      original: data.title,
+      sanitized: sanitizedData.title,
+      type: typeof sanitizedData.title
+    })
+    console.log('📝 Description sanitized:', {
+      original: data.description,
+      sanitized: sanitizedData.description,
+      type: typeof sanitizedData.description
+    })
     console.log('🏷️ Brand IDs to associate:', brandIds)
     
     const result = await c.env.DB.prepare(`
@@ -785,6 +803,12 @@ app.put('/api/assets/:id', async (c) => {
     ).run()
     
     console.log('✅ Update result:', result.meta.changes, 'row(s) affected')
+    
+    // Verify the update by reading back the asset
+    const updatedAsset = await c.env.DB.prepare(`
+      SELECT id, title, description FROM assets WHERE id = ?
+    `).bind(id).first()
+    console.log('🔍 Verified updated asset:', updatedAsset)
     
     // Update brand associations in asset_brands table
     // First, delete existing associations
