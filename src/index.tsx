@@ -1729,7 +1729,7 @@ app.get('/login', (c) => {
                 </div>
                 <button type="submit" class="login-button">Login</button>
                 <div class="login-footer">
-                  <a href="#" class="forgot-password">Lost your password?</a>
+                  <a href="/change-password" class="forgot-password">Lost your password?</a>
                 </div>
               </form>
               <div id="error-message" class="error-message" style="display: none;"></div>
