@@ -328,6 +328,85 @@ app.post('/api/auth/reset-password', async (c) => {
   }
 })
 
+// Change Password - Requires current password
+app.post('/api/auth/change-password', async (c) => {
+  try {
+    const { email, currentPassword, newPassword } = await c.req.json()
+    
+    if (!email || !currentPassword || !newPassword) {
+      return c.json({ 
+        success: false,
+        message: 'Email, contraseña actual y nueva contraseña son requeridos' 
+      }, 400)
+    }
+    
+    if (newPassword.length < 6) {
+      return c.json({ 
+        success: false,
+        message: 'La nueva contraseña debe tener al menos 6 caracteres' 
+      }, 400)
+    }
+    
+    // Check if user exists and verify current password
+    const user = await c.env.DB.prepare(`
+      SELECT id, email, name, password_hash FROM users WHERE email = ? AND active = 1
+    `).bind(email).first()
+    
+    if (!user) {
+      return c.json({ 
+        success: false,
+        message: 'Credenciales inválidas' 
+      }, 401)
+    }
+    
+    // Verify current password
+    // In production: use bcrypt.compare(currentPassword, user.password_hash)
+    if (user.password_hash !== currentPassword) {
+      return c.json({ 
+        success: false,
+        message: 'La contraseña actual es incorrecta' 
+      }, 401)
+    }
+    
+    // Same password check
+    if (currentPassword === newPassword) {
+      return c.json({ 
+        success: false,
+        message: 'La nueva contraseña debe ser diferente a la actual' 
+      }, 400)
+    }
+    
+    // Update user password
+    // In production: hash with bcrypt
+    await c.env.DB.prepare(`
+      UPDATE users SET password_hash = ? WHERE id = ?
+    `).bind(newPassword, user.id).run()
+    
+    // Log activity
+    await c.env.DB.prepare(`
+      INSERT INTO activity_log (user_id, action, details) 
+      VALUES (?, 'password_changed', ?)
+    `).bind(user.id, JSON.stringify({ 
+      email: user.email,
+      changed_at: new Date().toISOString() 
+    })).run()
+    
+    console.log(`✅ Password changed successfully for user: ${user.email}`)
+    
+    return c.json({ 
+      success: true, 
+      message: 'Contraseña cambiada exitosamente' 
+    })
+    
+  } catch (error: any) {
+    console.error('❌ Error changing password:', error)
+    return c.json({ 
+      success: false,
+      message: 'Error al cambiar la contraseña' 
+    }, 500)
+  }
+})
+
 // ============================================
 // API ROUTES - Users Management
 // ============================================
