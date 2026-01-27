@@ -2678,7 +2678,7 @@ const render = () => {
   const app = $('#app')
   
   if (state.currentPage === 'login') {
-    app.innerHTML = renderLoginPage()
+    app.innerHTML = renderLoginPage() + renderForgotPasswordModal()
     return
   }
   
