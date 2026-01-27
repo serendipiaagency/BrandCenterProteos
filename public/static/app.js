@@ -1301,10 +1301,6 @@ const renderLoginPage = () => {
               </a>
             </div>
           </form>
-          
-          <div class="login-footer">
-            <p>Demo credentials provided above</p>
-          </div>
         </div>
       </div>
     </div>
