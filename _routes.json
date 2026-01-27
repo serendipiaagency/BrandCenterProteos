@@ -1,5 +1,5 @@
 {
   "version": 1,
   "include": ["/*"],
-  "exclude": ["/login.html", "/static/*"]
+  "exclude": ["/login.html", "/change-password.html", "/static/*"]
 }
