@@ -810,11 +810,29 @@ const handleAssetUpdate = async (e) => {
     
     console.log('🔄 Reloading assets with cleared filters...')
     
-    // Force reload assets from server
+    // Force reload assets from server with cache bypass
     try {
+      // Clear any axios cache
+      if (axios.defaults && axios.defaults.adapter) {
+        delete axios.defaults.adapter
+      }
+      
+      // Force fresh data with timestamp
       state.assets = await api.getAssets({})
       console.log('✅ Assets reloaded successfully:', state.assets.length, 'assets')
+      
+      // Force re-render
       render()
+      
+      // Extra: force refresh after short delay to ensure cache is cleared
+      setTimeout(() => {
+        console.log('🔄 Double-checking asset data...')
+        api.getAssets({}).then(freshAssets => {
+          state.assets = freshAssets
+          render()
+        })
+      }, 500)
+      
     } catch (reloadError) {
       console.error('❌ Error reloading assets:', reloadError)
     }
@@ -907,11 +925,26 @@ const handleFileUpload = async (e) => {
     
     console.log('🔄 Reloading assets after creation...')
     
-    // Force reload assets from server
+    // Force reload assets from server with cache bypass
     try {
+      // Clear any axios cache
+      if (axios.defaults && axios.defaults.adapter) {
+        delete axios.defaults.adapter
+      }
+      
       state.assets = await api.getAssets({})
       console.log('✅ Assets reloaded successfully:', state.assets.length, 'assets')
       render()
+      
+      // Extra: force refresh after short delay
+      setTimeout(() => {
+        console.log('🔄 Double-checking asset data...')
+        api.getAssets({}).then(freshAssets => {
+          state.assets = freshAssets
+          render()
+        })
+      }, 500)
+      
     } catch (reloadError) {
       console.error('❌ Error reloading assets:', reloadError)
     }

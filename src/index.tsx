@@ -723,7 +723,15 @@ app.post('/api/assets', async (c) => {
   
   console.log(`✅ Asset ${assetId} associated with brands: ${brandIds.join(', ')}`)
   
-  return c.json({ success: true, id: assetId })
+  return c.json({ success: true, id: assetId }, {
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Clear-Site-Data': '"cache"',
+      'X-Cache-Invalidate': 'all'
+    }
+  })
 })
 
 app.put('/api/assets/:id', async (c) => {
@@ -840,7 +848,9 @@ app.put('/api/assets/:id', async (c) => {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
         'Pragma': 'no-cache',
-        'Expires': '0'
+        'Expires': '0',
+        'Clear-Site-Data': '"cache"',
+        'X-Cache-Invalidate': 'all'
       }
     })
   } catch (error: any) {
@@ -962,6 +972,14 @@ app.post('/api/assets/bulk-edit', async (c) => {
       updated: updatedCount,
       operation,
       message: `Successfully updated ${updatedCount} asset(s)`
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Clear-Site-Data': '"cache"',
+        'X-Cache-Invalidate': 'all'
+      }
     })
     
   } catch (error: any) {
@@ -987,7 +1005,15 @@ app.delete('/api/assets/:id', async (c) => {
     DELETE FROM assets WHERE id = ?
   `).bind(id).run()
   
-  return c.json({ success: true })
+  return c.json({ success: true }, {
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Clear-Site-Data': '"cache"',
+      'X-Cache-Invalidate': 'all'
+    }
+  })
 })
 
 // ============================================
