@@ -668,6 +668,14 @@ const renderAssets = () => {
             <div class="asset-content">
               <h3 class="asset-title">${asset.title || asset.original_filename}</h3>
               
+              ${asset.description ? `
+                <p class="asset-description" style="font-size: 0.875rem; color: var(--gray-600); margin: 0.5rem 0 1rem 0; line-height: 1.4; min-height: 1.5rem;">
+                  ${asset.description}
+                </p>
+              ` : `
+                <div class="asset-description-placeholder" style="min-height: 1.5rem; margin: 0.5rem 0 1rem 0;"></div>
+              `}
+              
               <div class="asset-actions">
                 <a href="${asset.file_url}" download class="btn btn-primary">
                   ${t('assets.download')}

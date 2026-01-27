@@ -1510,14 +1510,15 @@ const renderAssetsPage = () => {
             <div class="asset-body">
               <h4 class="asset-title">${asset.title || asset.original_filename}</h4>
               
+              ${asset.description ? `
+                <p style="font-size: 0.875rem; color: var(--gray-600); margin: 0.5rem 0 1rem 0; line-height: 1.4;">
+                  ${asset.description}
+                </p>
+              ` : ''}
+              
               <div class="asset-meta">
                 <span>${formatFileSize(asset.file_size)}</span>
                 <span>${formatDate(asset.created_at)}</span>
-              </div>
-              
-              <div style="font-size: 0.75rem; color: var(--gray-700); margin-bottom: 1rem;">
-                <div>${asset.brand_name || 'N/A'}</div>
-                ${asset.sub_brand_name ? `<div>${asset.sub_brand_name}</div>` : ''}
               </div>
               
               <div class="asset-actions">
