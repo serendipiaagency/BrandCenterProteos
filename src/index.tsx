@@ -18,10 +18,6 @@ app.use('/api/*', cors())
 // Serve static files
 app.use('/static/*', serveStatic({ root: './public' }))
 
-// Serve HTML pages
-app.get('/login', serveStatic({ path: './public/login.html' }))
-app.get('/change-password.html', serveStatic({ path: './public/change-password.html' }))
-
 // ============================================
 // API ROUTES - Authentication
 // ============================================
