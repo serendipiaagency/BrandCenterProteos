@@ -692,7 +692,10 @@ const openAssetEditModal = async (assetId) => {
     
     assetEditModal = { ...asset }
     console.log('✅ assetEditModal set:', assetEditModal)
-    render()
+    
+    // Only render modals, not the entire page
+    renderModalsContainer()
+    
   } catch (error) {
     console.error('❌ Error opening asset modal:', error)
     showNotification('Error loading asset', 'error')
@@ -701,7 +704,7 @@ const openAssetEditModal = async (assetId) => {
 
 const closeAssetEditModal = () => {
   assetEditModal = null
-  render()
+  renderModalsContainer()
 }
 
 const handleAssetUpdate = async (e) => {
@@ -2715,15 +2718,7 @@ const render = () => {
       </div>
     </div>
     
-    ${renderUploadModal()}
-    ${renderAssetEditModal()}
-    ${renderBulkEditModal()}
-    ${renderForgotPasswordModal()}
-    ${renderResetPasswordForm()}
-    ${renderUserModal()}
-    ${renderPasswordModal()}
-    ${renderBrandModal()}
-    ${renderMaterialTypeModal()}
+    <div id="modals-container"></div>
     
     ${state.loading ? `
       <div class="loading-overlay">
@@ -2733,6 +2728,27 @@ const render = () => {
         </div>
       </div>
     ` : ''}
+  `
+  
+  // CRITICAL FIX: Render modals separately to prevent losing input values
+  renderModalsContainer()
+}
+
+// NEW FUNCTION: Render modals independently
+const renderModalsContainer = () => {
+  const modalsContainer = $('#modals-container')
+  if (!modalsContainer) return
+  
+  modalsContainer.innerHTML = `
+    ${renderUploadModal()}
+    ${renderAssetEditModal()}
+    ${renderBulkEditModal()}
+    ${renderForgotPasswordModal()}
+    ${renderResetPasswordForm()}
+    ${renderUserModal()}
+    ${renderPasswordModal()}
+    ${renderBrandModal()}
+    ${renderMaterialTypeModal()}
   `
 }
 
