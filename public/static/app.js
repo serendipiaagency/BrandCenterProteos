@@ -880,8 +880,11 @@ const handleFileUpload = async (e) => {
       created_by: state.currentUser.id
     }
     
+    console.log('📝 Upload form values:')
+    console.log('  - Title input value:', $('#upload-title').value)
+    console.log('  - Description input value:', $('#upload-description').value)
     console.log('🔄 Creating asset with brand_ids:', brandIds)
-    console.log('🔄 Creating asset with data:', assetData)
+    console.log('🔄 Creating asset with data:', JSON.stringify(assetData, null, 2))
     
     const createResponse = await api.createAsset(assetData)
     console.log('✅ Asset created:', createResponse)

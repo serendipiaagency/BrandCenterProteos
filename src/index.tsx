@@ -655,9 +655,14 @@ app.get('/api/assets', async (c) => {
 app.post('/api/assets', async (c) => {
   const data = await c.req.json()
   
-  // Sanitize data: convert empty strings and undefined to null
+  console.log('📥 POST /api/assets - Creating new asset')
+  console.log('📦 Request data:', JSON.stringify(data, null, 2))
+  console.log('📝 Title:', data.title)
+  console.log('📝 Description:', data.description)
+  
+  // Sanitize data: convert empty strings, undefined, and 'null' string to null
   const sanitize = (value: any) => {
-    if (value === '' || value === undefined || value === 'undefined') return null
+    if (value === '' || value === undefined || value === 'undefined' || value === 'null' || value === null) return null
     return value
   }
   
@@ -694,6 +699,8 @@ app.post('/api/assets', async (c) => {
   
   const assetId = result.meta.last_row_id
   
+  console.log(`✅ Asset ${assetId} created with title: "${sanitize(data.title)}"`)
+  
   // Now, insert all brand associations into asset_brands
   const brandIds = Array.isArray(data.brand_ids) ? data.brand_ids : (data.brand_id ? [data.brand_id] : [])
   
@@ -708,7 +715,7 @@ app.post('/api/assets', async (c) => {
     }
   }
   
-  console.log(`✅ Asset ${assetId} created and associated with brands: ${brandIds.join(', ')}`)
+  console.log(`✅ Asset ${assetId} associated with brands: ${brandIds.join(', ')}`)
   
   return c.json({ success: true, id: assetId })
 })
