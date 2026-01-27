@@ -812,12 +812,7 @@ const handleAssetUpdate = async (e) => {
     
     // Force reload assets from server with cache bypass
     try {
-      // Clear any axios cache
-      if (axios.defaults && axios.defaults.adapter) {
-        delete axios.defaults.adapter
-      }
-      
-      // Force fresh data with timestamp
+      // Force fresh data with timestamp (already in api.getAssets)
       state.assets = await api.getAssets({})
       console.log('✅ Assets reloaded successfully:', state.assets.length, 'assets')
       
@@ -825,12 +820,16 @@ const handleAssetUpdate = async (e) => {
       render()
       
       // Extra: force refresh after short delay to ensure cache is cleared
-      setTimeout(() => {
+      setTimeout(async () => {
         console.log('🔄 Double-checking asset data...')
-        api.getAssets({}).then(freshAssets => {
+        try {
+          const freshAssets = await api.getAssets({})
           state.assets = freshAssets
           render()
-        })
+          console.log('✅ Double-check complete')
+        } catch (err) {
+          console.error('❌ Error in double-check:', err)
+        }
       }, 500)
       
     } catch (reloadError) {
@@ -927,22 +926,22 @@ const handleFileUpload = async (e) => {
     
     // Force reload assets from server with cache bypass
     try {
-      // Clear any axios cache
-      if (axios.defaults && axios.defaults.adapter) {
-        delete axios.defaults.adapter
-      }
-      
+      // Force fresh data with timestamp (already in api.getAssets)
       state.assets = await api.getAssets({})
       console.log('✅ Assets reloaded successfully:', state.assets.length, 'assets')
       render()
       
       // Extra: force refresh after short delay
-      setTimeout(() => {
+      setTimeout(async () => {
         console.log('🔄 Double-checking asset data...')
-        api.getAssets({}).then(freshAssets => {
+        try {
+          const freshAssets = await api.getAssets({})
           state.assets = freshAssets
           render()
-        })
+          console.log('✅ Double-check complete')
+        } catch (err) {
+          console.error('❌ Error in double-check:', err)
+        }
       }, 500)
       
     } catch (reloadError) {
