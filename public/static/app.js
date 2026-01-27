@@ -714,8 +714,19 @@ const handleAssetUpdate = async (e) => {
     console.log('📋 Asset modal data:', assetEditModal)
     
     // Get all form values
-    const titleValue = $('#edit-asset-title')?.value?.trim()
-    const descriptionValue = $('#edit-asset-description')?.value?.trim()
+    const titleInput = $('#edit-asset-title')
+    const descriptionInput = $('#edit-asset-description')
+    
+    console.log('🔍 DEBUG - Input elements:')
+    console.log('  titleInput exists?', !!titleInput)
+    console.log('  descriptionInput exists?', !!descriptionInput)
+    console.log('  titleInput.value (raw):', titleInput?.value)
+    console.log('  descriptionInput.value (raw):', descriptionInput?.value)
+    console.log('  titleInput.value length:', titleInput?.value?.length)
+    console.log('  descriptionInput.value length:', descriptionInput?.value?.length)
+    
+    const titleValue = titleInput?.value?.trim()
+    const descriptionValue = descriptionInput?.value?.trim()
     
     // Get selected brands (multi-select)
     const brandSelect = $('#edit-asset-brand')
@@ -729,8 +740,8 @@ const handleAssetUpdate = async (e) => {
     const languageValue = $('#edit-asset-language')?.value
     
     console.log('📝 RAW Form values:')
-    console.log('  title:', titleValue, typeof titleValue)
-    console.log('  description:', descriptionValue, typeof descriptionValue)
+    console.log('  title:', titleValue, typeof titleValue, `(length: ${titleValue?.length})`)
+    console.log('  description:', descriptionValue, typeof descriptionValue, `(length: ${descriptionValue?.length})`)
     console.log('  brandIds:', brandIds)
     console.log('  materialType:', materialTypeValue, typeof materialTypeValue)
     console.log('  region:', regionValue, typeof regionValue)
