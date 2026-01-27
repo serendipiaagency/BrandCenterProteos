@@ -360,7 +360,8 @@ app.post('/api/auth/change-password', async (c) => {
     }
     
     // Verify current password
-    // In production: use bcrypt.compare(currentPassword, user.password_hash)
+    // The system stores passwords as plain text (password_hash field)
+    // In production, this should use bcrypt.compare(currentPassword, user.password_hash)
     if (user.password_hash !== currentPassword) {
       return c.json({ 
         success: false,
@@ -377,7 +378,8 @@ app.post('/api/auth/change-password', async (c) => {
     }
     
     // Update user password
-    // In production: hash with bcrypt
+    // Store as plain text (password_hash field name is misleading)
+    // In production with proper backend: use bcrypt.hash(newPassword, 10)
     await c.env.DB.prepare(`
       UPDATE users SET password_hash = ? WHERE id = ?
     `).bind(newPassword, user.id).run()
