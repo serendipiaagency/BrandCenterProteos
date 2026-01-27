@@ -18,6 +18,11 @@ app.use('/api/*', cors())
 // Serve static files
 app.use('/static/*', serveStatic({ root: './public' }))
 
+// Change password page
+app.get('/change-password', (c) => {
+  return c.redirect('/change-password.html')
+})
+
 // ============================================
 // API ROUTES - Authentication
 // ============================================
