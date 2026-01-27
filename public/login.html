@@ -223,6 +223,102 @@
     .admin-link a:hover {
       color: #667eea;
     }
+
+    /* Forgot Password Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 450px;
+      width: 90%;
+      padding: 2rem;
+      animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(30px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: #6b7280;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .modal-close:hover {
+      background: #f3f4f6;
+      color: #1f2937;
+    }
+
+    .modal-text {
+      color: #6b7280;
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+
+    .security-note {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      color: #92400e;
+      margin-top: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -270,7 +366,7 @@
       </button>
 
       <div class="forgot-password">
-        <a href="/" onclick="alert('Por favor contacta al administrador para recuperar tu contraseña.'); return false;">
+        <a href="#" onclick="openForgotPasswordModal(); return false;">
           <i class="fas fa-key"></i> ¿Olvidaste tu contraseña?
         </a>
       </div>
@@ -281,6 +377,49 @@
         <i class="fas fa-user-shield"></i>
         ¿Eres administrador? Accede aquí
       </a>
+    </div>
+  </div>
+
+  <!-- Forgot Password Modal -->
+  <div id="forgot-password-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">
+          <i class="fas fa-key"></i> Recuperar Contraseña
+        </h2>
+        <button type="button" class="modal-close" onclick="closeForgotPasswordModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <p class="modal-text">
+        Ingresa tu email y recibirás instrucciones para recuperar tu contraseña.
+      </p>
+      
+      <form id="forgot-password-form">
+        <div class="form-group">
+          <label class="form-label" for="forgot-email">
+            <i class="fas fa-envelope"></i> Email
+          </label>
+          <input
+            id="forgot-email"
+            type="email"
+            class="form-input"
+            placeholder="tu@email.com"
+            required
+          />
+        </div>
+        
+        <button type="submit" class="btn-login" id="forgot-password-btn">
+          <i class="fas fa-paper-plane"></i>
+          <span>Enviar Instrucciones</span>
+        </button>
+      </form>
+      
+      <div class="security-note">
+        <i class="fas fa-shield-alt"></i>
+        <strong>Nota de seguridad:</strong> Por seguridad, recibirás el mismo mensaje sin importar si el email existe o no.
+      </div>
     </div>
   </div>
 
@@ -386,6 +525,78 @@
           localStorage.removeItem('catalog_user')
         })
     }
+
+    // Forgot Password Modal Functions
+    const forgotPasswordModal = document.getElementById('forgot-password-modal')
+    const forgotPasswordForm = document.getElementById('forgot-password-form')
+    const forgotPasswordBtn = document.getElementById('forgot-password-btn')
+    const forgotEmailInput = document.getElementById('forgot-email')
+
+    function openForgotPasswordModal() {
+      forgotPasswordModal.classList.add('active')
+      forgotEmailInput.value = ''
+      forgotEmailInput.focus()
+    }
+
+    function closeForgotPasswordModal() {
+      forgotPasswordModal.classList.remove('active')
+    }
+
+    // Close modal on outside click
+    forgotPasswordModal.addEventListener('click', (e) => {
+      if (e.target === forgotPasswordModal) {
+        closeForgotPasswordModal()
+      }
+    })
+
+    // Handle forgot password form submission
+    forgotPasswordForm.addEventListener('submit', async (e) => {
+      e.preventDefault()
+
+      const email = forgotEmailInput.value.trim()
+
+      if (!email) {
+        showNotification('Por favor ingresa tu email', 'error')
+        return
+      }
+
+      // Email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(email)) {
+        showNotification('Por favor ingresa un email válido', 'error')
+        return
+      }
+
+      // Disable button and show loading
+      forgotPasswordBtn.disabled = true
+      forgotPasswordBtn.innerHTML = `
+        <div class="loading-spinner"></div>
+        <span>Enviando...</span>
+      `
+
+      try {
+        const response = await axios.post('/api/auth/forgot-password', {
+          email
+        })
+
+        if (response.data.success) {
+          showNotification('Si el email existe, recibirás instrucciones para recuperar tu contraseña', 'success')
+          closeForgotPasswordModal()
+        } else {
+          showNotification(response.data.message || 'Error al procesar la solicitud', 'error')
+        }
+      } catch (error) {
+        console.error('Error sending forgot password request:', error)
+        showNotification('Error al enviar la solicitud', 'error')
+      } finally {
+        // Restore button
+        forgotPasswordBtn.disabled = false
+        forgotPasswordBtn.innerHTML = `
+          <i class="fas fa-paper-plane"></i>
+          <span>Enviar Instrucciones</span>
+        `
+      }
+    })
   </script>
 </body>
 </html>
