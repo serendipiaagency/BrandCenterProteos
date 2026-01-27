@@ -525,10 +525,10 @@ const renderSidebar = () => {
             <span class="filter-count">(${totalMaterialTypes})</span>
             ${selectedCount > 0 && selectedCount < totalMaterialTypes ? `<span class="filter-badge">${selectedCount}</span>` : ''}
           </div>
-          <i id="category-filter-icon" class="fas fa-chevron-up filter-toggle"></i>
+          <i id="category-filter-icon" class="fas fa-chevron-up filter-toggle" style="transform: rotate(180deg);"></i>
         </button>
         
-        <div id="category-filter-content" class="filter-content" style="display: block;">
+        <div id="category-filter-content" class="filter-content" style="max-height: 1000px; overflow: visible;">
           <!-- Clear All Button (Always visible at top) -->
           <div class="filter-actions">
             <button class="clear-filters-btn-top" onclick="clearCategoryFilters()">
