@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
 import type { FC } from 'hono/jsx'
+import { changePasswordHTML } from './change-password-html'
 
 // Type definitions
 type Bindings = {
@@ -17,6 +18,14 @@ app.use('/api/*', cors())
 
 // Serve static files
 app.use('/static/*', serveStatic({ root: './public' }))
+
+// Change password page - serve the HTML content
+app.get('/change-password', (c) => {
+  return c.html(changePasswordHTML)
+})
+app.get('/change-password.html', (c) => {
+  return c.html(changePasswordHTML)
+})
 
 // ============================================
 // API ROUTES - Authentication
