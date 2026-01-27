@@ -1504,7 +1504,7 @@ app.post('/api/public/login', async (c) => {
     
     // Find user
     const user = await c.env.DB.prepare(`
-      SELECT id, email, name, role, region, country, language, brands_access, active
+      SELECT id, email, password_hash, name, role, region, country, language, brands_access, active
       FROM users
       WHERE email = ? AND active = 1
     `).bind(email).first()
@@ -1514,12 +1514,8 @@ app.post('/api/public/login', async (c) => {
     }
     
     // Check password (in production, use bcrypt.compare)
-    // For now, we'll check against the stored password
-    const storedPassword = await c.env.DB.prepare(`
-      SELECT password FROM users WHERE id = ?
-    `).bind(user.id).first()
-    
-    if (!storedPassword || storedPassword.password !== password) {
+    // For now, we'll check against the stored password_hash
+    if (!user.password_hash || user.password_hash !== password) {
       return c.json({ success: false, message: 'Credenciales inválidas' }, 401)
     }
     
