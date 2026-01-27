@@ -1195,6 +1195,42 @@ app.post('/api/users/:id/reset-password', async (c) => {
 app.get('/api/public/assets', async (c) => {
   const { brand_id, material_type_id, region, search } = c.req.query()
   
+  // Get token from header
+  const token = c.req.header('Authorization')?.replace('Bearer ', '') || c.req.query('token')
+  
+  let userBrandsAccess: number[] = []
+  let isAdmin = false
+  
+  // If token exists, get user's brands_access
+  if (token) {
+    try {
+      const decoded = Buffer.from(token, 'base64').toString('utf-8')
+      const [userId] = decoded.split(':')
+      
+      const user = await c.env.DB.prepare(`
+        SELECT brands_access, role FROM users WHERE id = ? AND active = 1
+      `).bind(userId).first()
+      
+      if (user) {
+        // Admin and marketing see all brands
+        if (user.role === 'admin' || user.role === 'marketing') {
+          isAdmin = true
+        } else {
+          // Parse brands_access
+          try {
+            userBrandsAccess = typeof user.brands_access === 'string'
+              ? JSON.parse(user.brands_access)
+              : (user.brands_access || [])
+          } catch (e) {
+            userBrandsAccess = []
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error parsing token:', e)
+    }
+  }
+  
   let query = `
     SELECT 
       a.*,
@@ -1211,6 +1247,13 @@ app.get('/api/public/assets', async (c) => {
   `
   
   const params: any[] = []
+  
+  // Filter by brands_access if user is not admin
+  if (!isAdmin && userBrandsAccess.length > 0) {
+    const placeholders = userBrandsAccess.map(() => '?').join(',')
+    query += ` AND a.brand_id IN (${placeholders})`
+    params.push(...userBrandsAccess)
+  }
   
   if (brand_id) {
     query += ` AND a.brand_id = ?`
@@ -1263,11 +1306,62 @@ app.get('/api/public/assets', async (c) => {
 
 // Public brands list
 app.get('/api/public/brands', async (c) => {
-  const result = await c.env.DB.prepare(`
-    SELECT * FROM brands WHERE active = 1 ORDER BY display_name
-  `).all()
-  
-  return c.json({ brands: result.results || [] })
+  try {
+    // Get token from header or query
+    const token = c.req.header('Authorization')?.replace('Bearer ', '') || c.req.query('token')
+    
+    let userBrandsAccess: number[] = []
+    
+    // If token exists, get user's brands_access
+    if (token) {
+      try {
+        const decoded = Buffer.from(token, 'base64').toString('utf-8')
+        const [userId] = decoded.split(':')
+        
+        const user = await c.env.DB.prepare(`
+          SELECT brands_access, role FROM users WHERE id = ? AND active = 1
+        `).bind(userId).first()
+        
+        if (user) {
+          // Admin and marketing see all brands
+          if (user.role === 'admin' || user.role === 'marketing') {
+            userBrandsAccess = []
+          } else {
+            // Parse brands_access
+            try {
+              userBrandsAccess = typeof user.brands_access === 'string'
+                ? JSON.parse(user.brands_access)
+                : (user.brands_access || [])
+            } catch (e) {
+              userBrandsAccess = []
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing token:', e)
+      }
+    }
+    
+    // Build query
+    let query = `SELECT * FROM brands WHERE active = 1`
+    const params: any[] = []
+    
+    // Filter by brands_access if user is not admin
+    if (userBrandsAccess.length > 0) {
+      const placeholders = userBrandsAccess.map(() => '?').join(',')
+      query += ` AND id IN (${placeholders})`
+      params.push(...userBrandsAccess)
+    }
+    
+    query += ` ORDER BY display_name`
+    
+    const result = await c.env.DB.prepare(query).bind(...params).all()
+    
+    return c.json({ brands: result.results || [] })
+  } catch (error: any) {
+    console.error('Error fetching public brands:', error)
+    return c.json({ brands: [] })
+  }
 })
 
 // Public material types
@@ -1396,6 +1490,82 @@ app.post('/api/public/login', async (c) => {
   } catch (error: any) {
     console.error('❌ Login error:', error.message)
     return c.json({ success: false, message: 'Login failed' }, 500)
+  }
+})
+
+// Public login endpoint (for catalog users)
+app.post('/api/public/login', async (c) => {
+  try {
+    const { email, password } = await c.req.json()
+    
+    if (!email || !password) {
+      return c.json({ success: false, message: 'Email y contraseña son requeridos' }, 400)
+    }
+    
+    // Find user
+    const user = await c.env.DB.prepare(`
+      SELECT id, email, name, role, region, country, language, brands_access, active
+      FROM users
+      WHERE email = ? AND active = 1
+    `).bind(email).first()
+    
+    if (!user) {
+      return c.json({ success: false, message: 'Credenciales inválidas' }, 401)
+    }
+    
+    // Check password (in production, use bcrypt.compare)
+    // For now, we'll check against the stored password
+    const storedPassword = await c.env.DB.prepare(`
+      SELECT password FROM users WHERE id = ?
+    `).bind(user.id).first()
+    
+    if (!storedPassword || storedPassword.password !== password) {
+      return c.json({ success: false, message: 'Credenciales inválidas' }, 401)
+    }
+    
+    // Update last login
+    await c.env.DB.prepare(`
+      UPDATE users SET last_login = datetime('now') WHERE id = ?
+    `).bind(user.id).run()
+    
+    // Log activity
+    await c.env.DB.prepare(`
+      INSERT INTO activity_log (user_id, action, details)
+      VALUES (?, 'login', ?)
+    `).bind(user.id, `User logged in from catalog: ${email}`).run()
+    
+    // Generate simple token (base64 encoded user_id:timestamp)
+    const token = Buffer.from(`${user.id}:${Date.now()}`).toString('base64')
+    
+    // Parse brands_access if it's a string
+    let brandsAccess = []
+    if (user.brands_access) {
+      try {
+        brandsAccess = typeof user.brands_access === 'string' 
+          ? JSON.parse(user.brands_access) 
+          : user.brands_access
+      } catch (e) {
+        brandsAccess = []
+      }
+    }
+    
+    return c.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        region: user.region,
+        country: user.country,
+        language: user.language,
+        brands_access: brandsAccess
+      }
+    })
+  } catch (error: any) {
+    console.error('Public login error:', error)
+    return c.json({ success: false, message: 'Error al iniciar sesión' }, 500)
   }
 })
 

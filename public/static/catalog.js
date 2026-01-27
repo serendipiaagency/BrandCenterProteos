@@ -202,18 +202,39 @@ const $$ = (selector) => document.querySelectorAll(selector)
 // ============================================
 
 const api = {
+  // Helper to get token
+  getToken() {
+    return localStorage.getItem('catalog_token') || sessionStorage.getItem('catalog_token')
+  },
+  
+  // Helper to get headers with token
+  getHeaders() {
+    const token = this.getToken()
+    return {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    }
+  },
+  
   async getBrands() {
-    const response = await axios.get('/api/public/brands')
+    const response = await axios.get('/api/public/brands', {
+      headers: this.getHeaders()
+    })
     return response.data.brands
   },
   
   async getSubBrands(brandId) {
-    const response = await axios.get(`/api/brands/${brandId}/sub-brands`)
+    const response = await axios.get(`/api/brands/${brandId}/sub-brands`, {
+      headers: this.getHeaders()
+    })
     return response.data.subBrands || []
   },
   
   async getMaterialTypes() {
-    const response = await axios.get('/api/public/material-types')
+    const response = await axios.get('/api/public/material-types', {
+      headers: this.getHeaders()
+    })
     return response.data.materialTypes
   },
   
@@ -226,10 +247,7 @@ const api = {
     url += `_t=${Date.now()}&`
     
     const response = await axios.get(url, {
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      }
+      headers: this.getHeaders()
     })
     return response.data.assets
   }
