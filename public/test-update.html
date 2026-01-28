@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Update</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>Test Asset Update</h1>
+    <button onclick="testUpdate()">Test Update Asset 14</button>
+    <pre id="result"></pre>
+    
+    <script>
+        async function testUpdate() {
+            const updateData = {
+                title: "Frontend Test " + new Date().toISOString(),
+                description: "Testing from frontend",
+                brand_ids: [1],
+                material_type_id: 1,
+                regions: ["LATAM", "ASIA"],
+                country: "Test Country",
+                regulatory: "GLOBAL",
+                language: "ENG"
+            };
+            
+            console.log('Sending update:', updateData);
+            
+            try {
+                const response = await axios.put('/api/assets/14', updateData);
+                document.getElementById('result').textContent = JSON.stringify(response.data, null, 2);
+                console.log('Response:', response.data);
+                
+                // Now fetch to verify
+                const verify = await axios.get('/api/assets');
+                const asset = verify.data.assets.find(a => a.id === 14);
+                console.log('Verified asset:', asset);
+            } catch (error) {
+                document.getElementById('result').textContent = 'Error: ' + error.message;
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
