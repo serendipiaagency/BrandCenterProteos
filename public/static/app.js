@@ -2737,8 +2737,12 @@ const render = () => {
     ` : ''}
   `
   
-  // CRITICAL FIX: Render modals separately to prevent losing input values
-  renderModalsContainer()
+  // ⚠️ CRITICAL FIX: Only render modals if they don't exist yet
+  // This prevents losing user input when modals are open
+  const modalsContainer = $('#modals-container')
+  if (modalsContainer && !modalsContainer.hasChildNodes()) {
+    renderModalsContainer()
+  }
 }
 
 // NEW FUNCTION: Render modals independently
