@@ -717,9 +717,22 @@ app.get('/api/assets', async (c) => {
         SELECT brand_id FROM asset_brands WHERE asset_id = ?
       `).bind(asset.id).all()
       
+      // Parse regions from JSON string to array
+      let regions = []
+      if (asset.region) {
+        try {
+          // Try to parse as JSON array
+          regions = JSON.parse(asset.region)
+        } catch {
+          // Fallback: treat as single region
+          regions = [asset.region]
+        }
+      }
+      
       return {
         ...asset,
-        brand_ids: brandResults.map((b: any) => b.brand_id)
+        brand_ids: brandResults.map((b: any) => b.brand_id),
+        regions: regions  // Add parsed regions array
       }
     })
   )
@@ -768,6 +781,14 @@ app.post('/api/assets', async (c) => {
     ? data.brand_ids[0] 
     : sanitize(data.brand_id)
   
+  // Handle regions (can be single or array)
+  const regions = data.regions ? 
+    (Array.isArray(data.regions) ? data.regions : [data.regions]) :
+    (data.region ? [data.region] : [])
+  
+  // Convert regions array to JSON string for storage
+  const regionString = regions.length > 0 ? JSON.stringify(regions) : null
+  
   const result = await c.env.DB.prepare(`
     INSERT INTO assets (
       filename, original_filename, title, description, file_type, file_size, file_url,
@@ -785,7 +806,7 @@ app.post('/api/assets', async (c) => {
     primaryBrandId,
     sanitize(data.sub_brand_id),
     sanitize(data.material_type_id),
-    sanitize(data.region),
+    regionString,  // Store as JSON string
     sanitize(data.country),
     sanitize(data.regulatory) || 'GLOBAL',
     sanitize(data.language) || 'ENG',
@@ -859,12 +880,20 @@ app.put('/api/assets/:id', async (c) => {
     // Primary brand_id for backward compatibility (use first brand)
     const primaryBrandId = brandIds.length > 0 ? brandIds[0] : null
     
+    // Handle regions (can be single or array)
+    const regions = data.regions ? 
+      (Array.isArray(data.regions) ? data.regions : [data.regions]) :
+      (data.region ? [data.region] : [])
+    
+    // Convert regions array to JSON string for storage
+    const regionString = regions.length > 0 ? JSON.stringify(regions) : null
+    
     const sanitizedData = {
       title: sanitize(data.title),
       description: sanitize(data.description),
       brand_id: sanitize(primaryBrandId),
       material_type_id: sanitize(data.material_type_id),
-      region: sanitize(data.region),
+      region: regionString,  // Store as JSON string
       country: sanitize(data.country),
       regulatory: sanitize(data.regulatory) || 'GLOBAL',
       language: sanitize(data.language) || 'ENG'

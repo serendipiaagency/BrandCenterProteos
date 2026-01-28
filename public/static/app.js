@@ -736,8 +736,12 @@ const handleAssetUpdate = async (e) => {
     const selectedOptions = Array.from(brandSelect.selectedOptions)
     const brandIds = selectedOptions.map(option => parseInt(option.value)).filter(id => id && !isNaN(id))
     
+    // Get selected regions (multi-select)
+    const regionSelect = $('#edit-asset-region')
+    const selectedRegions = Array.from(regionSelect.selectedOptions)
+    const regions = selectedRegions.map(option => option.value).filter(r => r)
+    
     const materialTypeValue = $('#edit-asset-material-type')?.value
-    const regionValue = $('#edit-asset-region')?.value
     const countryValue = $('#edit-asset-country')?.value?.trim()
     const regulatoryValue = $('#edit-asset-regulatory')?.value
     const languageValue = $('#edit-asset-language')?.value
@@ -747,7 +751,7 @@ const handleAssetUpdate = async (e) => {
     console.log('  description:', descriptionValue, typeof descriptionValue, `(length: ${descriptionValue?.length})`)
     console.log('  brandIds:', brandIds)
     console.log('  materialType:', materialTypeValue, typeof materialTypeValue)
-    console.log('  region:', regionValue, typeof regionValue)
+    console.log('  regions:', regions)
     console.log('  country:', countryValue, typeof countryValue)
     console.log('  regulatory:', regulatoryValue, typeof regulatoryValue)
     console.log('  language:', languageValue, typeof languageValue)
@@ -781,7 +785,7 @@ const handleAssetUpdate = async (e) => {
       description: safeValue(descriptionValue),
       brand_ids: brandIds,  // ← Array of brand IDs
       material_type_id: safeInt(materialTypeValue),
-      region: safeValue(regionValue),
+      regions: regions,  // ← Array of regions
       country: safeValue(countryValue),
       regulatory: safeValue(regulatoryValue) || 'GLOBAL',
       language: safeValue(languageValue) || 'ENG'
@@ -792,7 +796,7 @@ const handleAssetUpdate = async (e) => {
     console.log('  description:', updateData.description, typeof updateData.description)
     console.log('  brand_ids:', updateData.brand_ids)
     console.log('  material_type_id:', updateData.material_type_id, typeof updateData.material_type_id)
-    console.log('  region:', updateData.region, typeof updateData.region)
+    console.log('  regions:', updateData.regions)
     console.log('  country:', updateData.country, typeof updateData.country)
     console.log('  regulatory:', updateData.regulatory, typeof updateData.regulatory)
     console.log('  language:', updateData.language, typeof updateData.language)
@@ -1883,16 +1887,16 @@ const renderAssetEditModal = () => {
           
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Region</label>
-              <select id="edit-asset-region" class="form-input">
-                <option value="">Select region</option>
-                <option value="GLOBAL" ${assetEditModal.region === 'GLOBAL' ? 'selected' : ''}>GLOBAL</option>
-                <option value="USA" ${assetEditModal.region === 'USA' ? 'selected' : ''}>USA</option>
-                <option value="LATAM" ${assetEditModal.region === 'LATAM' ? 'selected' : ''}>LATAM</option>
-                <option value="EUROPA" ${assetEditModal.region === 'EUROPA' ? 'selected' : ''}>EUROPA</option>
-                <option value="MENA" ${assetEditModal.region === 'MENA' ? 'selected' : ''}>MENA</option>
-                <option value="ASIA" ${assetEditModal.region === 'ASIA' ? 'selected' : ''}>ASIA</option>
+              <label class="form-label">Region (Multiple selection)</label>
+              <select id="edit-asset-region" class="form-input" multiple size="6" style="height: auto;">
+                <option value="GLOBAL" ${assetEditModal.regions?.includes('GLOBAL') || assetEditModal.region === 'GLOBAL' ? 'selected' : ''}>GLOBAL</option>
+                <option value="USA" ${assetEditModal.regions?.includes('USA') || assetEditModal.region === 'USA' ? 'selected' : ''}>USA</option>
+                <option value="LATAM" ${assetEditModal.regions?.includes('LATAM') || assetEditModal.region === 'LATAM' ? 'selected' : ''}>LATAM</option>
+                <option value="EUROPA" ${assetEditModal.regions?.includes('EUROPA') || assetEditModal.region === 'EUROPA' ? 'selected' : ''}>EUROPA</option>
+                <option value="MENA" ${assetEditModal.regions?.includes('MENA') || assetEditModal.region === 'MENA' ? 'selected' : ''}>MENA</option>
+                <option value="ASIA" ${assetEditModal.regions?.includes('ASIA') || assetEditModal.region === 'ASIA' ? 'selected' : ''}>ASIA</option>
               </select>
+              <small style="color: #6b7280; font-size: 0.75rem; margin-top: 0.25rem; display: block;">Hold Ctrl/Cmd to select multiple</small>
             </div>
             
             <div class="form-group">
