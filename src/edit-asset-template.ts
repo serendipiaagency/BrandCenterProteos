@@ -244,26 +244,44 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
       
       console.log('📦 Sending update:', updateData);
       
+      // Disable submit button
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Guardando...';
+      
       try {
         const response = await axios.put('/api/assets/${asset.id}', updateData);
         console.log('✅ Update response:', response.data);
         
+        // Show success message
         const msg = document.getElementById('message');
-        msg.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800';
-        msg.textContent = '✅ Asset updated successfully!';
+        msg.className = 'fixed top-4 right-4 z-50 p-6 rounded-lg bg-green-500 text-white shadow-2xl border-2 border-green-600 animate-bounce';
+        msg.innerHTML = '<div class="flex items-center gap-3"><i class="fas fa-check-circle text-3xl"></i><div><div class="font-bold text-lg">¡Cambios guardados exitosamente!</div><div class="text-sm opacity-90">Redirigiendo al panel de administración...</div></div></div>';
         msg.classList.remove('hidden');
         
+        // Re-enable button with success state
+        submitBtn.disabled = false;
+        submitBtn.className = 'px-6 py-2 bg-green-600 text-white rounded-lg transition';
+        submitBtn.innerHTML = '<i class="fas fa-check mr-2"></i>¡Guardado!';
+        
+        // Redirect after 2 seconds
         setTimeout(() => {
           window.location.href = '/admin';
-        }, 1000);
+        }, 2000);
         
       } catch (error) {
         console.error('❌ Update error:', error);
         
+        // Show error message
         const msg = document.getElementById('message');
-        msg.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
-        msg.textContent = '❌ Error updating asset: ' + (error.response?.data?.message || error.message);
+        msg.className = 'fixed top-4 right-4 z-50 p-6 rounded-lg bg-red-500 text-white shadow-2xl border-2 border-red-600';
+        msg.innerHTML = '<div class="flex items-center gap-3"><i class="fas fa-exclamation-circle text-3xl"></i><div><div class="font-bold text-lg">Error al guardar</div><div class="text-sm opacity-90">' + (error.response?.data?.message || error.message) + '</div></div></div>';
         msg.classList.remove('hidden');
+        
+        // Re-enable button
+        submitBtn.disabled = false;
+        submitBtn.className = 'px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition';
+        submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Save Changes';
       }
     });
   </script>
