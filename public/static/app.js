@@ -677,29 +677,8 @@ const handleBulkEdit = async (e) => {
 }
 
 const openAssetEditModal = async (assetId) => {
-  try {
-    console.log('🔍 Opening edit modal for asset ID:', assetId)
-    const asset = state.assets.find(a => a.id === assetId)
-    if (!asset) {
-      console.error('❌ Asset not found in state.assets')
-      showNotification('Asset not found', 'error')
-      return
-    }
-    
-    console.log('📋 Found asset:', asset)
-    console.log('  brand_id:', asset.brand_id, typeof asset.brand_id)
-    console.log('  material_type_id:', asset.material_type_id, typeof asset.material_type_id)
-    
-    assetEditModal = { ...asset }
-    console.log('✅ assetEditModal set:', assetEditModal)
-    
-    // Only render modals, not the entire page
-    renderModalsContainer()
-    
-  } catch (error) {
-    console.error('❌ Error opening asset modal:', error)
-    showNotification('Error loading asset', 'error')
-  }
+  // Redirect to dedicated edit page instead of opening modal
+  window.location.href = `/admin/edit-asset/${assetId}`
 }
 
 const closeAssetEditModal = () => {

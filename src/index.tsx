@@ -1557,6 +1557,369 @@ app.get('/admin', (c) => {
         <title>Brand Portal - Admin Panel</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
+        <link href="/static/styles.css" rel="stylesheet" />
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+      </head>
+      <body>
+        <div id="app"></div>
+        <script src="/static/app.js?v=9"></script>
+      </body>
+    </html>
+  )
+})
+
+// Edit asset page (dedicated page, no modal)
+app.get('/admin/edit-asset/:id', async (c) => {
+  const assetId = c.req.param('id')
+  
+  // Fetch asset data
+  const asset = await c.env.DB.prepare(`
+    SELECT a.*, 
+           b.display_name as brand_name,
+           mt.display_name_en as material_type_name
+    FROM assets a
+    LEFT JOIN brands b ON a.brand_id = b.id
+    LEFT JOIN material_types mt ON a.material_type_id = mt.id
+    WHERE a.id = ?
+  `).bind(assetId).first()
+  
+  if (!asset) {
+    return c.text('Asset not found', 404)
+  }
+  
+  // Parse regions
+  let regions = []
+  if (asset.region) {
+    try {
+      regions = JSON.parse(asset.region)
+    } catch {
+      regions = [asset.region]
+    }
+  }
+  
+  // Get all brands for the select
+  const { results: brands } = await c.env.DB.prepare(`
+    SELECT id, display_name FROM brands ORDER BY display_name
+  `).all()
+  
+  // Get material types
+  const { results: materialTypes } = await c.env.DB.prepare(`
+    SELECT id, display_name_en FROM material_types ORDER BY display_name_en
+  `).all()
+  
+  // Get asset's brand associations
+  const { results: assetBrands } = await c.env.DB.prepare(`
+    SELECT brand_id FROM asset_brands WHERE asset_id = ?
+  `).bind(assetId).all()
+  
+  const selectedBrandIds = assetBrands.map((b: any) => b.brand_id)
+  
+  return c.html(
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Edit Asset - {asset.title}</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
+        <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+      </head>
+      <body class="bg-gray-50">
+        <div class="min-h-screen p-8">
+          <div class="max-w-4xl mx-auto">
+            {/* Header */}
+            <div class="mb-6 flex items-center justify-between">
+              <div>
+                <h1 class="text-3xl font-bold text-gray-900">Edit Asset</h1>
+                <p class="text-gray-600 mt-1">Asset ID: {assetId}</p>
+              </div>
+              <a href="/admin" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Admin
+              </a>
+            </div>
+            
+            {/* Form */}
+            <form id="edit-form" class="bg-white rounded-lg shadow-md p-8">
+              {/* Original Filename (read-only) */}
+              <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Original Filename
+                </label>
+                <input 
+                  type="text" 
+                  value={asset.original_filename}
+                  disabled
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                />
+              </div>
+              
+              {/* Title */}
+              <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Title *
+                </label>
+                <input 
+                  type="text" 
+                  id="title"
+                  name="title"
+                  value={asset.title || ''}
+                  required
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              {/* Description */}
+              <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <textarea 
+                  id="description"
+                  name="description"
+                  rows="4"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >{asset.description || ''}</textarea>
+              </div>
+              
+              <div class="grid grid-cols-2 gap-6 mb-6">
+                {/* Brands */}
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Brands (Ctrl/Cmd + Click for multiple)
+                  </label>
+                  <select 
+                    id="brands"
+                    name="brands"
+                    multiple
+                    size="6"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    {brands.map((brand: any) => (
+                      <option 
+                        value={brand.id}
+                        selected={selectedBrandIds.includes(brand.id)}
+                      >
+                        {brand.display_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Material Type */}
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Material Type
+                  </label>
+                  <select 
+                    id="material_type"
+                    name="material_type"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">No type</option>
+                    {materialTypes.map((type: any) => (
+                      <option 
+                        value={type.id}
+                        selected={asset.material_type_id == type.id}
+                      >
+                        {type.display_name_en}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              <div class="grid grid-cols-2 gap-6 mb-6">
+                {/* Regions */}
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Regions (Ctrl/Cmd + Click for multiple)
+                  </label>
+                  <select 
+                    id="regions"
+                    name="regions"
+                    multiple
+                    size="6"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="GLOBAL" selected={regions.includes('GLOBAL')}>GLOBAL</option>
+                    <option value="USA" selected={regions.includes('USA')}>USA</option>
+                    <option value="LATAM" selected={regions.includes('LATAM')}>LATAM</option>
+                    <option value="EUROPA" selected={regions.includes('EUROPA')}>EUROPA</option>
+                    <option value="MENA" selected={regions.includes('MENA')}>MENA</option>
+                    <option value="ASIA" selected={regions.includes('ASIA')}>ASIA</option>
+                  </select>
+                </div>
+                
+                {/* Country */}
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Country (Optional)
+                  </label>
+                  <input 
+                    type="text" 
+                    id="country"
+                    name="country"
+                    value={asset.country || ''}
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              
+              <div class="grid grid-cols-2 gap-6 mb-8">
+                {/* Regulatory */}
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Regulatory
+                  </label>
+                  <select 
+                    id="regulatory"
+                    name="regulatory"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="GLOBAL" selected={asset.regulatory === 'GLOBAL'}>GLOBAL</option>
+                    <option value="EU" selected={asset.regulatory === 'EU'}>EU</option>
+                    <option value="FDA" selected={asset.regulatory === 'FDA'}>FDA</option>
+                    <option value="COFEPRIS" selected={asset.regulatory === 'COFEPRIS'}>COFEPRIS</option>
+                  </select>
+                </div>
+                
+                {/* Language */}
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Language
+                  </label>
+                  <select 
+                    id="language"
+                    name="language"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="ENG" selected={asset.language === 'ENG'}>English</option>
+                    <option value="ESP" selected={asset.language === 'ESP'}>Spanish</option>
+                    <option value="FRA" selected={asset.language === 'FRA'}>French</option>
+                    <option value="DEU" selected={asset.language === 'DEU'}>German</option>
+                    <option value="ITA" selected={asset.language === 'ITA'}>Italian</option>
+                    <option value="POR" selected={asset.language === 'POR'}>Portuguese</option>
+                  </select>
+                </div>
+              </div>
+              
+              {/* File Info */}
+              <div class="bg-gray-50 p-4 rounded-lg mb-8">
+                <div class="grid grid-cols-3 gap-4 text-sm text-gray-600">
+                  <div>
+                    <span class="font-medium">File Type:</span> {asset.file_type}
+                  </div>
+                  <div>
+                    <span class="font-medium">File Size:</span> {Math.round(asset.file_size / 1024)} KB
+                  </div>
+                  <div>
+                    <span class="font-medium">Created:</span> {new Date(asset.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Buttons */}
+              <div class="flex justify-end gap-4">
+                <a 
+                  href="/admin" 
+                  class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                >
+                  Cancel
+                </a>
+                <button 
+                  type="submit"
+                  class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                >
+                  <i class="fas fa-save mr-2"></i>
+                  Save Changes
+                </button>
+              </div>
+            </form>
+            
+            {/* Success/Error Messages */}
+            <div id="message" class="hidden mt-4 p-4 rounded-lg"></div>
+          </div>
+        </div>
+        
+        <script dangerouslySetInnerHTML={{__html: `
+          document.getElementById('edit-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Get form values
+            const title = document.getElementById('title').value.trim();
+            const description = document.getElementById('description').value.trim();
+            
+            const brandsSelect = document.getElementById('brands');
+            const brand_ids = Array.from(brandsSelect.selectedOptions).map(opt => parseInt(opt.value));
+            
+            const material_type_id = document.getElementById('material_type').value || null;
+            
+            const regionsSelect = document.getElementById('regions');
+            const regions = Array.from(regionsSelect.selectedOptions).map(opt => opt.value);
+            
+            const country = document.getElementById('country').value.trim() || null;
+            const regulatory = document.getElementById('regulatory').value;
+            const language = document.getElementById('language').value;
+            
+            // Prepare data
+            const updateData = {
+              title: title || 'Untitled',
+              description: description || null,
+              brand_ids: brand_ids,
+              material_type_id: material_type_id ? parseInt(material_type_id) : null,
+              regions: regions,
+              country: country,
+              regulatory: regulatory,
+              language: language
+            };
+            
+            console.log('📦 Sending update:', updateData);
+            
+            try {
+              const response = await axios.put('/api/assets/${assetId}', updateData);
+              console.log('✅ Update response:', response.data);
+              
+              // Show success message
+              const msg = document.getElementById('message');
+              msg.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800';
+              msg.textContent = '✅ Asset updated successfully!';
+              msg.classList.remove('hidden');
+              
+              // Redirect after 1 second
+              setTimeout(() => {
+                window.location.href = '/admin';
+              }, 1000);
+              
+            } catch (error) {
+              console.error('❌ Update error:', error);
+              
+              // Show error message
+              const msg = document.getElementById('message');
+              msg.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
+              msg.textContent = '❌ Error updating asset: ' + (error.response?.data?.message || error.message);
+              msg.classList.remove('hidden');
+            }
+          });
+        `}} />
+      </body>
+    </html>
+  )
+})
+
+// Admin panel (login required)
+app.get('/admin', (c) => {
+  return c.html(
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Brand Portal - Admin Panel</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet" />
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
@@ -1565,7 +1928,7 @@ app.get('/admin', (c) => {
       <body class="bg-gray-50">
         <div id="app"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/app.js?v=8"></script>
+        <script src="/static/app.js?v=9"></script>
       </body>
     </html>
   )
