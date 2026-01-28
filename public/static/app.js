@@ -818,6 +818,25 @@ const handleAssetUpdate = async (e) => {
     
     console.log('✅ Update response:', response)
     
+    // ✨ UPDATE LOCAL STATE IMMEDIATELY (optimistic update)
+    const updatedAssetIndex = state.assets.findIndex(a => a.id === assetEditModal.id)
+    if (updatedAssetIndex !== -1) {
+      // Update the asset in local state with new values
+      state.assets[updatedAssetIndex] = {
+        ...state.assets[updatedAssetIndex],
+        title: updateData.title,
+        description: updateData.description,
+        brand_ids: updateData.brand_ids,
+        material_type_id: updateData.material_type_id,
+        regions: updateData.regions,
+        region: updateData.regions.length > 0 ? JSON.stringify(updateData.regions) : null,
+        country: updateData.country,
+        regulatory: updateData.regulatory,
+        language: updateData.language
+      }
+      console.log('✅ Local state updated for asset', assetEditModal.id)
+    }
+    
     // Close modal FIRST
     closeAssetEditModal()
     
@@ -826,36 +845,24 @@ const handleAssetUpdate = async (e) => {
     state.selectedSubBrand = null
     state.selectedMaterialType = null
     
-    console.log('🔄 Reloading assets with cleared filters...')
+    // Force re-render with updated local data
+    render()
     
-    // Force reload assets from server with cache bypass
-    try {
-      // Force fresh data with timestamp (already in api.getAssets)
-      state.assets = await api.getAssets({})
-      console.log('✅ Assets reloaded successfully:', state.assets.length, 'assets')
-      
-      // Force re-render
-      render()
-      
-      // Extra: force refresh after short delay to ensure cache is cleared
-      setTimeout(async () => {
-        console.log('🔄 Double-checking asset data...')
-        try {
-          const freshAssets = await api.getAssets({})
-          state.assets = freshAssets
-          render()
-          console.log('✅ Double-check complete')
-        } catch (err) {
-          console.error('❌ Error in double-check:', err)
-        }
-      }, 500)
-      
-    } catch (reloadError) {
-      console.error('❌ Error reloading assets:', reloadError)
-    }
-    
-    // Show success message AFTER reload
+    // Show success message immediately
     showNotification('Asset updated successfully!', 'success')
+    
+    // Background: reload from server to sync with DB (after a delay)
+    setTimeout(async () => {
+      console.log('🔄 Background sync: reloading assets from server...')
+      try {
+        const freshAssets = await api.getAssets({})
+        state.assets = freshAssets
+        render()
+        console.log('✅ Background sync complete:', freshAssets.length, 'assets')
+      } catch (err) {
+        console.error('❌ Background sync error:', err)
+      }
+    }, 1500)  // Wait 1.5 seconds for Cloudflare cache to clear
     
   } catch (error) {
     console.error('❌ Asset update error:', error)
