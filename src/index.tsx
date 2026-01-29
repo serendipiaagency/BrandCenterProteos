@@ -2124,7 +2124,7 @@ app.get('/catalog', (c) => {
       <body>
         <div id="catalog"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/catalog.js?v=7"></script>
+        <script src="/static/catalog.js?v=8"></script>
       </body>
     </html>
   )

@@ -607,6 +607,11 @@ const renderWelcome = () => {
 
 // Horizontal Product Lines Filter
 const renderHorizontalBrandFilter = () => {
+  // 🎯 HIDE brand filter if user has 0 or 1 brands (no filtering needed)
+  if (state.brands.length <= 1) {
+    return ''
+  }
+  
   const brandGroups = state.brands.map(brand => ({
     ...brand,
     subBrands: state.subBrands.filter(sb => sb.parent_brand_id === brand.id)
