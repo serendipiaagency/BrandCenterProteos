@@ -1686,6 +1686,7 @@ app.get('/api/public/brands', async (c) => {
     const token = c.req.header('Authorization')?.replace('Bearer ', '') || c.req.query('token')
     
     let userBrandsAccess: number[] = []
+    let isAdmin = false
     
     // If token exists, get user's brands_access
     if (token) {
@@ -1700,6 +1701,7 @@ app.get('/api/public/brands', async (c) => {
         if (user) {
           // Admin and marketing see all brands
           if (user.role === 'admin' || user.role === 'marketing') {
+            isAdmin = true
             userBrandsAccess = []
           } else {
             // Parse brands_access
@@ -1717,12 +1719,17 @@ app.get('/api/public/brands', async (c) => {
       }
     }
     
+    // 🎯 CRITICAL: If user has no brand access and is not admin, return empty
+    if (!isAdmin && userBrandsAccess.length === 0) {
+      return c.json({ brands: [] })
+    }
+    
     // Build query
     let query = `SELECT * FROM brands WHERE active = 1`
     const params: any[] = []
     
     // Filter by brands_access if user is not admin
-    if (userBrandsAccess.length > 0) {
+    if (!isAdmin && userBrandsAccess.length > 0) {
       const placeholders = userBrandsAccess.map(() => '?').join(',')
       query += ` AND id IN (${placeholders})`
       params.push(...userBrandsAccess)
