@@ -695,17 +695,37 @@ app.get('/api/assets', async (c) => {
   
   // Get user's brands_access if userId provided
   let userBrandsAccess: number[] = []
+  let userRegions: string[] = []
+  let userRole: string = ''
+  
   if (userId) {
     const user = await c.env.DB.prepare(`
-      SELECT brands_access, role FROM users WHERE id = ? AND active = 1
+      SELECT brands_access, region, role FROM users WHERE id = ? AND active = 1
     `).bind(userId).first()
     
     if (user) {
-      // Admin has access to all brands
-      if (user.role === 'admin') {
+      userRole = user.role as string
+      
+      // Admin has access to all brands and regions
+      if (user.role === 'admin' || user.role === 'marketing') {
         userBrandsAccess = [] // Empty means all brands
-      } else if (user.brands_access) {
-        userBrandsAccess = JSON.parse(user.brands_access as string)
+        userRegions = [] // Empty means all regions
+      } else {
+        // Parse brands_access
+        if (user.brands_access) {
+          userBrandsAccess = JSON.parse(user.brands_access as string)
+        }
+        
+        // Parse user regions
+        if (user.region) {
+          try {
+            // Try to parse as JSON array (new format)
+            userRegions = JSON.parse(user.region as string)
+          } catch {
+            // Fallback: treat as single region (old format)
+            userRegions = [user.region as string]
+          }
+        }
       }
     }
   }
@@ -737,18 +757,52 @@ app.get('/api/assets', async (c) => {
     })
   )
   
-  // Filter assets based on user's brands_access
+  // Filter assets based on user's brands_access and regions
   let filteredAssets = assetsWithBrands
   
-  if (userId && userBrandsAccess.length > 0) {
-    // Filter: asset must have at least one brand_id in user's brands_access
+  if (userId && (userBrandsAccess.length > 0 || userRegions.length > 0)) {
     filteredAssets = assetsWithBrands.filter((asset: any) => {
-      // If asset has brand_ids, check if any matches user's access
-      if (asset.brand_ids && asset.brand_ids.length > 0) {
-        return asset.brand_ids.some((brandId: number) => userBrandsAccess.includes(brandId))
+      // Check brand access
+      let hasBrandAccess = false
+      
+      if (userBrandsAccess.length === 0) {
+        // Admin/Marketing: all brands
+        hasBrandAccess = true
+      } else {
+        // Check if asset has at least one brand_id in user's brands_access
+        if (asset.brand_ids && asset.brand_ids.length > 0) {
+          hasBrandAccess = asset.brand_ids.some((brandId: number) => userBrandsAccess.includes(brandId))
+        } else if (asset.brand_id) {
+          // Fallback to old brand_id field
+          hasBrandAccess = userBrandsAccess.includes(asset.brand_id)
+        }
       }
-      // Fallback to old brand_id field
-      return asset.brand_id && userBrandsAccess.includes(asset.brand_id)
+      
+      // Check region access
+      let hasRegionAccess = false
+      
+      if (userRegions.length === 0) {
+        // Admin/Marketing: all regions
+        hasRegionAccess = true
+      } else if (!asset.regions || asset.regions.length === 0) {
+        // Asset has no regions specified: allow access
+        hasRegionAccess = true
+      } else {
+        // Check if asset has GLOBAL or any region matching user's regions
+        if (asset.regions.includes('GLOBAL')) {
+          hasRegionAccess = true
+        } else {
+          // Check if any asset region matches user's regions (case-insensitive)
+          hasRegionAccess = asset.regions.some((assetRegion: string) => 
+            userRegions.some((userRegion: string) => 
+              assetRegion.toUpperCase() === userRegion.toUpperCase()
+            )
+          )
+        }
+      }
+      
+      // Asset must pass BOTH brand and region checks
+      return hasBrandAccess && hasRegionAccess
     })
   }
   
