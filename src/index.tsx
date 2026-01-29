@@ -706,8 +706,8 @@ app.get('/api/assets', async (c) => {
     if (user) {
       userRole = user.role as string
       
-      // Admin has access to all brands and regions
-      if (user.role === 'admin' || user.role === 'marketing') {
+      // Only admin has access to all brands and regions
+      if (user.role === 'admin') {
         userBrandsAccess = [] // Empty means all brands
         userRegions = [] // Empty means all regions
       } else {
@@ -762,8 +762,8 @@ app.get('/api/assets', async (c) => {
   
   // 🎯 CRITICAL: If userId exists, we MUST filter
   if (userId) {
-    // If user is not admin/marketing and has NO brands, return empty
-    if (userRole !== 'admin' && userRole !== 'marketing' && userBrandsAccess.length === 0) {
+    // If user is not admin and has NO brands, return empty
+    if (userRole !== 'admin' && userBrandsAccess.length === 0) {
       filteredAssets = []
     } else if (userBrandsAccess.length > 0 || userRegions.length > 0) {
       filteredAssets = assetsWithBrands.filter((asset: any) => {
@@ -1511,8 +1511,8 @@ app.get('/api/public/assets', async (c) => {
       `).bind(userId).first()
       
       if (user) {
-        // Admin and marketing see all brands and regions
-        if (user.role === 'admin' || user.role === 'marketing') {
+        // Only admin sees all brands and regions
+        if (user.role === 'admin') {
           isAdmin = true
         } else {
           // Parse brands_access
@@ -1699,8 +1699,8 @@ app.get('/api/public/brands', async (c) => {
         `).bind(userId).first()
         
         if (user) {
-          // Admin and marketing see all brands
-          if (user.role === 'admin' || user.role === 'marketing') {
+          // Only admin sees all brands
+          if (user.role === 'admin') {
             isAdmin = true
             userBrandsAccess = []
           } else {
