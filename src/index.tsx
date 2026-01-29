@@ -760,8 +760,13 @@ app.get('/api/assets', async (c) => {
   // Filter assets based on user's brands_access and regions
   let filteredAssets = assetsWithBrands
   
-  if (userId && (userBrandsAccess.length > 0 || userRegions.length > 0)) {
-    filteredAssets = assetsWithBrands.filter((asset: any) => {
+  // 🎯 CRITICAL: If userId exists, we MUST filter
+  if (userId) {
+    // If user is not admin/marketing and has NO brands, return empty
+    if (userRole !== 'admin' && userRole !== 'marketing' && userBrandsAccess.length === 0) {
+      filteredAssets = []
+    } else if (userBrandsAccess.length > 0 || userRegions.length > 0) {
+      filteredAssets = assetsWithBrands.filter((asset: any) => {
       // Check brand access
       let hasBrandAccess = false
       
@@ -810,6 +815,7 @@ app.get('/api/assets', async (c) => {
       // Asset must pass BOTH brand and region checks
       return hasBrandAccess && hasRegionAccess
     })
+    }
   }
   
   return c.json({ assets: filteredAssets }, {
@@ -1551,6 +1557,11 @@ app.get('/api/public/assets', async (c) => {
   `
   
   const params: any[] = []
+  
+  // 🎯 CRITICAL: If user has no brand access and is not admin, return empty results immediately
+  if (!isAdmin && userBrandsAccess.length === 0) {
+    return c.json({ assets: [] })
+  }
   
   // Filter by brands_access if user is not admin
   if (!isAdmin && userBrandsAccess.length > 0) {
