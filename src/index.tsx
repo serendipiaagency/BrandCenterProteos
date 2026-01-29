@@ -769,12 +769,18 @@ app.get('/api/assets', async (c) => {
         // Admin/Marketing: all brands
         hasBrandAccess = true
       } else {
-        // Check if asset has at least one brand_id in user's brands_access
-        if (asset.brand_ids && asset.brand_ids.length > 0) {
-          hasBrandAccess = asset.brand_ids.some((brandId: number) => userBrandsAccess.includes(brandId))
-        } else if (asset.brand_id) {
-          // Fallback to old brand_id field
-          hasBrandAccess = userBrandsAccess.includes(asset.brand_id)
+        // IMPORTANT: Check primary brand_id first
+        // If user doesn't have access to primary brand, deny access even if asset has other brands
+        if (asset.brand_id && !userBrandsAccess.includes(asset.brand_id)) {
+          hasBrandAccess = false
+        } else {
+          // Check if asset has at least one brand_id in user's brands_access
+          if (asset.brand_ids && asset.brand_ids.length > 0) {
+            hasBrandAccess = asset.brand_ids.some((brandId: number) => userBrandsAccess.includes(brandId))
+          } else if (asset.brand_id) {
+            // Fallback to old brand_id field
+            hasBrandAccess = userBrandsAccess.includes(asset.brand_id)
+          }
         }
       }
       
@@ -1616,12 +1622,18 @@ app.get('/api/public/assets', async (c) => {
         // No brand restriction (shouldn't happen for non-admin)
         hasBrandAccess = true
       } else {
-        // Check if asset has at least one brand_id in user's brands_access
-        if (asset.brand_ids && asset.brand_ids.length > 0) {
-          hasBrandAccess = asset.brand_ids.some((brandId: number) => userBrandsAccess.includes(brandId))
-        } else if (asset.brand_id) {
-          // Fallback to old brand_id field
-          hasBrandAccess = userBrandsAccess.includes(asset.brand_id)
+        // IMPORTANT: Check primary brand_id first
+        // If user doesn't have access to primary brand, deny access even if asset has other brands
+        if (asset.brand_id && !userBrandsAccess.includes(asset.brand_id)) {
+          hasBrandAccess = false
+        } else {
+          // Check if asset has at least one brand_id in user's brands_access
+          if (asset.brand_ids && asset.brand_ids.length > 0) {
+            hasBrandAccess = asset.brand_ids.some((brandId: number) => userBrandsAccess.includes(brandId))
+          } else if (asset.brand_id) {
+            // Fallback to old brand_id field
+            hasBrandAccess = userBrandsAccess.includes(asset.brand_id)
+          }
         }
       }
       
