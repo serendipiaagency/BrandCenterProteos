@@ -182,14 +182,71 @@ const api = {
     return response.data
   },
   
-  async uploadFile(file) {
-    const formData = new FormData()
-    formData.append('file', file)
+  async uploadFile(file, onProgress) {
+    const MAX_SIZE_SIMPLE = 80 * 1024 * 1024; // 80 MB
     
-    const response = await axios.post('/api/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
-    return response.data
+    // For small files, use traditional upload
+    if (file.size < MAX_SIZE_SIMPLE) {
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      const response = await axios.post('/api/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent) => {
+          if (onProgress && progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            onProgress(percentCompleted)
+          }
+        }
+      })
+      return response.data
+    }
+    
+    // For large files, use chunked upload
+    const CHUNK_SIZE = 50 * 1024 * 1024; // 50 MB chunks
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
+    const filename = `${Date.now()}-${file.name}`
+    
+    console.log(`📦 Uploading large file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`)
+    console.log(`📊 Split into ${totalChunks} chunks`)
+    
+    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+      const start = chunkIndex * CHUNK_SIZE
+      const end = Math.min(start + CHUNK_SIZE, file.size)
+      const chunk = file.slice(start, end)
+      
+      const formData = new FormData()
+      formData.append('chunk', chunk)
+      formData.append('filename', filename)
+      formData.append('chunkIndex', chunkIndex)
+      formData.append('totalChunks', totalChunks)
+      formData.append('contentType', file.type)
+      
+      console.log(`⬆️ Uploading chunk ${chunkIndex + 1}/${totalChunks} (${(chunk.size / 1024 / 1024).toFixed(2)} MB)`)
+      
+      const response = await axios.post('/api/upload/chunk', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      
+      // Update progress
+      if (onProgress) {
+        const percentCompleted = Math.round(((chunkIndex + 1) / totalChunks) * 100)
+        onProgress(percentCompleted)
+      }
+      
+      if (response.data.complete) {
+        console.log('✅ Upload complete!')
+        return {
+          success: true,
+          filename: response.data.filename,
+          fileUrl: response.data.fileUrl,
+          fileType: file.type,
+          fileSize: file.size
+        }
+      }
+    }
+    
+    throw new Error('Upload failed: No completion response')
   },
   
   async getUsers() {
@@ -863,11 +920,52 @@ const handleFileUpload = async (e) => {
     return
   }
   
+  // Check file size and warn if large
+  const fileSizeMB = (file.size / 1024 / 1024).toFixed(2)
+  console.log(`📁 File selected: ${file.name} (${fileSizeMB} MB)`)
+  
   try {
     showLoading()
     
-    // Upload file to R2
-    const uploadResult = await api.uploadFile(file)
+    // Create progress element for large files
+    let progressElement = null
+    if (file.size > 80 * 1024 * 1024) {
+      progressElement = document.createElement('div')
+      progressElement.id = 'upload-progress'
+      progressElement.className = 'fixed top-4 right-4 z-50 bg-white p-6 rounded-lg shadow-2xl border-2 border-blue-500'
+      progressElement.innerHTML = `
+        <div class="flex items-center gap-3 mb-3">
+          <i class="fas fa-cloud-upload-alt text-2xl text-blue-600"></i>
+          <div>
+            <div class="font-bold">Subiendo archivo grande</div>
+            <div class="text-sm text-gray-600">${file.name}</div>
+            <div class="text-xs text-gray-500">${fileSizeMB} MB</div>
+          </div>
+        </div>
+        <div class="w-64 bg-gray-200 rounded-full h-4 mb-2">
+          <div id="progress-bar" class="bg-blue-600 h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <div class="text-center text-sm font-medium">
+          <span id="progress-text">0%</span>
+        </div>
+      `
+      document.body.appendChild(progressElement)
+    }
+    
+    // Upload file to R2 with progress callback
+    const uploadResult = await api.uploadFile(file, (progress) => {
+      if (progressElement) {
+        const progressBar = $('#progress-bar')
+        const progressText = $('#progress-text')
+        if (progressBar) progressBar.style.width = progress + '%'
+        if (progressText) progressText.textContent = progress + '%'
+      }
+    })
+    
+    // Remove progress element
+    if (progressElement) {
+      progressElement.remove()
+    }
     
     // Get form values
     // Get selected brands (multi-select)

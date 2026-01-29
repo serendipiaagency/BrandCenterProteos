@@ -1167,6 +1167,107 @@ app.post('/api/upload', async (c) => {
   })
 })
 
+// NEW: Generate presigned URL for large file uploads (>100MB)
+app.post('/api/upload/presigned-url', async (c) => {
+  try {
+    const { filename, contentType, fileSize } = await c.req.json()
+    
+    if (!filename) {
+      return c.json({ error: 'Filename is required' }, 400)
+    }
+    
+    // Generate unique filename
+    const uniqueFilename = `${Date.now()}-${filename}`
+    
+    // R2 doesn't support presigned URLs directly, so we'll use a different approach:
+    // Return upload metadata and let frontend upload directly
+    return c.json({
+      success: true,
+      filename: uniqueFilename,
+      uploadMethod: 'chunked', // Will upload via chunks through Worker
+      fileUrl: `/api/files/${uniqueFilename}`,
+      contentType,
+      fileSize
+    })
+  } catch (error) {
+    console.error('Presigned URL error:', error)
+    return c.json({ error: 'Failed to generate upload URL' }, 500)
+  }
+})
+
+// NEW: Upload chunk endpoint for large files
+app.post('/api/upload/chunk', async (c) => {
+  try {
+    const formData = await c.req.formData()
+    const chunk = formData.get('chunk') as File
+    const filename = formData.get('filename') as string
+    const chunkIndex = parseInt(formData.get('chunkIndex') as string)
+    const totalChunks = parseInt(formData.get('totalChunks') as string)
+    
+    if (!chunk || !filename) {
+      return c.json({ error: 'Missing required fields' }, 400)
+    }
+    
+    // Store chunk temporarily with index
+    const chunkFilename = `${filename}.part${chunkIndex}`
+    const buffer = await chunk.arrayBuffer()
+    
+    await c.env.R2.put(chunkFilename, buffer)
+    
+    // If this is the last chunk, combine all chunks
+    if (chunkIndex === totalChunks - 1) {
+      // Get all chunks
+      const chunks = []
+      for (let i = 0; i < totalChunks; i++) {
+        const chunkName = `${filename}.part${i}`
+        const chunkObj = await c.env.R2.get(chunkName)
+        if (chunkObj) {
+          chunks.push(await chunkObj.arrayBuffer())
+        }
+      }
+      
+      // Combine chunks
+      const totalSize = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0)
+      const combined = new Uint8Array(totalSize)
+      let offset = 0
+      for (const chunk of chunks) {
+        combined.set(new Uint8Array(chunk), offset)
+        offset += chunk.byteLength
+      }
+      
+      // Upload final file
+      const contentType = formData.get('contentType') as string
+      await c.env.R2.put(filename, combined, {
+        httpMetadata: {
+          contentType: contentType || 'application/octet-stream'
+        }
+      })
+      
+      // Delete chunk files
+      for (let i = 0; i < totalChunks; i++) {
+        const chunkName = `${filename}.part${i}`
+        await c.env.R2.delete(chunkName)
+      }
+      
+      return c.json({
+        success: true,
+        complete: true,
+        filename,
+        fileUrl: `/api/files/${filename}`
+      })
+    }
+    
+    return c.json({
+      success: true,
+      complete: false,
+      chunkIndex
+    })
+  } catch (error) {
+    console.error('Chunk upload error:', error)
+    return c.json({ error: 'Failed to upload chunk' }, 500)
+  }
+})
+
 app.get('/api/files/:filename', async (c) => {
   const filename = c.req.param('filename')
   
@@ -1565,7 +1666,7 @@ app.get('/admin', (c) => {
       </head>
       <body>
         <div id="app"></div>
-        <script src="/static/app.js?v=9"></script>
+        <script src="/static/app.js?v=10"></script>
       </body>
     </html>
   )
@@ -1646,7 +1747,7 @@ app.get('/admin', (c) => {
       <body class="bg-gray-50">
         <div id="app"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/app.js?v=9"></script>
+        <script src="/static/app.js?v=10"></script>
       </body>
     </html>
   )
