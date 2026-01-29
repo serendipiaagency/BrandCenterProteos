@@ -1116,16 +1116,36 @@ let userModal = null
 let passwordModal = null
 
 const openUserModal = (user = null) => {
-  userModal = user || { 
-    email: '', 
-    name: '', 
-    role: 'distributor',
-    region: '',
-    country: '',
-    distributor: '',
-    language: 'ENG',
-    brands_access: [],
-    active: true
+  if (user) {
+    // Parse regions from JSON if present
+    let regions = []
+    if (user.region) {
+      try {
+        regions = JSON.parse(user.region)
+      } catch (e) {
+        // If parsing fails, treat as single region
+        regions = [user.region]
+      }
+    }
+    
+    userModal = {
+      ...user,
+      regions: regions,
+      region: user.region // Keep original for backward compatibility
+    }
+  } else {
+    userModal = { 
+      email: '', 
+      name: '', 
+      role: 'distributor',
+      region: '',
+      regions: [],
+      country: '',
+      distributor: '',
+      language: 'ENG',
+      brands_access: [],
+      active: true
+    }
   }
   render()
 }
@@ -1175,11 +1195,15 @@ const handlePasswordChange = async (e) => {
 const handleUserSubmit = async (e) => {
   e.preventDefault()
   
+  // Get selected regions as array
+  const regionSelect = $('#user-region')
+  const selectedRegions = Array.from(regionSelect.selectedOptions).map(opt => opt.value)
+  
   const userData = {
     email: $('#user-email').value,
     name: $('#user-name').value,
     role: $('#user-role').value,
-    region: $('#user-region').value,
+    region: selectedRegions.length > 0 ? JSON.stringify(selectedRegions) : null, // Store as JSON array
     country: $('#user-country').value,
     distributor: $('#user-distributor').value,
     language: $('#user-language').value,
@@ -2364,9 +2388,16 @@ const renderUserModal = () => {
             <div class="form-group">
               <label class="form-label">
                 <i class="fas fa-globe"></i>
-                Region
+                Region <small>(Hold Ctrl/Cmd to select multiple)</small>
               </label>
-              <input id="user-region" type="text" value="${userModal.region || ''}" class="form-input" placeholder="LATAM, EMEA, APAC..." />
+              <select id="user-region" class="form-input" multiple size="6" style="height: auto;">
+                <option value="GLOBAL" ${userModal.regions?.includes('GLOBAL') || userModal.region === 'GLOBAL' ? 'selected' : ''}>GLOBAL</option>
+                <option value="USA" ${userModal.regions?.includes('USA') || userModal.region === 'USA' ? 'selected' : ''}>USA</option>
+                <option value="LATAM" ${userModal.regions?.includes('LATAM') || userModal.region === 'LATAM' ? 'selected' : ''}>LATAM</option>
+                <option value="EUROPA" ${userModal.regions?.includes('EUROPA') || userModal.region === 'EUROPA' ? 'selected' : ''}>EUROPA</option>
+                <option value="MENA" ${userModal.regions?.includes('MENA') || userModal.region === 'MENA' ? 'selected' : ''}>MENA</option>
+                <option value="ASIA" ${userModal.regions?.includes('ASIA') || userModal.region === 'ASIA' ? 'selected' : ''}>ASIA</option>
+              </select>
             </div>
             <div class="form-group">
               <label class="form-label">
