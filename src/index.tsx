@@ -1211,9 +1211,12 @@ app.post('/api/upload/chunk', async (c) => {
       return c.json({ error: 'Missing required fields' }, 400)
     }
     
+    // Get the multipart upload object
+    const multipartUpload = c.env.R2.resumeMultipartUpload(key, uploadId)
+    
     // Upload part using R2 multipart upload
     const buffer = await chunk.arrayBuffer()
-    const uploadedPart = await c.env.R2.uploadPart(key, uploadId, partNumber, buffer)
+    const uploadedPart = await multipartUpload.uploadPart(partNumber, buffer)
     
     return c.json({
       success: true,
@@ -1235,8 +1238,11 @@ app.post('/api/upload/complete-multipart', async (c) => {
       return c.json({ error: 'Missing required fields' }, 400)
     }
     
+    // Get the multipart upload object
+    const multipartUpload = c.env.R2.resumeMultipartUpload(key, uploadId)
+    
     // Complete the multipart upload
-    await c.env.R2.completeMultipartUpload(key, uploadId, parts)
+    await multipartUpload.complete(parts)
     
     // Extract filename from key (remove timestamp prefix)
     const filename = key
@@ -1261,7 +1267,11 @@ app.post('/api/upload/abort-multipart', async (c) => {
       return c.json({ error: 'Missing required fields' }, 400)
     }
     
-    await c.env.R2.abortMultipartUpload(key, uploadId)
+    // Get the multipart upload object
+    const multipartUpload = c.env.R2.resumeMultipartUpload(key, uploadId)
+    
+    // Abort the upload
+    await multipartUpload.abort()
     
     return c.json({ success: true })
   } catch (error) {
