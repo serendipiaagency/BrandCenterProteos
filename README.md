@@ -20,6 +20,9 @@ Professional brand asset management system for Proteos Biotech, enabling distrib
 - **Role-based permissions** with brand access control
 - **Region and country-specific access**
 - **🆕 Brand Permissions**: Users only see assets from assigned brands
+- **🆕 Region Permissions**: Users only see assets from assigned regions (GLOBAL, USA, LATAM, EUROPA, MENA, ASIA)
+- **🆕 Strict Access Control**: Users with NO brand access see NO assets (except admin/marketing)
+- **🆕 Primary Brand Validation**: Users can only see assets if they have access to the primary brand
 - **Session management** with persistent login
 
 ### 🏢 Brand & Asset Organization
