@@ -202,51 +202,90 @@ const api = {
       return response.data
     }
     
-    // For large files, use chunked upload
+    // For large files, use R2 multipart upload
     const CHUNK_SIZE = 50 * 1024 * 1024; // 50 MB chunks
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
-    const filename = `${Date.now()}-${file.name}`
     
     console.log(`📦 Uploading large file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`)
     console.log(`📊 Split into ${totalChunks} chunks`)
     
-    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-      const start = chunkIndex * CHUNK_SIZE
-      const end = Math.min(start + CHUNK_SIZE, file.size)
-      const chunk = file.slice(start, end)
-      
-      const formData = new FormData()
-      formData.append('chunk', chunk)
-      formData.append('filename', filename)
-      formData.append('chunkIndex', chunkIndex)
-      formData.append('totalChunks', totalChunks)
-      formData.append('contentType', file.type)
-      
-      console.log(`⬆️ Uploading chunk ${chunkIndex + 1}/${totalChunks} (${(chunk.size / 1024 / 1024).toFixed(2)} MB)`)
-      
-      const response = await axios.post('/api/upload/chunk', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+    try {
+      // Step 1: Start multipart upload
+      const startResponse = await axios.post('/api/upload/start-multipart', {
+        filename: file.name,
+        contentType: file.type
       })
       
-      // Update progress
-      if (onProgress) {
-        const percentCompleted = Math.round(((chunkIndex + 1) / totalChunks) * 100)
-        onProgress(percentCompleted)
-      }
+      const { uploadId, filename, key } = startResponse.data
+      console.log(`🔑 Multipart upload started: ${uploadId}`)
       
-      if (response.data.complete) {
-        console.log('✅ Upload complete!')
-        return {
-          success: true,
-          filename: response.data.filename,
-          fileUrl: response.data.fileUrl,
-          fileType: file.type,
-          fileSize: file.size
+      const uploadedParts = []
+      
+      // Step 2: Upload each chunk
+      for (let partNumber = 1; partNumber <= totalChunks; partNumber++) {
+        const start = (partNumber - 1) * CHUNK_SIZE
+        const end = Math.min(start + CHUNK_SIZE, file.size)
+        const chunk = file.slice(start, end)
+        
+        const formData = new FormData()
+        formData.append('chunk', chunk)
+        formData.append('key', key)
+        formData.append('uploadId', uploadId)
+        formData.append('partNumber', partNumber.toString())
+        
+        console.log(`⬆️ Uploading chunk ${partNumber}/${totalChunks} (${(chunk.size / 1024 / 1024).toFixed(2)} MB)`)
+        
+        const response = await axios.post('/api/upload/chunk', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        
+        uploadedParts.push({
+          partNumber,
+          etag: response.data.etag
+        })
+        
+        // Update progress
+        if (onProgress) {
+          const percentCompleted = Math.round((partNumber / totalChunks) * 100)
+          onProgress(percentCompleted)
         }
       }
+      
+      // Step 3: Complete multipart upload
+      console.log(`✅ All chunks uploaded, completing multipart upload...`)
+      const completeResponse = await axios.post('/api/upload/complete-multipart', {
+        key,
+        uploadId,
+        parts: uploadedParts
+      })
+      
+      console.log('✅ Upload complete!')
+      return {
+        success: true,
+        filename: completeResponse.data.filename,
+        fileUrl: completeResponse.data.fileUrl,
+        fileType: file.type,
+        fileSize: file.size
+      }
+      
+    } catch (error) {
+      console.error('❌ Upload error:', error)
+      
+      // Try to abort multipart upload on error
+      if (error.response?.data?.uploadId && error.response?.data?.key) {
+        try {
+          await axios.post('/api/upload/abort-multipart', {
+            key: error.response.data.key,
+            uploadId: error.response.data.uploadId
+          })
+          console.log('🗑️ Multipart upload aborted')
+        } catch (abortError) {
+          console.error('Failed to abort multipart upload:', abortError)
+        }
+      }
+      
+      throw error
     }
-    
-    throw new Error('Upload failed: No completion response')
   },
   
   async getUsers() {

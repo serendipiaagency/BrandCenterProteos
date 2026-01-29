@@ -1167,10 +1167,10 @@ app.post('/api/upload', async (c) => {
   })
 })
 
-// NEW: Generate presigned URL for large file uploads (>100MB)
-app.post('/api/upload/presigned-url', async (c) => {
+// NEW: Initialize multipart upload for large files
+app.post('/api/upload/start-multipart', async (c) => {
   try {
-    const { filename, contentType, fileSize } = await c.req.json()
+    const { filename, contentType } = await c.req.json()
     
     if (!filename) {
       return c.json({ error: 'Filename is required' }, 400)
@@ -1179,92 +1179,94 @@ app.post('/api/upload/presigned-url', async (c) => {
     // Generate unique filename
     const uniqueFilename = `${Date.now()}-${filename}`
     
-    // R2 doesn't support presigned URLs directly, so we'll use a different approach:
-    // Return upload metadata and let frontend upload directly
+    // Create multipart upload
+    const multipartUpload = await c.env.R2.createMultipartUpload(uniqueFilename, {
+      httpMetadata: {
+        contentType: contentType || 'application/octet-stream'
+      }
+    })
+    
     return c.json({
       success: true,
+      uploadId: multipartUpload.uploadId,
       filename: uniqueFilename,
-      uploadMethod: 'chunked', // Will upload via chunks through Worker
-      fileUrl: `/api/files/${uniqueFilename}`,
-      contentType,
-      fileSize
+      key: multipartUpload.key
     })
   } catch (error) {
-    console.error('Presigned URL error:', error)
-    return c.json({ error: 'Failed to generate upload URL' }, 500)
+    console.error('Start multipart error:', error)
+    return c.json({ error: 'Failed to start upload' }, 500)
   }
 })
 
-// NEW: Upload chunk endpoint for large files
+// NEW: Upload chunk endpoint using R2 multipart upload
 app.post('/api/upload/chunk', async (c) => {
   try {
     const formData = await c.req.formData()
     const chunk = formData.get('chunk') as File
-    const filename = formData.get('filename') as string
-    const chunkIndex = parseInt(formData.get('chunkIndex') as string)
-    const totalChunks = parseInt(formData.get('totalChunks') as string)
+    const key = formData.get('key') as string
+    const uploadId = formData.get('uploadId') as string
+    const partNumber = parseInt(formData.get('partNumber') as string)
     
-    if (!chunk || !filename) {
+    if (!chunk || !key || !uploadId || !partNumber) {
       return c.json({ error: 'Missing required fields' }, 400)
     }
     
-    // Store chunk temporarily with index
-    const chunkFilename = `${filename}.part${chunkIndex}`
+    // Upload part using R2 multipart upload
     const buffer = await chunk.arrayBuffer()
-    
-    await c.env.R2.put(chunkFilename, buffer)
-    
-    // If this is the last chunk, combine all chunks
-    if (chunkIndex === totalChunks - 1) {
-      // Get all chunks
-      const chunks = []
-      for (let i = 0; i < totalChunks; i++) {
-        const chunkName = `${filename}.part${i}`
-        const chunkObj = await c.env.R2.get(chunkName)
-        if (chunkObj) {
-          chunks.push(await chunkObj.arrayBuffer())
-        }
-      }
-      
-      // Combine chunks
-      const totalSize = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0)
-      const combined = new Uint8Array(totalSize)
-      let offset = 0
-      for (const chunk of chunks) {
-        combined.set(new Uint8Array(chunk), offset)
-        offset += chunk.byteLength
-      }
-      
-      // Upload final file
-      const contentType = formData.get('contentType') as string
-      await c.env.R2.put(filename, combined, {
-        httpMetadata: {
-          contentType: contentType || 'application/octet-stream'
-        }
-      })
-      
-      // Delete chunk files
-      for (let i = 0; i < totalChunks; i++) {
-        const chunkName = `${filename}.part${i}`
-        await c.env.R2.delete(chunkName)
-      }
-      
-      return c.json({
-        success: true,
-        complete: true,
-        filename,
-        fileUrl: `/api/files/${filename}`
-      })
-    }
+    const uploadedPart = await c.env.R2.uploadPart(key, uploadId, partNumber, buffer)
     
     return c.json({
       success: true,
-      complete: false,
-      chunkIndex
+      partNumber,
+      etag: uploadedPart.etag
     })
   } catch (error) {
     console.error('Chunk upload error:', error)
     return c.json({ error: 'Failed to upload chunk' }, 500)
+  }
+})
+
+// NEW: Complete multipart upload
+app.post('/api/upload/complete-multipart', async (c) => {
+  try {
+    const { key, uploadId, parts } = await c.req.json()
+    
+    if (!key || !uploadId || !parts) {
+      return c.json({ error: 'Missing required fields' }, 400)
+    }
+    
+    // Complete the multipart upload
+    await c.env.R2.completeMultipartUpload(key, uploadId, parts)
+    
+    // Extract filename from key (remove timestamp prefix)
+    const filename = key
+    
+    return c.json({
+      success: true,
+      filename,
+      fileUrl: `/api/files/${filename}`
+    })
+  } catch (error) {
+    console.error('Complete multipart error:', error)
+    return c.json({ error: 'Failed to complete upload' }, 500)
+  }
+})
+
+// NEW: Abort multipart upload (cleanup on error)
+app.post('/api/upload/abort-multipart', async (c) => {
+  try {
+    const { key, uploadId } = await c.req.json()
+    
+    if (!key || !uploadId) {
+      return c.json({ error: 'Missing required fields' }, 400)
+    }
+    
+    await c.env.R2.abortMultipartUpload(key, uploadId)
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Abort multipart error:', error)
+    return c.json({ error: 'Failed to abort upload' }, 500)
   }
 })
 
@@ -1666,7 +1668,7 @@ app.get('/admin', (c) => {
       </head>
       <body>
         <div id="app"></div>
-        <script src="/static/app.js?v=11"></script>
+        <script src="/static/app.js?v=12"></script>
       </body>
     </html>
   )
@@ -1747,7 +1749,7 @@ app.get('/admin', (c) => {
       <body class="bg-gray-50">
         <div id="app"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/app.js?v=11"></script>
+        <script src="/static/app.js?v=12"></script>
       </body>
     </html>
   )
