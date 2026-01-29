@@ -58,6 +58,7 @@ Professional brand asset management system for Proteos Biotech, enabling distrib
 - **Smooth animations** and hover effects throughout
 - **Modal-based workflows** for uploads and user management
 - **Completely custom CSS** - no heavy frameworks, pure performance
+- **🆕 Instructions Page**: Built-in user guide with step-by-step instructions for asset uploads and permission management
 
 ## 🗄️ Data Architecture
 
