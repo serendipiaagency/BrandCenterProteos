@@ -31,6 +31,10 @@ Professional brand asset management system for Proteos Biotech, enabling distrib
 
 ### 📁 Asset Management
 - **File upload system** with drag-and-drop support
+- **🆕 Large file support**: Upload files up to **2.5 GB** using chunked upload
+- **🆕 R2 Multipart Upload**: Native Cloudflare R2 multipart API for reliable large file uploads
+- **Progress tracking**: Real-time progress bar for large file uploads (>80 MB)
+- **Automatic chunking**: Files >80 MB automatically split into 50 MB chunks
 - **Metadata tagging**: Region, Country, Regulatory (EU/NON-EU/GLOBAL), Language
 - **File type support**: PDF, Images, Videos, ZIP, Office files
 - **Asset library** with filtering by brand, sub-brand, and material type
@@ -40,6 +44,7 @@ Professional brand asset management system for Proteos Biotech, enabling distrib
   - Add brands (keep existing + add new)
   - Remove brands (remove specific brands)
 - **🆕 Multi-brand assignment**: Assign assets to multiple brands during upload/edit
+- **🆕 Dedicated edit pages**: Each asset has its own edit page (no modals) for better UX
 
 ### 🎨 User Interface
 - **Elegant corporate design** inspired by modern brand portals
@@ -109,7 +114,11 @@ Para configurar `brandcenter.pbserum.com`, consulta: **[DOMAIN_SETUP.md](./DOMAI
 - `PUT /api/assets/:id` - Update asset with multiple brands
 - `🆕 POST /api/assets/bulk-edit` - Bulk edit multiple assets
 - `DELETE /api/assets/:id` - Delete asset
-- `POST /api/upload` - Upload file to R2
+- `POST /api/upload` - Upload file to R2 (small files <80 MB)
+- `🆕 POST /api/upload/start-multipart` - Start multipart upload for large files
+- `🆕 POST /api/upload/chunk` - Upload chunk (part) for large files
+- `🆕 POST /api/upload/complete-multipart` - Complete multipart upload
+- `🆕 POST /api/upload/abort-multipart` - Abort failed multipart upload
 - `GET /api/users` - List users (admin only)
 - `POST /api/users` - Create user (admin only)
 - `PUT /api/users/:id` - Update user (admin only)
@@ -233,6 +242,11 @@ npm run db:console:local
 - [ ] **Asset sharing** via public links
 
 ### ✅ Recently Completed
+- [x] **🎉 Large file upload support** (up to 2.5 GB with R2 Multipart Upload API)
+- [x] **Progress tracking** for large file uploads with real-time progress bar
+- [x] **Automatic chunking** (50 MB chunks) for files >80 MB
+- [x] **Dedicated edit pages** for assets (replaced modals for better UX)
+- [x] **Multi-select regions** in asset edit/create forms
 - [x] **Multi-brand assets** (assets can belong to multiple brands)
 - [x] **Bulk edit** functionality (edit multiple assets at once)
 - [x] **Brand permissions** (users only see assigned brands)
@@ -294,13 +308,15 @@ Proprietary - Proteos Biotech © 2026
 
 ---
 
-**Last Updated**: 2026-01-26
-**Version**: 2.0.0
+**Last Updated**: 2026-01-29
+**Version**: 2.1.0
 **Status**: Production Ready ✅
 
-### Recent Updates (v2.0.0)
-- ✅ Multi-brand assets with M2M relationship
-- ✅ Bulk edit functionality for assets
-- ✅ Brand permissions system
-- ✅ Protected catalog with login
-- ✅ Custom domain setup (brandcenter.pbserum.com)
+### Recent Updates (v2.1.0)
+- 🎉 **Large file upload support** (up to 2.5 GB)
+- 🚀 **R2 Multipart Upload API** implementation (fixes 503 timeout)
+- 📊 **Real-time progress tracking** for large uploads
+- ⚡ **Automatic chunking** with 50 MB chunks
+- 🎨 **Dedicated edit pages** for better asset editing UX
+- 🌍 **Multi-select regions** in forms
+- ✅ **Cache busting** system (v=12)
