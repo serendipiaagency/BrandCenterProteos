@@ -1666,7 +1666,7 @@ app.get('/admin', (c) => {
       </head>
       <body>
         <div id="app"></div>
-        <script src="/static/app.js?v=10"></script>
+        <script src="/static/app.js?v=11"></script>
       </body>
     </html>
   )
@@ -1747,7 +1747,7 @@ app.get('/admin', (c) => {
       <body class="bg-gray-50">
         <div id="app"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/app.js?v=10"></script>
+        <script src="/static/app.js?v=11"></script>
       </body>
     </html>
   )

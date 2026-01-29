@@ -922,7 +922,16 @@ const handleFileUpload = async (e) => {
   
   // Check file size and warn if large
   const fileSizeMB = (file.size / 1024 / 1024).toFixed(2)
+  const fileSizeGB = (file.size / 1024 / 1024 / 1024).toFixed(2)
   console.log(`📁 File selected: ${file.name} (${fileSizeMB} MB)`)
+  
+  // Validate maximum file size (2.5 GB)
+  const MAX_FILE_SIZE = 2.5 * 1024 * 1024 * 1024; // 2.5 GB
+  if (file.size > MAX_FILE_SIZE) {
+    showNotification(`El archivo es demasiado grande (${fileSizeGB} GB). Límite máximo: 2.5 GB`, 'error')
+    hideLoading()
+    return
+  }
   
   try {
     showLoading()
@@ -1801,6 +1810,10 @@ const renderUploadModal = () => {
               required
               class="form-input"
             />
+            <small style="color: #6b7280; font-size: 0.75rem; margin-top: 0.25rem; display: block;">
+              <i class="fas fa-info-circle"></i> Tamaño máximo: 2.5 GB. 
+              Archivos grandes se subirán automáticamente por partes con barra de progreso.
+            </small>
           </div>
           
           <div class="form-group">
