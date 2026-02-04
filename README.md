@@ -38,6 +38,7 @@ Professional brand asset management system for Proteos Biotech, enabling distrib
 - **🆕 R2 Multipart Upload**: Native Cloudflare R2 multipart API for reliable large file uploads
 - **Progress tracking**: Real-time progress bar for large file uploads (>80 MB)
 - **Automatic chunking**: Files >80 MB automatically split into 50 MB chunks
+- **🆕 Featured Image/Thumbnail**: Upload custom preview images (400x300px, max 500KB) for assets displayed in public catalog
 - **Metadata tagging**: Region, Country, Regulatory (EU/NON-EU/GLOBAL), Language
 - **File type support**: PDF, Images, Videos, ZIP, Office files
 - **Asset library** with filtering by brand, sub-brand, and material type
@@ -76,6 +77,7 @@ Professional brand asset management system for Proteos Biotech, enabling distrib
 - File storage with unique identifiers
 - Public URL access for downloads
 - Automatic file type detection
+- **🆕 Thumbnails**: Separate storage for custom preview images (`thumbnails/` directory)
 
 ### Taxonomy Structure
 ```
