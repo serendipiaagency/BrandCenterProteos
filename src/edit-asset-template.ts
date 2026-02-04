@@ -325,17 +325,32 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
         // Upload thumbnail if selected
         const thumbnailFile = document.getElementById('thumbnail').files[0];
         if (thumbnailFile) {
-          submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Subiendo imagen...';
-          
-          const formData = new FormData();
-          formData.append('thumbnail', thumbnailFile);
-          
-          await axios.post('/api/assets/${asset.id}/thumbnail', formData, {
-            headers: {
-              'Content-Type': 'multipart/form-data'
-            }
-          });
-          console.log('✅ Thumbnail uploaded');
+          try {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Subiendo imagen...';
+            
+            const formData = new FormData();
+            formData.append('thumbnail', thumbnailFile);
+            
+            console.log('📤 Uploading thumbnail:', {
+              name: thumbnailFile.name,
+              type: thumbnailFile.type,
+              size: thumbnailFile.size
+            });
+            
+            const thumbnailResponse = await axios.post('/api/assets/${asset.id}/thumbnail', formData, {
+              headers: {
+                'Content-Type': 'multipart/form-data'
+              }
+            });
+            
+            console.log('✅ Thumbnail response:', thumbnailResponse.data);
+          } catch (thumbnailError) {
+            console.error('❌ Thumbnail upload error:', thumbnailError);
+            console.error('❌ Error details:', thumbnailError.response?.data);
+            
+            // Show error but don't stop the process
+            alert('Error al subir la imagen destacada: ' + (thumbnailError.response?.data?.error || thumbnailError.message));
+          }
         }
         
         // Show success message
