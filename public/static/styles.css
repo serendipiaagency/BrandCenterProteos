@@ -1122,10 +1122,30 @@ body {
   padding: 1.5rem;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on mobile */
+}
+
+.table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: var(--gray-100);
+  border-radius: 10px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: 10px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-400);
 }
 
 .data-table {
   width: 100%;
+  min-width: 1000px; /* Ensures table doesn't get too cramped */
   border-collapse: separate;
   border-spacing: 0;
 }

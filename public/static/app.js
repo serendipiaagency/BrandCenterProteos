@@ -1951,26 +1951,26 @@ const renderUsersPage = () => {
       <table class="data-table">
         <thead>
           <tr>
-            <th>User</th>
-            <th>Role</th>
-            <th>Region / Country</th>
-            <th>Distributor</th>
-            <th>Last Login</th>
-            <th>Status</th>
-            <th>Actions</th>
+            <th style="min-width: 200px;">User</th>
+            <th style="width: 120px;">Role</th>
+            <th style="max-width: 180px;">Region / Country</th>
+            <th style="max-width: 150px;">Distributor</th>
+            <th style="width: 100px;">Last Login</th>
+            <th style="width: 80px;">Status</th>
+            <th style="width: 140px;">Actions</th>
           </tr>
         </thead>
         <tbody>
           ${state.users.map(user => `
             <tr>
-              <td>
+              <td style="min-width: 200px;">
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
                   <div class="user-avatar-small">
                     <i class="fas fa-user"></i>
                   </div>
-                  <div>
-                    <div style="font-weight: 600; color: var(--gray-900);">${user.name}</div>
-                    <div style="font-size: 0.75rem; color: var(--gray-600);">${user.email}</div>
+                  <div style="overflow: hidden;">
+                    <div style="font-weight: 600; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${user.name}</div>
+                    <div style="font-size: 0.75rem; color: var(--gray-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${user.email}</div>
                   </div>
                 </div>
               </td>
@@ -1979,10 +1979,10 @@ const renderUsersPage = () => {
                   ${user.role}
                 </span>
               </td>
-              <td style="color: var(--gray-700);">
+              <td style="color: var(--gray-700); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                 ${user.region || 'N/A'} ${user.country ? `/ ${user.country}` : ''}
               </td>
-              <td style="color: var(--gray-700); font-size: 0.875rem;">
+              <td style="color: var(--gray-700); font-size: 0.875rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                 ${user.distributor || 'N/A'}
               </td>
               <td style="color: var(--gray-600); font-size: 0.875rem;">
