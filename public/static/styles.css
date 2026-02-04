@@ -831,7 +831,8 @@ body {
   padding: 2rem 2.5rem;
   overflow-y: auto;
   flex: 1;
-  max-height: calc(92vh - 160px);
+  max-height: calc(92vh - 200px);
+  min-height: 0; /* Fix flex overflow bug */
 }
 
 .modal-body::-webkit-scrollbar {
