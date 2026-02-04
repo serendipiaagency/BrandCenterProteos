@@ -1425,6 +1425,56 @@ app.post('/api/assets/:id/thumbnail', async (c) => {
   }
 })
 
+// Delete thumbnail for an asset
+app.delete('/api/assets/:id/thumbnail', async (c) => {
+  try {
+    const assetId = c.req.param('id')
+    console.log('🗑️ Deleting thumbnail for asset:', assetId)
+    
+    // Get current thumbnail URL from DB
+    const asset = await c.env.DB.prepare(`
+      SELECT thumbnail_url FROM assets WHERE id = ?
+    `).bind(assetId).first()
+    
+    if (!asset || !asset.thumbnail_url) {
+      console.log('⚠️ No thumbnail found for asset:', assetId)
+      return c.json({ error: 'No thumbnail found' }, 404)
+    }
+    
+    // Extract the R2 key from the URL
+    // URL format: /api/files/thumbnails/42.jpg
+    const thumbnailKey = asset.thumbnail_url.replace('/api/files/', '')
+    
+    console.log('🗑️ Deleting from R2:', thumbnailKey)
+    
+    // Delete from R2
+    await c.env.R2.delete(thumbnailKey)
+    
+    console.log('✅ R2 delete successful')
+    
+    // Update DB to remove thumbnail URL
+    const result = await c.env.DB.prepare(`
+      UPDATE assets SET thumbnail_url = NULL WHERE id = ?
+    `).bind(assetId).run()
+    
+    console.log('✅ DB update result:', {
+      success: result.success,
+      changes: result.meta.changes
+    })
+    
+    return c.json({ 
+      success: true,
+      message: 'Thumbnail deleted successfully'
+    })
+  } catch (error) {
+    console.error('❌ Thumbnail delete error:', error)
+    return c.json({ 
+      error: 'Failed to delete thumbnail',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
 app.get('/api/files/:filename{.*}', async (c) => {
   const filename = c.req.param('filename')
   

@@ -87,7 +87,17 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
           
           ${asset.thumbnail_url ? `
           <div class="mb-4 p-4 bg-white rounded-lg border border-gray-300">
-            <p class="text-sm font-medium text-gray-700 mb-2">Vista previa actual:</p>
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-sm font-medium text-gray-700">Vista previa actual:</p>
+              <button 
+                type="button"
+                onclick="deleteThumbnail()"
+                class="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition"
+              >
+                <i class="fas fa-trash mr-1"></i>
+                Eliminar
+              </button>
+            </div>
             <img src="${asset.thumbnail_url}" alt="Current thumbnail" class="w-48 h-36 object-cover rounded-lg border border-gray-300" />
           </div>
           ` : ''}
@@ -281,6 +291,29 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
         reader.readAsDataURL(file);
       }
     });
+    
+    // Delete thumbnail function
+    window.deleteThumbnail = async function() {
+      if (!confirm('¿Estás seguro de que quieres eliminar la imagen destacada?')) {
+        return;
+      }
+      
+      try {
+        console.log('🗑️ Deleting thumbnail for asset ${asset.id}');
+        
+        const response = await axios.delete('/api/assets/${asset.id}/thumbnail');
+        console.log('✅ Thumbnail deleted:', response.data);
+        
+        // Show success message
+        alert('Imagen destacada eliminada exitosamente');
+        
+        // Reload page to show updated state
+        window.location.reload();
+      } catch (error) {
+        console.error('❌ Delete error:', error);
+        alert('Error al eliminar la imagen: ' + (error.response?.data?.error || error.message));
+      }
+    };
     
     document.getElementById('edit-form').addEventListener('submit', async (e) => {
       e.preventDefault();
