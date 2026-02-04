@@ -1956,13 +1956,13 @@ app.get('/admin', (c) => {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
-        <link href="/static/styles.css?v=3" rel="stylesheet" />
+        <link href="/static/styles.css?v=4" rel="stylesheet" />
         <script src="https://cdn.tailwindcss.com"></script>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
       </head>
       <body>
         <div id="app"></div>
-        <script src="/static/app.js?v=15"></script>
+        <script src="/static/app.js?v=16"></script>
       </body>
     </html>
   )
@@ -2043,7 +2043,7 @@ app.get('/admin', (c) => {
       <body class="bg-gray-50">
         <div id="app"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/app.js?v=15"></script>
+        <script src="/static/app.js?v=16"></script>
       </body>
     </html>
   )

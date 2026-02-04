@@ -1947,54 +1947,50 @@ const renderUsersPage = () => {
       </div>
     </div>
     
-    <div class="table-container">
-      <table class="data-table">
+    <div class="table-container" style="overflow-x: auto; width: 100%;">
+      <table class="data-table" style="table-layout: fixed; width: 100%; min-width: 900px;">
         <thead>
           <tr>
-            <th style="min-width: 200px;">User</th>
-            <th style="width: 120px;">Role</th>
-            <th style="max-width: 180px;">Region / Country</th>
-            <th style="max-width: 150px;">Distributor</th>
-            <th style="width: 100px;">Last Login</th>
-            <th style="width: 80px;">Status</th>
-            <th style="width: 140px;">Actions</th>
+            <th style="width: 25%;">User</th>
+            <th style="width: 12%;">Role</th>
+            <th style="width: 15%;">Region</th>
+            <th style="width: 15%;">Distributor</th>
+            <th style="width: 10%;">Status</th>
+            <th style="width: 23%; text-align: center;">Actions</th>
           </tr>
         </thead>
         <tbody>
           ${state.users.map(user => `
             <tr>
-              <td style="min-width: 200px;">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <div class="user-avatar-small">
+              <td style="width: 25%;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden;">
+                  <div class="user-avatar-small" style="flex-shrink: 0;">
                     <i class="fas fa-user"></i>
                   </div>
-                  <div style="overflow: hidden;">
+                  <div style="overflow: hidden; min-width: 0;">
                     <div style="font-weight: 600; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${user.name}</div>
-                    <div style="font-size: 0.75rem; color: var(--gray-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${user.email}</div>
+                    <div style="font-size: 0.7rem; color: var(--gray-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${user.email}</div>
                   </div>
                 </div>
               </td>
-              <td>
-                <span class="badge badge-${user.role}">
+              <td style="width: 12%;">
+                <span class="badge badge-${user.role}" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
                   ${user.role}
                 </span>
               </td>
-              <td style="color: var(--gray-700); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                ${user.region || 'N/A'} ${user.country ? `/ ${user.country}` : ''}
+              <td style="width: 15%; color: var(--gray-700); font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                ${user.region || 'N/A'}
               </td>
-              <td style="color: var(--gray-700); font-size: 0.875rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              <td style="width: 15%; color: var(--gray-700); font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                 ${user.distributor || 'N/A'}
               </td>
-              <td style="color: var(--gray-600); font-size: 0.875rem;">
-                ${formatDate(user.last_login)}
-              </td>
-              <td>
-                <span class="badge ${user.active ? 'badge-active' : 'badge-inactive'}">
+              <td style="width: 10%;">
+                <span class="badge ${user.active ? 'badge-active' : 'badge-inactive'}" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;">
                   ${user.active ? 'Active' : 'Inactive'}
                 </span>
               </td>
-              <td>
-                <div style="display: flex; gap: 0.5rem;">
+              <td style="width: 23%;">
+                <div style="display: flex; gap: 0.5rem; justify-content: center;">
                   <button 
                     onclick='openUserModal(${JSON.stringify(user).replace(/"/g, '&quot;')})'
                     class="icon-btn"
