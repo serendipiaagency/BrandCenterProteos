@@ -1350,28 +1350,42 @@ app.post('/api/upload/abort-multipart', async (c) => {
 app.post('/api/assets/:id/thumbnail', async (c) => {
   try {
     const assetId = c.req.param('id')
+    console.log('🖼️ Thumbnail upload for asset:', assetId)
+    
     const formData = await c.req.formData()
     const file = formData.get('thumbnail') as File
     
+    console.log('📦 FormData received:', {
+      hasFile: !!file,
+      fileName: file?.name,
+      fileType: file?.type,
+      fileSize: file?.size
+    })
+    
     if (!file) {
+      console.error('❌ No thumbnail file provided')
       return c.json({ error: 'No thumbnail file provided' }, 400)
     }
     
     // Validate file type (only images)
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
+      console.error('❌ Invalid file type:', file.type)
       return c.json({ error: 'Invalid file type. Only JPG, PNG, and WebP are allowed' }, 400)
     }
     
     // Validate file size (max 500KB)
     const maxSize = 500 * 1024 // 500KB
     if (file.size > maxSize) {
+      console.error('❌ File too large:', file.size)
       return c.json({ error: 'File too large. Maximum size is 500KB' }, 400)
     }
     
     // Generate thumbnail filename
     const extension = file.type.split('/')[1]
     const thumbnailKey = `thumbnails/${assetId}.${extension}`
+    
+    console.log('📤 Uploading to R2:', thumbnailKey)
     
     // Upload to R2
     const buffer = await file.arrayBuffer()
@@ -1381,30 +1395,49 @@ app.post('/api/assets/:id/thumbnail', async (c) => {
       }
     })
     
+    console.log('✅ R2 upload successful')
+    
     // Update asset with thumbnail URL
     const thumbnailUrl = `/api/files/${thumbnailKey}`
-    await c.env.DB.prepare(`
+    
+    console.log('📝 Updating DB with URL:', thumbnailUrl)
+    
+    const result = await c.env.DB.prepare(`
       UPDATE assets SET thumbnail_url = ? WHERE id = ?
     `).bind(thumbnailUrl, assetId).run()
+    
+    console.log('✅ DB update result:', {
+      success: result.success,
+      changes: result.meta.changes,
+      thumbnailUrl: thumbnailUrl
+    })
     
     return c.json({ 
       success: true, 
       thumbnailUrl 
     })
   } catch (error) {
-    console.error('Thumbnail upload error:', error)
-    return c.json({ error: 'Failed to upload thumbnail' }, 500)
+    console.error('❌ Thumbnail upload error:', error)
+    return c.json({ 
+      error: 'Failed to upload thumbnail',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
   }
 })
 
-app.get('/api/files/:filename', async (c) => {
+app.get('/api/files/:filename{.*}', async (c) => {
   const filename = c.req.param('filename')
+  
+  console.log('📁 Requesting file:', filename)
   
   const object = await c.env.R2.get(filename)
   
   if (!object) {
+    console.log('❌ File not found in R2:', filename)
     return c.notFound()
   }
+  
+  console.log('✅ File found in R2:', filename)
   
   return new Response(object.body, {
     headers: {
