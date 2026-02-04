@@ -689,8 +689,10 @@ const renderAssets = () => {
         ${assets.map(asset => `
           <div class="asset-card">
             <div class="asset-thumbnail">
-              ${asset.file_type && asset.file_type.includes('image') ? `
-                <img src="${asset.file_url}" alt="${asset.title || asset.original_filename}" />
+              ${asset.thumbnail_url ? `
+                <img src="${asset.thumbnail_url}" alt="${asset.title || asset.original_filename}" loading="lazy" />
+              ` : asset.file_type && asset.file_type.includes('image') ? `
+                <img src="${asset.file_url}" alt="${asset.title || asset.original_filename}" loading="lazy" />
               ` : `
                 <i class="fas fa-file-pdf" style="font-size: 4rem; color: #dc2626;"></i>
               `}

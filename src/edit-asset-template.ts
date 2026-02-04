@@ -75,6 +75,54 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
           >${asset.description || ''}</textarea>
         </div>
         
+        <!-- Thumbnail Upload Section -->
+        <div class="mb-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg">
+          <div class="flex items-center mb-4">
+            <i class="fas fa-image text-blue-600 text-2xl mr-3"></i>
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900">Imagen Destacada (opcional)</h3>
+              <p class="text-sm text-gray-600">Sube una imagen de preview para el catálogo público</p>
+            </div>
+          </div>
+          
+          ${asset.thumbnail_url ? `
+          <div class="mb-4 p-4 bg-white rounded-lg border border-gray-300">
+            <p class="text-sm font-medium text-gray-700 mb-2">Vista previa actual:</p>
+            <img src="${asset.thumbnail_url}" alt="Current thumbnail" class="w-48 h-36 object-cover rounded-lg border border-gray-300" />
+          </div>
+          ` : ''}
+          
+          <div class="flex items-start gap-4">
+            <input 
+              type="file" 
+              id="thumbnail"
+              accept="image/jpeg,image/png,image/webp"
+              class="hidden"
+            />
+            <button 
+              type="button"
+              onclick="document.getElementById('thumbnail').click()"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              <i class="fas fa-cloud-upload-alt mr-2"></i>
+              ${asset.thumbnail_url ? 'Cambiar Imagen' : 'Subir Imagen'}
+            </button>
+            <div class="flex-1">
+              <p class="text-xs text-gray-600 mb-1">
+                <strong>Recomendado:</strong> 400x300px (ratio 4:3)
+              </p>
+              <p class="text-xs text-gray-600">
+                <strong>Formatos:</strong> JPG, PNG, WebP | <strong>Tamaño máximo:</strong> 500 KB
+              </p>
+            </div>
+          </div>
+          
+          <div id="thumbnail-preview" class="mt-4 hidden">
+            <p class="text-sm font-medium text-gray-700 mb-2">Nueva imagen:</p>
+            <img id="thumbnail-image" class="w-48 h-36 object-cover rounded-lg border border-gray-300" />
+          </div>
+        </div>
+        
         <div class="grid grid-cols-2 gap-6 mb-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -213,6 +261,27 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
   </div>
   
   <script>
+    // Thumbnail preview
+    document.getElementById('thumbnail').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        // Validate file size (500KB)
+        if (file.size > 500 * 1024) {
+          alert('El archivo es demasiado grande. Máximo 500 KB');
+          e.target.value = '';
+          return;
+        }
+        
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          document.getElementById('thumbnail-image').src = event.target.result;
+          document.getElementById('thumbnail-preview').classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+    
     document.getElementById('edit-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       
@@ -252,6 +321,22 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
       try {
         const response = await axios.put('/api/assets/${asset.id}', updateData);
         console.log('✅ Update response:', response.data);
+        
+        // Upload thumbnail if selected
+        const thumbnailFile = document.getElementById('thumbnail').files[0];
+        if (thumbnailFile) {
+          submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Subiendo imagen...';
+          
+          const formData = new FormData();
+          formData.append('thumbnail', thumbnailFile);
+          
+          await axios.post('/api/assets/${asset.id}/thumbnail', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          });
+          console.log('✅ Thumbnail uploaded');
+        }
         
         // Show success message
         const msg = document.getElementById('message');

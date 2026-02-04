@@ -1346,6 +1346,57 @@ app.post('/api/upload/abort-multipart', async (c) => {
   }
 })
 
+// Upload thumbnail for an asset
+app.post('/api/assets/:id/thumbnail', async (c) => {
+  try {
+    const assetId = c.req.param('id')
+    const formData = await c.req.formData()
+    const file = formData.get('thumbnail') as File
+    
+    if (!file) {
+      return c.json({ error: 'No thumbnail file provided' }, 400)
+    }
+    
+    // Validate file type (only images)
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      return c.json({ error: 'Invalid file type. Only JPG, PNG, and WebP are allowed' }, 400)
+    }
+    
+    // Validate file size (max 500KB)
+    const maxSize = 500 * 1024 // 500KB
+    if (file.size > maxSize) {
+      return c.json({ error: 'File too large. Maximum size is 500KB' }, 400)
+    }
+    
+    // Generate thumbnail filename
+    const extension = file.type.split('/')[1]
+    const thumbnailKey = `thumbnails/${assetId}.${extension}`
+    
+    // Upload to R2
+    const buffer = await file.arrayBuffer()
+    await c.env.R2.put(thumbnailKey, buffer, {
+      httpMetadata: {
+        contentType: file.type
+      }
+    })
+    
+    // Update asset with thumbnail URL
+    const thumbnailUrl = `/api/files/${thumbnailKey}`
+    await c.env.DB.prepare(`
+      UPDATE assets SET thumbnail_url = ? WHERE id = ?
+    `).bind(thumbnailUrl, assetId).run()
+    
+    return c.json({ 
+      success: true, 
+      thumbnailUrl 
+    })
+  } catch (error) {
+    console.error('Thumbnail upload error:', error)
+    return c.json({ error: 'Failed to upload thumbnail' }, 500)
+  }
+})
+
 app.get('/api/files/:filename', async (c) => {
   const filename = c.req.param('filename')
   
@@ -2142,7 +2193,7 @@ app.get('/catalog', (c) => {
       <body>
         <div id="catalog"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/catalog.js?v=8"></script>
+        <script src="/static/catalog.js?v=9"></script>
       </body>
     </html>
   )
