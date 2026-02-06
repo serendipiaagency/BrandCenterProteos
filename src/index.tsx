@@ -2563,10 +2563,32 @@ app.get('/asset/:id', (c) => {
               <i class="fas fa-lock"></i>
               <h2>Login Required</h2>
               <p>Please login to view this asset</p>
-              <a href="/login?redirect=/asset/${assetId}" class="btn btn-primary">
-                <i class="fas fa-sign-in-alt"></i>
-                Login
-              </a>
+              
+              <form id="login-form" style="max-width: 400px; margin: 2rem auto 0;">
+                <div style="margin-bottom: 1rem;">
+                  <input 
+                    type="email" 
+                    id="asset-login-email" 
+                    placeholder="Email" 
+                    required
+                    style="width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;"
+                  />
+                </div>
+                <div style="margin-bottom: 1.5rem;">
+                  <input 
+                    type="password" 
+                    id="asset-login-password" 
+                    placeholder="Password" 
+                    required
+                    style="width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;"
+                  />
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                  <i class="fas fa-sign-in-alt"></i>
+                  Login
+                </button>
+                <div id="login-error" style="display: none; margin-top: 1rem; padding: 0.75rem; background: #fee; color: #c53030; border-radius: 8px; font-size: 0.9rem;"></div>
+              </form>
             </div>
             
             <div id="loading" class="loading" style="display: none;">
@@ -2581,6 +2603,16 @@ app.get('/asset/:id', (c) => {
               <h2>Asset Not Found</h2>
               <p>This asset doesn't exist or you don't have permission to view it.</p>
             </div>
+            
+            <div id="no-access" style="display: none;" class="error">
+              <i class="fas fa-ban"></i>
+              <h2>Access Denied</h2>
+              <p>You don't have permission to view this asset. Please contact your administrator.</p>
+              <a href="/catalog" class="btn btn-primary" style="margin-top: 1.5rem;">
+                <i class="fas fa-th"></i>
+                Back to Catalog
+              </a>
+            </div>
           </div>
         </div>
         
@@ -2589,25 +2621,60 @@ app.get('/asset/:id', (c) => {
           (function() {
             const assetId = ${assetId};
             
-            // Check authentication first
+            // Handle login form submission
+            document.getElementById('login-form').addEventListener('submit', async (e) => {
+              e.preventDefault();
+              
+              const email = document.getElementById('asset-login-email').value;
+              const password = document.getElementById('asset-login-password').value;
+              const loginError = document.getElementById('login-error');
+              
+              try {
+                const response = await axios.post('/api/auth/login', {
+                  email,
+                  password
+                });
+                
+                if (response.data && response.data.success) {
+                  // Login successful, reload the page to show asset
+                  window.location.reload();
+                } else {
+                  loginError.textContent = 'Invalid credentials';
+                  loginError.style.display = 'block';
+                }
+              } catch (error) {
+                console.error('Login error:', error);
+                loginError.textContent = 'Invalid email or password';
+                loginError.style.display = 'block';
+              }
+            });
+            
+            // Check authentication
             async function checkAuth() {
               try {
                 const response = await axios.get('/api/auth/me');
                 if (response.data && response.data.user) {
-                  return true;
+                  return response.data.user;
                 }
-                return false;
+                return null;
               } catch (error) {
-                return false;
+                return null;
               }
             }
             
-            async function loadAsset() {
+            async function loadAsset(user) {
               try {
                 console.log('Loading asset:', assetId);
                 const response = await axios.get('/api/assets/' + assetId);
                 const asset = response.data;
                 console.log('Asset loaded:', asset);
+                
+                // Check if user has access to this asset
+                if (!checkAssetAccess(user, asset)) {
+                  document.getElementById('loading').style.display = 'none';
+                  document.getElementById('no-access').style.display = 'block';
+                  return;
+                }
                 
                 displayAsset(asset);
               } catch (error) {
@@ -2615,6 +2682,35 @@ app.get('/asset/:id', (c) => {
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('error').style.display = 'block';
               }
+            }
+            
+            function checkAssetAccess(user, asset) {
+              // Admin has access to everything
+              if (user.role === 'admin') {
+                return true;
+              }
+              
+              // Parse user's brands_access
+              let userBrands = [];
+              try {
+                userBrands = typeof user.brands_access === 'string' 
+                  ? JSON.parse(user.brands_access) 
+                  : (user.brands_access || []);
+              } catch (e) {
+                userBrands = [];
+              }
+              
+              // Check if user has access to any of the asset's brands
+              if (asset.brand_ids && asset.brand_ids.length > 0) {
+                const hasAccess = asset.brand_ids.some(brandId => userBrands.includes(brandId));
+                if (!hasAccess && asset.brand_id && !userBrands.includes(asset.brand_id)) {
+                  return false;
+                }
+              } else if (asset.brand_id && !userBrands.includes(asset.brand_id)) {
+                return false;
+              }
+              
+              return true;
             }
             
             function displayAsset(asset) {
@@ -2647,7 +2743,7 @@ app.get('/asset/:id', (c) => {
                   '<div class="meta-item">' +
                     '<div class="meta-label">Brand</div>' +
                     '<div class="meta-value">' +
-                      '<span class="brand-badge" style="background-color: ' + (asset.brand_color || '#0066cc') + ';">' +
+                      '<span class="brand-badge" style="background-color: ' + (asset.brand_color || '#002f57') + ';">' +
                         (asset.brand_name || 'N/A') +
                       '</span>' +
                     '</div>' +
@@ -2683,15 +2779,15 @@ app.get('/asset/:id', (c) => {
             
             // Initialize
             async function init() {
-              const isAuthenticated = await checkAuth();
+              const user = await checkAuth();
               
-              if (isAuthenticated) {
-                // User is logged in, load asset
+              if (user) {
+                // User is logged in, load asset and check permissions
                 document.getElementById('auth-check').style.display = 'none';
                 document.getElementById('loading').style.display = 'block';
-                await loadAsset();
+                await loadAsset(user);
               } else {
-                // User is not logged in, show login prompt
+                // User is not logged in, show login form
                 document.getElementById('auth-check').style.display = 'block';
               }
             }
