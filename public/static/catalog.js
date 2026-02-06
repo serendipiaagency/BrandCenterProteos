@@ -710,10 +710,13 @@ const renderAssets = () => {
               `}
               
               <div class="asset-actions">
-                <a href="${asset.file_url}" download class="btn btn-primary">
+                <button onclick="copyAssetLink(${asset.id})" class="btn btn-secondary" style="flex: 1;">
+                  <i class="fas fa-link"></i> ${state.language === 'ESP' ? 'Copiar Link' : 'Copy Link'}
+                </button>
+                <a href="${asset.file_url}" download class="btn btn-primary" style="flex: 1;">
                   ${t('assets.download')}
                 </a>
-                <a href="${asset.file_url}" target="_blank" class="btn btn-secondary">
+                <a href="${asset.file_url}" target="_blank" class="btn btn-secondary" style="flex: 1;">
                   ${t('assets.preview')}
                 </a>
               </div>
@@ -868,6 +871,45 @@ const render = () => {
       </div>
     ` : ''}
   `
+}
+
+// ============================================
+// Copy Asset Link Function
+// ============================================
+
+const copyAssetLink = (assetId) => {
+  const assetUrl = `${window.location.origin}/asset/${assetId}`
+  
+  // Try to copy to clipboard
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(assetUrl)
+      .then(() => {
+        showNotification(state.language === 'ESP' ? '✅ Link copiado al portapapeles' : '✅ Link copied to clipboard', 'success')
+      })
+      .catch(() => {
+        fallbackCopy(assetUrl)
+      })
+  } else {
+    fallbackCopy(assetUrl)
+  }
+}
+
+const fallbackCopy = (text) => {
+  const textArea = document.createElement('textarea')
+  textArea.value = text
+  textArea.style.position = 'fixed'
+  textArea.style.left = '-9999px'
+  document.body.appendChild(textArea)
+  textArea.select()
+  
+  try {
+    document.execCommand('copy')
+    showNotification(state.language === 'ESP' ? '✅ Link copiado al portapapeles' : '✅ Link copied to clipboard', 'success')
+  } catch (err) {
+    showNotification(state.language === 'ESP' ? '❌ Error al copiar link' : '❌ Failed to copy link', 'error')
+  }
+  
+  document.body.removeChild(textArea)
 }
 
 // ============================================

@@ -1738,6 +1738,10 @@ const renderAssetsPage = () => {
               </div>
               
               <div class="asset-actions">
+                <button onclick="copyAssetLink(${asset.id})" class="btn-secondary" style="flex: 1; margin-right: 0.5rem;">
+                  <i class="fas fa-link"></i>
+                  Copy Link
+                </button>
                 ${state.currentUser.role === 'admin' || state.currentUser.role === 'marketing' ? `
                   <button onclick="openAssetEditModal(${asset.id})" class="btn-secondary" style="flex: 1; margin-right: 0.5rem;">
                     <i class="fas fa-edit"></i>
@@ -3128,3 +3132,41 @@ document.addEventListener('DOMContentLoaded', async () => {
   await checkAuth()
   render()
 })
+
+// Copy asset shareable link
+const copyAssetLink = (assetId) => {
+  const assetUrl = `${window.location.origin}/asset/${assetId}`
+  
+  // Try to copy to clipboard
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(assetUrl)
+      .then(() => {
+        showNotification('✅ Link copied to clipboard!', 'success')
+      })
+      .catch(() => {
+        // Fallback
+        fallbackCopy(assetUrl)
+      })
+  } else {
+    fallbackCopy(assetUrl)
+  }
+}
+
+// Fallback copy method
+const fallbackCopy = (text) => {
+  const textArea = document.createElement('textarea')
+  textArea.value = text
+  textArea.style.position = 'fixed'
+  textArea.style.left = '-9999px'
+  document.body.appendChild(textArea)
+  textArea.select()
+  
+  try {
+    document.execCommand('copy')
+    showNotification('✅ Link copied to clipboard!', 'success')
+  } catch (err) {
+    showNotification('❌ Failed to copy link', 'error')
+  }
+  
+  document.body.removeChild(textArea)
+}

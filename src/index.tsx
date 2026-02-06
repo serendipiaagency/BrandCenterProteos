@@ -827,6 +827,54 @@ app.get('/api/assets', async (c) => {
   })
 })
 
+// Get single asset by ID (public - with brand/region check)
+app.get('/api/assets/:id', async (c) => {
+  const assetId = c.req.param('id')
+  
+  // Get asset with joined data
+  const asset = await c.env.DB.prepare(`
+    SELECT a.*, 
+           b.display_name as brand_name,
+           b.color as brand_color,
+           sb.display_name as sub_brand_name,
+           mt.display_name_en as material_type_name,
+           u.name as author_name
+    FROM assets a
+    LEFT JOIN brands b ON a.brand_id = b.id
+    LEFT JOIN sub_brands sb ON a.sub_brand_id = sb.id
+    LEFT JOIN material_types mt ON a.material_type_id = mt.id
+    LEFT JOIN users u ON a.created_by = u.id
+    WHERE a.id = ?
+  `).bind(assetId).first()
+  
+  if (!asset) {
+    return c.json({ error: 'Asset not found' }, 404)
+  }
+  
+  // Get associated brand_ids from asset_brands table
+  const { results: brandResults } = await c.env.DB.prepare(`
+    SELECT brand_id FROM asset_brands WHERE asset_id = ?
+  `).bind(assetId).all()
+  
+  const brand_ids = brandResults.map((r: any) => r.brand_id)
+  
+  // Parse regions
+  let regions = []
+  if (asset.region) {
+    try {
+      regions = JSON.parse(asset.region as string)
+    } catch {
+      regions = [asset.region]
+    }
+  }
+  
+  return c.json({
+    ...asset,
+    brand_ids,
+    regions
+  })
+})
+
 app.post('/api/assets', async (c) => {
   const data = await c.req.json()
   
@@ -1962,7 +2010,7 @@ app.get('/admin', (c) => {
       </head>
       <body>
         <div id="app"></div>
-        <script src="/static/app.js?v=16"></script>
+        <script src="/static/app.js?v=17"></script>
       </body>
     </html>
   )
@@ -2043,7 +2091,7 @@ app.get('/admin', (c) => {
       <body class="bg-gray-50">
         <div id="app"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/app.js?v=16"></script>
+        <script src="/static/app.js?v=17"></script>
       </body>
     </html>
   )
@@ -2259,6 +2307,352 @@ app.get('/login', (c) => {
   )
 })
 
+// Single Asset Page (shareable URL)
+app.get('/asset/:id', (c) => {
+  const assetId = c.req.param('id')
+  
+  return c.html(
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Asset - Proteos Biotech Brand Center</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet" />
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
+        <style>{`
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: 'Manrope', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+          }
+          
+          .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+          }
+          
+          .header {
+            background: linear-gradient(135deg, #0066cc 0%, #00a9e0 100%);
+            padding: 2rem;
+            color: white;
+            text-align: center;
+          }
+          
+          .header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+          }
+          
+          .header p {
+            opacity: 0.9;
+            font-size: 0.95rem;
+          }
+          
+          .content {
+            padding: 2.5rem;
+          }
+          
+          .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+          }
+          
+          .loading i {
+            font-size: 3rem;
+            color: #0066cc;
+            animation: spin 1s linear infinite;
+          }
+          
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+          
+          .asset-preview {
+            text-align: center;
+            margin-bottom: 2rem;
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 16px;
+          }
+          
+          .asset-preview img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          }
+          
+          .asset-preview i {
+            font-size: 6rem;
+            color: #0066cc;
+            margin: 2rem 0;
+          }
+          
+          .asset-info {
+            margin-bottom: 1.5rem;
+          }
+          
+          .asset-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 0.75rem;
+          }
+          
+          .asset-description {
+            color: #4a5568;
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+          }
+          
+          .asset-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+          }
+          
+          .meta-item {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 12px;
+          }
+          
+          .meta-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #718096;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+          }
+          
+          .meta-value {
+            font-size: 1rem;
+            color: #1a202c;
+            font-weight: 600;
+          }
+          
+          .brand-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+          }
+          
+          .actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+          }
+          
+          .btn {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            min-width: 150px;
+          }
+          
+          .btn-primary {
+            background: linear-gradient(135deg, #0066cc 0%, #00a9e0 100%);
+            color: white;
+          }
+          
+          .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 102, 204, 0.3);
+          }
+          
+          .btn-secondary {
+            background: #e2e8f0;
+            color: #2d3748;
+          }
+          
+          .btn-secondary:hover {
+            background: #cbd5e0;
+          }
+          
+          .error {
+            text-align: center;
+            padding: 3rem;
+            color: #e53e3e;
+          }
+          
+          .error i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+          }
+          
+          .error h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+          }
+          
+          @media (max-width: 640px) {
+            .actions {
+              flex-direction: column;
+            }
+            
+            .btn {
+              width: 100%;
+            }
+          }
+        `}</style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1><i class="fas fa-layer-group"></i> Proteos Biotech</h1>
+            <p>Brand Asset Center</p>
+          </div>
+          
+          <div class="content">
+            <div id="loading" class="loading">
+              <i class="fas fa-spinner"></i>
+              <p>Loading asset...</p>
+            </div>
+            
+            <div id="asset-content" style="display: none;"></div>
+            
+            <div id="error" style="display: none;" class="error">
+              <i class="fas fa-exclamation-circle"></i>
+              <h2>Asset Not Found</h2>
+              <p>This asset doesn't exist or you don't have permission to view it.</p>
+            </div>
+          </div>
+        </div>
+        
+        <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+        <script>{`
+          const assetId = ${assetId};
+          
+          async function loadAsset() {
+            try {
+              const response = await axios.get('/api/assets/' + assetId);
+              const asset = response.data;
+              
+              displayAsset(asset);
+            } catch (error) {
+              document.getElementById('loading').style.display = 'none';
+              document.getElementById('error').style.display = 'block';
+            }
+          }
+          
+          function displayAsset(asset) {
+            const isImage = asset.file_type && asset.file_type.includes('image');
+            const isPdf = asset.file_type && asset.file_type.includes('pdf');
+            const isVideo = asset.file_type && asset.file_type.includes('video');
+            
+            let preview = '';
+            if (asset.thumbnail_url) {
+              preview = '<img src="' + asset.thumbnail_url + '" alt="' + asset.title + '" />';
+            } else if (isImage) {
+              preview = '<img src="' + asset.file_url + '" alt="' + asset.title + '" />';
+            } else if (isPdf) {
+              preview = '<i class="fas fa-file-pdf" style="color: #dc2626;"></i>';
+            } else if (isVideo) {
+              preview = '<i class="fas fa-file-video" style="color: #7c3aed;"></i>';
+            } else {
+              preview = '<i class="fas fa-file"></i>';
+            }
+            
+            const fileSize = (asset.file_size / 1024).toFixed(2);
+            const fileSizeUnit = asset.file_size > 1024 * 1024 ? ((asset.file_size / (1024 * 1024)).toFixed(2) + ' MB') : (fileSize + ' KB');
+            
+            const content = \`
+              <div class="asset-preview">
+                \${preview}
+              </div>
+              
+              <div class="asset-info">
+                <h2 class="asset-title">\${asset.title || asset.original_filename}</h2>
+                \${asset.description ? '<p class="asset-description">' + asset.description + '</p>' : ''}
+              </div>
+              
+              <div class="asset-meta">
+                <div class="meta-item">
+                  <div class="meta-label">Brand</div>
+                  <div class="meta-value">
+                    <span class="brand-badge" style="background-color: \${asset.brand_color || '#0066cc'};">
+                      \${asset.brand_name || 'N/A'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div class="meta-item">
+                  <div class="meta-label">Material Type</div>
+                  <div class="meta-value">\${asset.material_type_name || 'N/A'}</div>
+                </div>
+                
+                <div class="meta-item">
+                  <div class="meta-label">File Type</div>
+                  <div class="meta-value">\${asset.file_type || 'N/A'}</div>
+                </div>
+                
+                <div class="meta-item">
+                  <div class="meta-label">File Size</div>
+                  <div class="meta-value">\${fileSizeUnit}</div>
+                </div>
+              </div>
+              
+              <div class="actions">
+                <a href="\${asset.file_url}" download class="btn btn-primary">
+                  <i class="fas fa-download"></i>
+                  Download Asset
+                </a>
+                <a href="/catalog" class="btn btn-secondary">
+                  <i class="fas fa-th"></i>
+                  Browse Catalog
+                </a>
+              </div>
+            \`;
+            
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('asset-content').innerHTML = content;
+            document.getElementById('asset-content').style.display = 'block';
+            
+            // Update page title
+            document.title = (asset.title || asset.original_filename) + ' - Proteos Biotech';
+          }
+          
+          loadAsset();
+        `}</script>
+      </body>
+    </html>
+  )
+})
+
 // Catalog page (redirect to login or serve catalog)
 app.get('/catalog', (c) => {
   return c.html(
@@ -2276,7 +2670,7 @@ app.get('/catalog', (c) => {
       <body>
         <div id="catalog"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/catalog.js?v=9"></script>
+        <script src="/static/catalog.js?v=10"></script>
       </body>
     </html>
   )
