@@ -35,7 +35,7 @@ app.post('/api/auth/login', async (c) => {
   const { email, password } = await c.req.json()
   
   const user = await c.env.DB.prepare(`
-    SELECT id, email, name, role, region, country, language, brands_access 
+    SELECT id, email, password, name, role, region, country, language, brands_access 
     FROM users WHERE email = ? AND active = 1
   `).bind(email).first()
   
@@ -43,8 +43,10 @@ app.post('/api/auth/login', async (c) => {
     return c.json({ error: 'Invalid credentials' }, 401)
   }
   
-  // In production, verify password with bcrypt
-  // For demo, we'll use simple check
+  // Verify password
+  if (user.password !== password) {
+    return c.json({ error: 'Invalid credentials' }, 401)
+  }
   
   // Update last login
   await c.env.DB.prepare(`
@@ -2636,6 +2638,9 @@ app.get('/asset/:id', (c) => {
                 });
                 
                 if (response.data && response.data.success) {
+                  // Save user ID to localStorage for session persistence
+                  localStorage.setItem('userId', response.data.user.id);
+                  
                   // Login successful, reload the page to show asset
                   window.location.reload();
                 } else {
