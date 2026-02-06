@@ -35,7 +35,7 @@ app.post('/api/auth/login', async (c) => {
   const { email, password } = await c.req.json()
   
   const user = await c.env.DB.prepare(`
-    SELECT id, email, password, name, role, region, country, language, brands_access 
+    SELECT id, email, password_hash, name, role, region, country, language, brands_access 
     FROM users WHERE email = ? AND active = 1
   `).bind(email).first()
   
@@ -44,7 +44,7 @@ app.post('/api/auth/login', async (c) => {
   }
   
   // Verify password
-  if (user.password !== password) {
+  if (user.password_hash !== password) {
     return c.json({ error: 'Invalid credentials' }, 401)
   }
   
