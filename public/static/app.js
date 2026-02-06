@@ -384,8 +384,9 @@ const handleLogin = async (e) => {
       const redirectUrl = urlParams.get('redirect')
       
       if (redirectUrl) {
-        // Redirect to the specified URL
+        // Redirect to the specified URL and stop execution
         window.location.href = redirectUrl
+        return // IMPORTANT: Stop here, don't continue
       } else {
         // Default: go to dashboard
         state.currentPage = 'dashboard'
@@ -397,7 +398,12 @@ const handleLogin = async (e) => {
     console.error('Login error:', error)
     showNotification('Invalid credentials', 'error')
   } finally {
-    hideLoading()
+    // Only hide loading if we're not redirecting
+    const urlParams = new URLSearchParams(window.location.search)
+    const redirectUrl = urlParams.get('redirect')
+    if (!redirectUrl) {
+      hideLoading()
+    }
   }
 }
 
