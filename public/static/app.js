@@ -1145,10 +1145,24 @@ const openUserModal = (user = null) => {
       }
     }
     
+    // Parse brands_access from JSON if present
+    let brandsAccess = []
+    if (user.brands_access) {
+      try {
+        brandsAccess = typeof user.brands_access === 'string' 
+          ? JSON.parse(user.brands_access) 
+          : user.brands_access
+      } catch (e) {
+        console.error('Failed to parse brands_access:', e)
+        brandsAccess = []
+      }
+    }
+    
     userModal = {
       ...user,
       regions: regions,
-      region: user.region // Keep original for backward compatibility
+      region: user.region, // Keep original for backward compatibility
+      brands_access: brandsAccess // Override with parsed array
     }
   } else {
     userModal = { 
