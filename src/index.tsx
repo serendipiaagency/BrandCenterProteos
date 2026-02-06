@@ -74,6 +74,38 @@ app.post('/api/auth/login', async (c) => {
   })
 })
 
+// Get current user info from localStorage userId
+app.get('/api/auth/me', async (c) => {
+  // Try to get userId from multiple sources
+  const userId = c.req.query('userId') || c.req.header('X-User-Id')
+  
+  if (!userId) {
+    return c.json({ error: 'Not authenticated' }, 401)
+  }
+  
+  const user = await c.env.DB.prepare(`
+    SELECT id, email, name, role, region, country, language, brands_access 
+    FROM users WHERE id = ? AND active = 1
+  `).bind(userId).first()
+  
+  if (!user) {
+    return c.json({ error: 'User not found' }, 404)
+  }
+  
+  return c.json({ 
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      region: user.region,
+      country: user.country,
+      language: user.language,
+      brands_access: user.brands_access ? JSON.parse(user.brands_access as string) : []
+    }
+  })
+})
+
 app.get('/api/auth/session', async (c) => {
   // In production, verify JWT token
   const userId = c.req.query('userId')
@@ -2657,7 +2689,13 @@ app.get('/asset/:id', (c) => {
             // Check authentication
             async function checkAuth() {
               try {
-                const response = await axios.get('/api/auth/me');
+                // Get userId from localStorage
+                const userId = localStorage.getItem('userId');
+                if (!userId) {
+                  return null;
+                }
+                
+                const response = await axios.get('/api/auth/me?userId=' + userId);
                 if (response.data && response.data.user) {
                   return response.data.user;
                 }
