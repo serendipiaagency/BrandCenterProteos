@@ -2010,7 +2010,7 @@ app.get('/admin', (c) => {
       </head>
       <body>
         <div id="app"></div>
-        <script src="/static/app.js?v=18"></script>
+        <script src="/static/app.js?v=19"></script>
       </body>
     </html>
   )
@@ -2091,7 +2091,7 @@ app.get('/admin', (c) => {
       <body class="bg-gray-50">
         <div id="app"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/app.js?v=18"></script>
+        <script src="/static/app.js?v=19"></script>
       </body>
     </html>
   )
@@ -2330,7 +2330,7 @@ app.get('/asset/:id', (c) => {
           
           body {
             font-family: 'Manrope', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #002f57 0%, #004080 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -2348,7 +2348,7 @@ app.get('/asset/:id', (c) => {
           }
           
           .header {
-            background: linear-gradient(135deg, #0066cc 0%, #00a9e0 100%);
+            background: linear-gradient(135deg, #002f57 0%, #004080 100%);
             padding: 2rem;
             color: white;
             text-align: center;
@@ -2377,7 +2377,7 @@ app.get('/asset/:id', (c) => {
           
           .loading i {
             font-size: 3rem;
-            color: #0066cc;
+            color: #002f57;
             animation: spin 1s linear infinite;
           }
           
@@ -2424,13 +2424,13 @@ app.get('/asset/:id', (c) => {
           }
           
           .btn-primary {
-            background: linear-gradient(135deg, #0066cc 0%, #00a9e0 100%);
+            background: linear-gradient(135deg, #002f57 0%, #004080 100%);
             color: white;
           }
           
           .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0, 102, 204, 0.3);
+            box-shadow: 0 8px 20px rgba(0, 47, 87, 0.4);
           }
           
           .asset-preview {

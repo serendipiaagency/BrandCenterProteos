@@ -378,9 +378,20 @@ const handleLogin = async (e) => {
     if (result.success) {
       state.currentUser = result.user
       localStorage.setItem('userId', result.user.id)
-      state.currentPage = 'dashboard'
-      await loadInitialData()
-      showNotification('Welcome back!', 'success')
+      
+      // Check if there's a redirect parameter in the URL
+      const urlParams = new URLSearchParams(window.location.search)
+      const redirectUrl = urlParams.get('redirect')
+      
+      if (redirectUrl) {
+        // Redirect to the specified URL
+        window.location.href = redirectUrl
+      } else {
+        // Default: go to dashboard
+        state.currentPage = 'dashboard'
+        await loadInitialData()
+        showNotification('Welcome back!', 'success')
+      }
     }
   } catch (error) {
     console.error('Login error:', error)
