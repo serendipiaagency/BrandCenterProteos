@@ -2307,7 +2307,7 @@ app.get('/login', (c) => {
   )
 })
 
-// Single Asset Page (shareable URL)
+// Single Asset Page (shareable URL - requires login)
 app.get('/asset/:id', (c) => {
   const assetId = c.req.param('id')
   
@@ -2383,6 +2383,54 @@ app.get('/asset/:id', (c) => {
           
           @keyframes spin {
             to { transform: rotate(360deg); }
+          }
+          
+          .auth-required {
+            text-align: center;
+            padding: 3rem;
+          }
+          
+          .auth-required i {
+            font-size: 4rem;
+            color: #f59e0b;
+            margin-bottom: 1.5rem;
+          }
+          
+          .auth-required h2 {
+            font-size: 1.75rem;
+            color: #1a202c;
+            margin-bottom: 1rem;
+          }
+          
+          .auth-required p {
+            color: #4a5568;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+          }
+          
+          .btn {
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-decoration: none;
+          }
+          
+          .btn-primary {
+            background: linear-gradient(135deg, #0066cc 0%, #00a9e0 100%);
+            color: white;
+          }
+          
+          .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 102, 204, 0.3);
           }
           
           .asset-preview {
@@ -2467,33 +2515,6 @@ app.get('/asset/:id', (c) => {
             flex-wrap: wrap;
           }
           
-          .btn {
-            flex: 1;
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
-            border: none;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            text-decoration: none;
-            min-width: 150px;
-          }
-          
-          .btn-primary {
-            background: linear-gradient(135deg, #0066cc 0%, #00a9e0 100%);
-            color: white;
-          }
-          
-          .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0, 102, 204, 0.3);
-          }
-          
           .btn-secondary {
             background: #e2e8f0;
             color: #2d3748;
@@ -2538,7 +2559,17 @@ app.get('/asset/:id', (c) => {
           </div>
           
           <div class="content">
-            <div id="loading" class="loading">
+            <div id="auth-check" class="auth-required">
+              <i class="fas fa-lock"></i>
+              <h2>Login Required</h2>
+              <p>Please login to view this asset</p>
+              <a href="/login?redirect=/asset/${assetId}" class="btn btn-primary">
+                <i class="fas fa-sign-in-alt"></i>
+                Login
+              </a>
+            </div>
+            
+            <div id="loading" class="loading" style="display: none;">
               <i class="fas fa-spinner"></i>
               <p>Loading asset...</p>
             </div>
@@ -2557,6 +2588,19 @@ app.get('/asset/:id', (c) => {
         <script dangerouslySetInnerHTML={{__html: `
           (function() {
             const assetId = ${assetId};
+            
+            // Check authentication first
+            async function checkAuth() {
+              try {
+                const response = await axios.get('/api/auth/me');
+                if (response.data && response.data.user) {
+                  return true;
+                }
+                return false;
+              } catch (error) {
+                return false;
+              }
+            }
             
             async function loadAsset() {
               try {
@@ -2637,7 +2681,22 @@ app.get('/asset/:id', (c) => {
               document.title = (asset.title || asset.original_filename) + ' - Proteos Biotech';
             }
             
-            loadAsset();
+            // Initialize
+            async function init() {
+              const isAuthenticated = await checkAuth();
+              
+              if (isAuthenticated) {
+                // User is logged in, load asset
+                document.getElementById('auth-check').style.display = 'none';
+                document.getElementById('loading').style.display = 'block';
+                await loadAsset();
+              } else {
+                // User is not logged in, show login prompt
+                document.getElementById('auth-check').style.display = 'block';
+              }
+            }
+            
+            init();
           })();
         `}} />
       </body>
