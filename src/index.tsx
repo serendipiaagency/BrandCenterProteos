@@ -2010,7 +2010,7 @@ app.get('/admin', (c) => {
       </head>
       <body>
         <div id="app"></div>
-        <script src="/static/app.js?v=17"></script>
+        <script src="/static/app.js?v=18"></script>
       </body>
     </html>
   )
@@ -2091,7 +2091,7 @@ app.get('/admin', (c) => {
       <body class="bg-gray-50">
         <div id="app"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/app.js?v=17"></script>
+        <script src="/static/app.js?v=18"></script>
       </body>
     </html>
   )
@@ -2554,100 +2554,92 @@ app.get('/asset/:id', (c) => {
         </div>
         
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script>{`
-          const assetId = ${assetId};
-          
-          async function loadAsset() {
-            try {
-              const response = await axios.get('/api/assets/' + assetId);
-              const asset = response.data;
+        <script dangerouslySetInnerHTML={{__html: `
+          (function() {
+            const assetId = ${assetId};
+            
+            async function loadAsset() {
+              try {
+                console.log('Loading asset:', assetId);
+                const response = await axios.get('/api/assets/' + assetId);
+                const asset = response.data;
+                console.log('Asset loaded:', asset);
+                
+                displayAsset(asset);
+              } catch (error) {
+                console.error('Error loading asset:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+              }
+            }
+            
+            function displayAsset(asset) {
+              const isImage = asset.file_type && asset.file_type.includes('image');
+              const isPdf = asset.file_type && asset.file_type.includes('pdf');
+              const isVideo = asset.file_type && asset.file_type.includes('video');
               
-              displayAsset(asset);
-            } catch (error) {
+              let preview = '';
+              if (asset.thumbnail_url) {
+                preview = '<img src="' + asset.thumbnail_url + '" alt="' + (asset.title || '') + '" />';
+              } else if (isImage) {
+                preview = '<img src="' + asset.file_url + '" alt="' + (asset.title || '') + '" />';
+              } else if (isPdf) {
+                preview = '<i class="fas fa-file-pdf" style="color: #dc2626;"></i>';
+              } else if (isVideo) {
+                preview = '<i class="fas fa-file-video" style="color: #7c3aed;"></i>';
+              } else {
+                preview = '<i class="fas fa-file"></i>';
+              }
+              
+              const fileSize = (asset.file_size / 1024).toFixed(2);
+              const fileSizeUnit = asset.file_size > 1024 * 1024 ? ((asset.file_size / (1024 * 1024)).toFixed(2) + ' MB') : (fileSize + ' KB');
+              
+              const contentHTML = '<div class="asset-preview">' + preview + '</div>' +
+                '<div class="asset-info">' +
+                  '<h2 class="asset-title">' + (asset.title || asset.original_filename) + '</h2>' +
+                  (asset.description ? '<p class="asset-description">' + asset.description + '</p>' : '') +
+                '</div>' +
+                '<div class="asset-meta">' +
+                  '<div class="meta-item">' +
+                    '<div class="meta-label">Brand</div>' +
+                    '<div class="meta-value">' +
+                      '<span class="brand-badge" style="background-color: ' + (asset.brand_color || '#0066cc') + ';">' +
+                        (asset.brand_name || 'N/A') +
+                      '</span>' +
+                    '</div>' +
+                  '</div>' +
+                  '<div class="meta-item">' +
+                    '<div class="meta-label">Material Type</div>' +
+                    '<div class="meta-value">' + (asset.material_type_name || 'N/A') + '</div>' +
+                  '</div>' +
+                  '<div class="meta-item">' +
+                    '<div class="meta-label">File Type</div>' +
+                    '<div class="meta-value">' + (asset.file_type || 'N/A') + '</div>' +
+                  '</div>' +
+                  '<div class="meta-item">' +
+                    '<div class="meta-label">File Size</div>' +
+                    '<div class="meta-value">' + fileSizeUnit + '</div>' +
+                  '</div>' +
+                '</div>' +
+                '<div class="actions">' +
+                  '<a href="' + asset.file_url + '" download class="btn btn-primary">' +
+                    '<i class="fas fa-download"></i> Download Asset' +
+                  '</a>' +
+                  '<a href="/catalog" class="btn btn-secondary">' +
+                    '<i class="fas fa-th"></i> Browse Catalog' +
+                  '</a>' +
+                '</div>';
+              
               document.getElementById('loading').style.display = 'none';
-              document.getElementById('error').style.display = 'block';
-            }
-          }
-          
-          function displayAsset(asset) {
-            const isImage = asset.file_type && asset.file_type.includes('image');
-            const isPdf = asset.file_type && asset.file_type.includes('pdf');
-            const isVideo = asset.file_type && asset.file_type.includes('video');
-            
-            let preview = '';
-            if (asset.thumbnail_url) {
-              preview = '<img src="' + asset.thumbnail_url + '" alt="' + asset.title + '" />';
-            } else if (isImage) {
-              preview = '<img src="' + asset.file_url + '" alt="' + asset.title + '" />';
-            } else if (isPdf) {
-              preview = '<i class="fas fa-file-pdf" style="color: #dc2626;"></i>';
-            } else if (isVideo) {
-              preview = '<i class="fas fa-file-video" style="color: #7c3aed;"></i>';
-            } else {
-              preview = '<i class="fas fa-file"></i>';
+              document.getElementById('asset-content').innerHTML = contentHTML;
+              document.getElementById('asset-content').style.display = 'block';
+              
+              document.title = (asset.title || asset.original_filename) + ' - Proteos Biotech';
             }
             
-            const fileSize = (asset.file_size / 1024).toFixed(2);
-            const fileSizeUnit = asset.file_size > 1024 * 1024 ? ((asset.file_size / (1024 * 1024)).toFixed(2) + ' MB') : (fileSize + ' KB');
-            
-            const content = \`
-              <div class="asset-preview">
-                \${preview}
-              </div>
-              
-              <div class="asset-info">
-                <h2 class="asset-title">\${asset.title || asset.original_filename}</h2>
-                \${asset.description ? '<p class="asset-description">' + asset.description + '</p>' : ''}
-              </div>
-              
-              <div class="asset-meta">
-                <div class="meta-item">
-                  <div class="meta-label">Brand</div>
-                  <div class="meta-value">
-                    <span class="brand-badge" style="background-color: \${asset.brand_color || '#0066cc'};">
-                      \${asset.brand_name || 'N/A'}
-                    </span>
-                  </div>
-                </div>
-                
-                <div class="meta-item">
-                  <div class="meta-label">Material Type</div>
-                  <div class="meta-value">\${asset.material_type_name || 'N/A'}</div>
-                </div>
-                
-                <div class="meta-item">
-                  <div class="meta-label">File Type</div>
-                  <div class="meta-value">\${asset.file_type || 'N/A'}</div>
-                </div>
-                
-                <div class="meta-item">
-                  <div class="meta-label">File Size</div>
-                  <div class="meta-value">\${fileSizeUnit}</div>
-                </div>
-              </div>
-              
-              <div class="actions">
-                <a href="\${asset.file_url}" download class="btn btn-primary">
-                  <i class="fas fa-download"></i>
-                  Download Asset
-                </a>
-                <a href="/catalog" class="btn btn-secondary">
-                  <i class="fas fa-th"></i>
-                  Browse Catalog
-                </a>
-              </div>
-            \`;
-            
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('asset-content').innerHTML = content;
-            document.getElementById('asset-content').style.display = 'block';
-            
-            // Update page title
-            document.title = (asset.title || asset.original_filename) + ' - Proteos Biotech';
-          }
-          
-          loadAsset();
-        `}</script>
+            loadAsset();
+          })();
+        `}} />
       </body>
     </html>
   )
@@ -2670,7 +2662,7 @@ app.get('/catalog', (c) => {
       <body>
         <div id="catalog"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/catalog.js?v=10"></script>
+        <script src="/static/catalog.js?v=11"></script>
       </body>
     </html>
   )

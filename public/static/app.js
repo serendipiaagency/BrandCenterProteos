@@ -1738,9 +1738,8 @@ const renderAssetsPage = () => {
               </div>
               
               <div class="asset-actions">
-                <button onclick="copyAssetLink(${asset.id})" class="btn-secondary" style="flex: 1; margin-right: 0.5rem;">
+                <button onclick="copyAssetLink(${asset.id})" class="btn-secondary" style="flex: 0 0 auto; padding: 0.5rem 0.75rem; font-size: 0.875rem; margin-right: 0.5rem;">
                   <i class="fas fa-link"></i>
-                  Copy Link
                 </button>
                 ${state.currentUser.role === 'admin' || state.currentUser.role === 'marketing' ? `
                   <button onclick="openAssetEditModal(${asset.id})" class="btn-secondary" style="flex: 1; margin-right: 0.5rem;">

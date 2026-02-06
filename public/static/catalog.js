@@ -710,8 +710,8 @@ const renderAssets = () => {
               `}
               
               <div class="asset-actions">
-                <button onclick="copyAssetLink(${asset.id})" class="btn btn-secondary" style="flex: 1;">
-                  <i class="fas fa-link"></i> ${state.language === 'ESP' ? 'Copiar Link' : 'Copy Link'}
+                <button onclick="copyAssetLink(${asset.id})" class="btn btn-secondary" style="flex: 0 0 auto; padding: 0.5rem 0.75rem; font-size: 0.875rem;">
+                  <i class="fas fa-link"></i>
                 </button>
                 <a href="${asset.file_url}" download class="btn btn-primary" style="flex: 1;">
                   ${t('assets.download')}
