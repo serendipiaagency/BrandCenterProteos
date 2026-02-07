@@ -1817,6 +1817,7 @@ app.get('/api/analytics/all-assets', async (c) => {
   try {
     const days = c.req.query('days') || '30'
     
+    // Optimized query using LEFT JOINs instead of correlated subqueries
     const { results } = await c.env.DB.prepare(`
       SELECT 
         a.id,
@@ -1826,35 +1827,24 @@ app.get('/api/analytics/all-assets', async (c) => {
         b.name as brand_name,
         b.display_name as brand_display_name,
         mt.name as material_type,
-        COALESCE(
-          (SELECT COUNT(*) FROM analytics_events ae 
-           WHERE ae.asset_id = a.id 
-           AND ae.event_type = 'view' 
-           AND ae.timestamp >= datetime('now', '-' || ? || ' days')), 0
-        ) as views,
-        COALESCE(
-          (SELECT COUNT(*) FROM analytics_events ae 
-           WHERE ae.asset_id = a.id 
-           AND ae.event_type = 'download' 
-           AND ae.timestamp >= datetime('now', '-' || ? || ' days')), 0
-        ) as downloads,
-        COALESCE(
-          (SELECT MAX(timestamp) FROM analytics_events ae 
-           WHERE ae.asset_id = a.id 
-           AND ae.timestamp >= datetime('now', '-' || ? || ' days')), NULL
-        ) as last_activity,
+        COALESCE(SUM(CASE WHEN ae.event_type = 'view' THEN 1 ELSE 0 END), 0) as views,
+        COALESCE(SUM(CASE WHEN ae.event_type = 'download' THEN 1 ELSE 0 END), 0) as downloads,
+        MAX(ae.timestamp) as last_activity,
         a.created_at
       FROM assets a
       LEFT JOIN brands b ON a.brand_id = b.id
       LEFT JOIN material_types mt ON a.material_type_id = mt.id
+      LEFT JOIN analytics_events ae ON ae.asset_id = a.id 
+        AND ae.timestamp >= datetime('now', '-' || ? || ' days')
       WHERE a.active = 1
+      GROUP BY a.id, a.title, a.original_filename, a.brand_id, b.name, b.display_name, mt.name, a.created_at
       ORDER BY views DESC, downloads DESC, a.created_at DESC
-    `).bind(days, days, days).all()
+    `).bind(days).all()
     
     return c.json({ assets: results })
   } catch (error) {
     console.error('Analytics all assets error:', error)
-    return c.json({ error: 'Failed to get all assets analytics' }, 500)
+    return c.json({ error: 'Failed to get all assets analytics', details: error.message }, 500)
   }
 })
 
