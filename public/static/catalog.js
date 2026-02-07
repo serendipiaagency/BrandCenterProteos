@@ -695,6 +695,18 @@ const renderAssets = () => {
     assetsByBrand[brandName].push(asset)
   })
   
+  // Add download tracking listeners after rendering
+  setTimeout(() => {
+    document.querySelectorAll('[id^="download-asset-"]').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        const assetId = this.getAttribute('data-asset-id')
+        if (assetId) {
+          trackDownload(assetId)
+        }
+      })
+    })
+  }, 100)
+  
   return Object.entries(assetsByBrand).map(([brandName, assets]) => `
     <div class="brand-section">
       <h2 class="brand-section-title">${brandName}</h2>
@@ -741,18 +753,7 @@ const renderAssets = () => {
       </div>
     </div>
   `).join('')
-  
-  // Add download tracking listeners after rendering
-  setTimeout(() => {
-    document.querySelectorAll('[id^="download-asset-"]').forEach(btn => {
-      btn.addEventListener('click', function(e) {
-        const assetId = this.getAttribute('data-asset-id')
-        if (assetId) {
-          trackDownload(assetId)
-        }
-      })
-    })
-  }, 100)
+}
       </div>
     </div>
   `).join('')
