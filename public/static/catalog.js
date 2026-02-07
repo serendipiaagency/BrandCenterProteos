@@ -754,10 +754,6 @@ const renderAssets = () => {
     </div>
   `).join('')
 }
-      </div>
-    </div>
-  `).join('')
-}
 
 const renderFooter = () => {
   return `
