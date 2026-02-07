@@ -2709,22 +2709,26 @@ app.get('/asset/:id', (c) => {
           .asset-preview {
             text-align: center;
             margin-bottom: 2rem;
-            background: #f8f9fa;
-            padding: 2rem;
+            background: #ffffff;
+            padding: 0;
             border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
           }
           
           .asset-preview img {
-            max-width: 100%;
-            max-height: 400px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            height: auto;
+            max-height: 500px;
+            object-fit: cover;
+            display: block;
           }
           
           .asset-preview i {
-            font-size: 6rem;
-            color: #0066cc;
-            margin: 2rem 0;
+            font-size: 8rem;
+            color: #cbd5e0;
+            margin: 4rem 0;
+            opacity: 0.5;
           }
           
           .asset-info {
@@ -2732,15 +2736,16 @@ app.get('/asset/:id', (c) => {
           }
           
           .asset-title {
-            font-size: 1.75rem;
+            font-size: 2rem;
             font-weight: 700;
             color: #1a202c;
             margin-bottom: 0.75rem;
+            line-height: 1.2;
           }
           
           .asset-description {
             color: #4a5568;
-            font-size: 1rem;
+            font-size: 1.1rem;
             line-height: 1.6;
             margin-bottom: 1.5rem;
           }
@@ -2750,12 +2755,15 @@ app.get('/asset/:id', (c) => {
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1rem;
             margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 12px;
           }
           
           .meta-item {
-            padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
           }
           
           .meta-label {
@@ -2763,7 +2771,6 @@ app.get('/asset/:id', (c) => {
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: #718096;
-            margin-bottom: 0.5rem;
             font-weight: 600;
           }
           
@@ -2789,12 +2796,58 @@ app.get('/asset/:id', (c) => {
           }
           
           .btn-secondary {
-            background: #e2e8f0;
+            background: white;
             color: #2d3748;
+            border: 2px solid #e2e8f0;
           }
           
           .btn-secondary:hover {
-            background: #cbd5e0;
+            background: #f8f9fa;
+            border-color: #cbd5e0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          }
+          
+          .btn-icon {
+            background: white;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+            padding: 0.75rem;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+          }
+          
+          .btn-icon:hover {
+            background: #f8f9fa;
+            border-color: #cbd5e0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          }
+          
+          .btn-icon.copied {
+            background: #10b981;
+            color: white;
+            border-color: #10b981;
+          }
+          
+          .file-info-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #4a5568;
           }
           
           .error {
@@ -3030,7 +3083,11 @@ app.get('/asset/:id', (c) => {
               const fileSize = (asset.file_size / 1024).toFixed(2);
               const fileSizeUnit = asset.file_size > 1024 * 1024 ? ((asset.file_size / (1024 * 1024)).toFixed(2) + ' MB') : (fileSize + ' KB');
               
-              const contentHTML = '<div class="asset-preview">' + preview + '</div>' +
+              // Get shareable URL
+              const shareUrl = window.location.origin + '/asset/' + asset.id;
+              
+              const contentHTML = 
+                '<div class="asset-preview">' + preview + '</div>' +
                 '<div class="asset-info">' +
                   '<h2 class="asset-title">' + (asset.title || asset.original_filename) + '</h2>' +
                   (asset.description ? '<p class="asset-description">' + asset.description + '</p>' : '') +
@@ -3050,18 +3107,21 @@ app.get('/asset/:id', (c) => {
                   '</div>' +
                   '<div class="meta-item">' +
                     '<div class="meta-label">File Type</div>' +
-                    '<div class="meta-value">' + (asset.file_type || 'N/A') + '</div>' +
+                    '<div class="meta-value">' + (asset.file_type?.split('/')[1]?.toUpperCase() || 'N/A') + '</div>' +
                   '</div>' +
                   '<div class="meta-item">' +
                     '<div class="meta-label">File Size</div>' +
                     '<div class="meta-value">' + fileSizeUnit + '</div>' +
                   '</div>' +
                 '</div>' +
-                '<div class="actions">' +
-                  '<a id="download-btn" href="' + asset.file_url + '" download class="btn btn-primary">' +
+                '<div class="actions" style="align-items: center;">' +
+                  '<a id="download-btn" href="' + asset.file_url + '" download class="btn btn-primary" style="flex: 1; min-width: 200px;">' +
                     '<i class="fas fa-download"></i> Download Asset' +
                   '</a>' +
-                  '<a href="/catalog" class="btn btn-secondary">' +
+                  '<button id="copy-link-btn" class="btn-icon" title="Copy link" onclick="copyAssetLink(\'' + shareUrl + '\')">' +
+                    '<i class="fas fa-link"></i>' +
+                  '</button>' +
+                  '<a href="/catalog" class="btn btn-secondary" style="flex: 1; min-width: 150px;">' +
                     '<i class="fas fa-th"></i> Browse Catalog' +
                   '</a>' +
                 '</div>';
@@ -3079,6 +3139,20 @@ app.get('/asset/:id', (c) => {
               }
               
               document.title = (asset.title || asset.original_filename) + ' - Proteos Biotech';
+            }
+            
+            function copyAssetLink(url) {
+              navigator.clipboard.writeText(url).then(function() {
+                const btn = document.getElementById('copy-link-btn');
+                btn.classList.add('copied');
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                setTimeout(function() {
+                  btn.classList.remove('copied');
+                  btn.innerHTML = '<i class="fas fa-link"></i>';
+                }, 2000);
+              }).catch(function(err) {
+                console.error('Failed to copy:', err);
+              });
             }
             
             async function trackDownload(assetId) {
