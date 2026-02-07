@@ -2794,6 +2794,13 @@ const renderBrandsPage = () => {
               <td>
                 <div style="display: flex; gap: 0.5rem;">
                   <button 
+                    onclick="copyBrandLink('${brand.name}')"
+                    class="icon-btn"
+                    title="Copy brand link"
+                  >
+                    <i class="fas fa-link"></i>
+                  </button>
+                  <button 
                     onclick='openBrandModal(${JSON.stringify(brand).replace(/"/g, '&quot;')})'
                     class="icon-btn"
                     title="Edit brand"
@@ -3481,6 +3488,24 @@ const copyAssetLink = (assetId) => {
       })
   } else {
     fallbackCopy(assetUrl)
+  }
+}
+
+const copyBrandLink = (brandName) => {
+  const brandUrl = `${window.location.origin}/brand/${brandName}`
+  
+  // Try to copy to clipboard
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(brandUrl)
+      .then(() => {
+        showNotification('✅ Brand link copied to clipboard!', 'success')
+      })
+      .catch(() => {
+        // Fallback
+        fallbackCopy(brandUrl)
+      })
+  } else {
+    fallbackCopy(brandUrl)
   }
 }
 

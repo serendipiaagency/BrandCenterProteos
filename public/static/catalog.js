@@ -270,8 +270,21 @@ const loadInitialData = async () => {
     state.brands = brands
     state.materialTypes = materialTypes
     
-    // 🎯 SELECT ALL BRANDS BY DEFAULT (user's accessible brands)
-    state.selectedBrands = brands.map(brand => brand.id)
+    // Check if there's a brand filter from URL (window.BRAND_FILTER is set in /brand/:brandName)
+    if (window.BRAND_FILTER) {
+      // Find the brand by name
+      const filteredBrand = brands.find(b => b.name === window.BRAND_FILTER)
+      if (filteredBrand) {
+        // Select only the filtered brand
+        state.selectedBrands = [filteredBrand.id]
+      } else {
+        // Brand not found, select all accessible brands
+        state.selectedBrands = brands.map(brand => brand.id)
+      }
+    } else {
+      // 🎯 SELECT ALL BRANDS BY DEFAULT (user's accessible brands)
+      state.selectedBrands = brands.map(brand => brand.id)
+    }
     
     // 🎯 SELECT ALL MATERIAL TYPES BY DEFAULT
     state.selectedMaterialTypes = materialTypes.map(type => type.id)

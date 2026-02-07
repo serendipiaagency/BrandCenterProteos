@@ -3215,6 +3215,34 @@ app.get('/catalog', (c) => {
   )
 })
 
+// Brand page - Show all assets from a specific brand
+app.get('/brand/:brandName', (c) => {
+  const brandName = c.req.param('brandName')
+  
+  return c.html(
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{brandName} - Proteos Biotech Brand Center</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet" />
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
+        <link href="/static/catalog.css?v=7" rel="stylesheet" />
+      </head>
+      <body>
+        <div id="catalog"></div>
+        <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+        <script dangerouslySetInnerHTML={{__html: `
+          window.BRAND_FILTER = '${brandName}';
+        `}} />
+        <script src="/static/catalog.js?v=12"></script>
+      </body>
+    </html>
+  )
+})
+
 // Root redirects to login
 app.get('/', (c) => {
   return c.redirect('/login')
