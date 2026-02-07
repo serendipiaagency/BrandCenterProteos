@@ -1557,6 +1557,245 @@ app.delete('/api/assets/:id/thumbnail', async (c) => {
   }
 })
 
+// ============================================
+// API ROUTES - Analytics
+// ============================================
+
+// Track view event
+app.post('/api/analytics/track/view', async (c) => {
+  try {
+    const { assetId, userId } = await c.req.json()
+    
+    // Get user info
+    const user = await c.env.DB.prepare(`
+      SELECT email, name, role, region FROM users WHERE id = ? AND active = 1
+    `).bind(userId).first()
+    
+    // Get asset info
+    const asset = await c.env.DB.prepare(`
+      SELECT a.title, a.original_filename, a.brand_id, b.name as brand_name, 
+             mt.name as material_type, a.file_type
+      FROM assets a
+      LEFT JOIN brands b ON a.brand_id = b.id
+      LEFT JOIN material_types mt ON a.material_type_id = mt.id
+      WHERE a.id = ?
+    `).bind(assetId).first()
+    
+    if (!asset) {
+      return c.json({ error: 'Asset not found' }, 404)
+    }
+    
+    // Insert analytics event
+    await c.env.DB.prepare(`
+      INSERT INTO analytics_events 
+      (event_type, asset_id, asset_title, user_id, user_email, user_name, user_role, 
+       user_region, brand_id, brand_name, material_type, file_type, 
+       ip_address, user_agent, referer)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      'view',
+      assetId,
+      asset.title || asset.original_filename,
+      userId,
+      user?.email || null,
+      user?.name || null,
+      user?.role || null,
+      user?.region || null,
+      asset.brand_id,
+      asset.brand_name,
+      asset.material_type,
+      asset.file_type,
+      c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For'),
+      c.req.header('User-Agent'),
+      c.req.header('Referer')
+    ).run()
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Analytics track view error:', error)
+    return c.json({ error: 'Failed to track view' }, 500)
+  }
+})
+
+// Track download event
+app.post('/api/analytics/track/download', async (c) => {
+  try {
+    const { assetId, userId } = await c.req.json()
+    
+    // Get user info
+    const user = await c.env.DB.prepare(`
+      SELECT email, name, role, region FROM users WHERE id = ? AND active = 1
+    `).bind(userId).first()
+    
+    // Get asset info
+    const asset = await c.env.DB.prepare(`
+      SELECT a.title, a.original_filename, a.brand_id, b.name as brand_name, 
+             mt.name as material_type, a.file_type
+      FROM assets a
+      LEFT JOIN brands b ON a.brand_id = b.id
+      LEFT JOIN material_types mt ON a.material_type_id = mt.id
+      WHERE a.id = ?
+    `).bind(assetId).first()
+    
+    if (!asset) {
+      return c.json({ error: 'Asset not found' }, 404)
+    }
+    
+    // Insert analytics event
+    await c.env.DB.prepare(`
+      INSERT INTO analytics_events 
+      (event_type, asset_id, asset_title, user_id, user_email, user_name, user_role, 
+       user_region, brand_id, brand_name, material_type, file_type, 
+       ip_address, user_agent, referer)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      'download',
+      assetId,
+      asset.title || asset.original_filename,
+      userId,
+      user?.email || null,
+      user?.name || null,
+      user?.role || null,
+      user?.region || null,
+      asset.brand_id,
+      asset.brand_name,
+      asset.material_type,
+      asset.file_type,
+      c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For'),
+      c.req.header('User-Agent'),
+      c.req.header('Referer')
+    ).run()
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Analytics track download error:', error)
+    return c.json({ error: 'Failed to track download' }, 500)
+  }
+})
+
+// Get analytics stats (admin only)
+app.get('/api/analytics/stats', async (c) => {
+  try {
+    const days = c.req.query('days') || '30'
+    
+    const stats = await c.env.DB.prepare(`
+      SELECT 
+        COUNT(CASE WHEN event_type = 'view' THEN 1 END) as total_views,
+        COUNT(CASE WHEN event_type = 'download' THEN 1 END) as total_downloads,
+        COUNT(DISTINCT user_id) as unique_users,
+        COUNT(DISTINCT asset_id) as assets_accessed
+      FROM analytics_events
+      WHERE timestamp >= datetime('now', '-' || ? || ' days')
+    `).bind(days).first()
+    
+    return c.json(stats)
+  } catch (error) {
+    console.error('Analytics stats error:', error)
+    return c.json({ error: 'Failed to get stats' }, 500)
+  }
+})
+
+// Get top assets
+app.get('/api/analytics/top-assets', async (c) => {
+  try {
+    const days = c.req.query('days') || '30'
+    const limit = c.req.query('limit') || '10'
+    
+    const { results } = await c.env.DB.prepare(`
+      SELECT 
+        asset_id,
+        asset_title,
+        brand_name,
+        COUNT(CASE WHEN event_type = 'view' THEN 1 END) as views,
+        COUNT(CASE WHEN event_type = 'download' THEN 1 END) as downloads
+      FROM analytics_events
+      WHERE timestamp >= datetime('now', '-' || ? || ' days')
+      GROUP BY asset_id
+      ORDER BY views DESC
+      LIMIT ?
+    `).bind(days, limit).all()
+    
+    return c.json({ assets: results })
+  } catch (error) {
+    console.error('Analytics top assets error:', error)
+    return c.json({ error: 'Failed to get top assets' }, 500)
+  }
+})
+
+// Get user activity
+app.get('/api/analytics/by-user', async (c) => {
+  try {
+    const days = c.req.query('days') || '30'
+    
+    const { results } = await c.env.DB.prepare(`
+      SELECT 
+        user_email,
+        user_name,
+        user_role,
+        COUNT(CASE WHEN event_type = 'view' THEN 1 END) as views,
+        COUNT(CASE WHEN event_type = 'download' THEN 1 END) as downloads,
+        MAX(timestamp) as last_activity
+      FROM analytics_events
+      WHERE user_id IS NOT NULL 
+        AND timestamp >= datetime('now', '-' || ? || ' days')
+      GROUP BY user_id
+      ORDER BY views DESC
+    `).bind(days).all()
+    
+    return c.json({ users: results })
+  } catch (error) {
+    console.error('Analytics by user error:', error)
+    return c.json({ error: 'Failed to get user activity' }, 500)
+  }
+})
+
+// Get activity by brand
+app.get('/api/analytics/by-brand', async (c) => {
+  try {
+    const days = c.req.query('days') || '30'
+    
+    const { results } = await c.env.DB.prepare(`
+      SELECT 
+        brand_name,
+        COUNT(CASE WHEN event_type = 'view' THEN 1 END) as views,
+        COUNT(CASE WHEN event_type = 'download' THEN 1 END) as downloads
+      FROM analytics_events
+      WHERE brand_id IS NOT NULL 
+        AND timestamp >= datetime('now', '-' || ? || ' days')
+      GROUP BY brand_id
+      ORDER BY views DESC
+    `).bind(days).all()
+    
+    return c.json({ brands: results })
+  } catch (error) {
+    console.error('Analytics by brand error:', error)
+    return c.json({ error: 'Failed to get brand activity' }, 500)
+  }
+})
+
+// Get timeline
+app.get('/api/analytics/timeline', async (c) => {
+  try {
+    const days = c.req.query('days') || '30'
+    
+    const { results } = await c.env.DB.prepare(`
+      SELECT 
+        DATE(timestamp) as date,
+        COUNT(CASE WHEN event_type = 'view' THEN 1 END) as views,
+        COUNT(CASE WHEN event_type = 'download' THEN 1 END) as downloads
+      FROM analytics_events
+      WHERE timestamp >= datetime('now', '-' || ? || ' days')
+      GROUP BY DATE(timestamp)
+      ORDER BY date ASC
+    `).bind(days).all()
+    
+    return c.json({ timeline: results })
+  } catch (error) {
+    console.error('Analytics timeline error:', error)
+    return c.json({ error: 'Failed to get timeline' }, 500)
+  }
+})
+
 app.get('/api/files/:filename{.*}', async (c) => {
   const filename = c.req.param('filename')
   
@@ -2720,10 +2959,24 @@ app.get('/asset/:id', (c) => {
                 }
                 
                 displayAsset(asset);
+                
+                // Track view event
+                trackView(assetId, user.id);
               } catch (error) {
                 console.error('Error loading asset:', error);
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('error').style.display = 'block';
+              }
+            }
+            
+            async function trackView(assetId, userId) {
+              try {
+                await axios.post('/api/analytics/track/view', {
+                  assetId,
+                  userId
+                });
+              } catch (error) {
+                console.error('Failed to track view:', error);
               }
             }
             
@@ -2805,7 +3058,7 @@ app.get('/asset/:id', (c) => {
                   '</div>' +
                 '</div>' +
                 '<div class="actions">' +
-                  '<a href="' + asset.file_url + '" download class="btn btn-primary">' +
+                  '<a id="download-btn" href="' + asset.file_url + '" download class="btn btn-primary">' +
                     '<i class="fas fa-download"></i> Download Asset' +
                   '</a>' +
                   '<a href="/catalog" class="btn btn-secondary">' +
@@ -2817,7 +3070,29 @@ app.get('/asset/:id', (c) => {
               document.getElementById('asset-content').innerHTML = contentHTML;
               document.getElementById('asset-content').style.display = 'block';
               
+              // Add download tracking
+              const downloadBtn = document.getElementById('download-btn');
+              if (downloadBtn) {
+                downloadBtn.addEventListener('click', function() {
+                  trackDownload(asset.id);
+                });
+              }
+              
               document.title = (asset.title || asset.original_filename) + ' - Proteos Biotech';
+            }
+            
+            async function trackDownload(assetId) {
+              try {
+                const userId = localStorage.getItem('userId');
+                if (!userId) return;
+                
+                await axios.post('/api/analytics/track/download', {
+                  assetId,
+                  userId
+                });
+              } catch (error) {
+                console.error('Failed to track download:', error);
+              }
             }
             
             // Initialize

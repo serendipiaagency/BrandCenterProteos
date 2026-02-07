@@ -20,7 +20,16 @@ const state = {
   // Password reset state
   showForgotPasswordModal: false,
   showResetPasswordForm: false,
-  resetToken: null
+  resetToken: null,
+  // Analytics state
+  analyticsData: {
+    stats: null,
+    topAssets: [],
+    userActivity: [],
+    brandActivity: [],
+    timeline: [],
+    selectedPeriod: 30
+  }
 }
 
 // ============================================
@@ -358,6 +367,32 @@ const api = {
   async deleteMaterialType(id) {
     const response = await axios.delete(`/api/material-types/${id}`)
     return response.data
+  },
+  
+  // Analytics
+  async getAnalyticsStats(days = 30) {
+    const response = await axios.get(`/api/analytics/stats?days=${days}`)
+    return response.data
+  },
+  
+  async getTopAssets(days = 30, limit = 10) {
+    const response = await axios.get(`/api/analytics/top-assets?days=${days}&limit=${limit}`)
+    return response.data
+  },
+  
+  async getUserActivity(days = 30) {
+    const response = await axios.get(`/api/analytics/by-user?days=${days}`)
+    return response.data
+  },
+  
+  async getBrandActivity(days = 30) {
+    const response = await axios.get(`/api/analytics/by-brand?days=${days}`)
+    return response.data
+  },
+  
+  async getTimeline(days = 30) {
+    const response = await axios.get(`/api/analytics/timeline?days=${days}`)
+    return response.data
   }
 }
 
@@ -620,6 +655,39 @@ const loadUsers = async () => {
   }
 }
 
+const loadAnalytics = async () => {
+  try {
+    showLoading()
+    const days = state.analyticsData.selectedPeriod
+    
+    const [stats, topAssets, userActivity, brandActivity, timeline] = await Promise.all([
+      api.getAnalyticsStats(days),
+      api.getTopAssets(days, 10),
+      api.getUserActivity(days),
+      api.getBrandActivity(days),
+      api.getTimeline(days)
+    ])
+    
+    state.analyticsData.stats = stats
+    state.analyticsData.topAssets = topAssets.assets
+    state.analyticsData.userActivity = userActivity.users
+    state.analyticsData.brandActivity = brandActivity.brands
+    state.analyticsData.timeline = timeline.timeline
+    
+    render()
+  } catch (error) {
+    console.error('Error loading analytics:', error)
+    showNotification('Error loading analytics', 'error')
+  } finally {
+    hideLoading()
+  }
+}
+
+const changeAnalyticsPeriod = async (days) => {
+  state.analyticsData.selectedPeriod = days
+  await loadAnalytics()
+}
+
 // ============================================
 // Navigation
 // ============================================
@@ -629,6 +697,8 @@ const navigateTo = (page) => {
   
   if (page === 'users' && state.users.length === 0) {
     loadUsers()
+  } else if (page === 'analytics') {
+    loadAnalytics()
   } else {
     render()
   }
@@ -1577,6 +1647,12 @@ const renderSidebar = () => {
               <a href="#" onclick="navigateTo('categories'); return false;" class="sidebar-link ${state.currentPage === 'categories' ? 'active' : ''}">
                 <i class="fas fa-layer-group"></i>
                 <span>Categories</span>
+              </a>
+            </li>
+            <li class="sidebar-item">
+              <a href="#" onclick="navigateTo('analytics'); return false;" class="sidebar-link ${state.currentPage === 'analytics' ? 'active' : ''}">
+                <i class="fas fa-chart-line"></i>
+                <span>Analytics</span>
               </a>
             </li>
           ` : ''}
@@ -3042,6 +3118,229 @@ const renderPasswordModal = () => {
   `
 }
 
+const renderAnalyticsPage = () => {
+  const { stats, topAssets, userActivity, brandActivity, timeline, selectedPeriod } = state.analyticsData
+  
+  return `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">
+          <i class="fas fa-chart-line"></i>
+          Analytics Dashboard
+        </h1>
+        <p class="page-subtitle">Track asset views and downloads</p>
+      </div>
+      
+      <div class="page-actions">
+        <select 
+          onchange="changeAnalyticsPeriod(parseInt(this.value))" 
+          class="btn-secondary"
+          style="padding: 0.75rem 1rem; border: 1px solid #cbd5e0; border-radius: 8px; background: white;"
+        >
+          <option value="7" ${selectedPeriod === 7 ? 'selected' : ''}>Last 7 days</option>
+          <option value="30" ${selectedPeriod === 30 ? 'selected' : ''}>Last 30 days</option>
+          <option value="90" ${selectedPeriod === 90 ? 'selected' : ''}>Last 90 days</option>
+          <option value="365" ${selectedPeriod === 365 ? 'selected' : ''}>Last 12 months</option>
+        </select>
+      </div>
+    </div>
+    
+    ${!stats ? `
+      <div style="text-align: center; padding: 4rem 2rem;">
+        <i class="fas fa-chart-line" style="font-size: 4rem; color: #cbd5e0; margin-bottom: 1rem;"></i>
+        <p style="color: #718096; font-size: 1.1rem; margin-bottom: 2rem;">Loading analytics data...</p>
+      </div>
+    ` : `
+      <!-- Stats Cards -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+            <i class="fas fa-eye" style="font-size: 2rem; opacity: 0.9;"></i>
+            <div>
+              <div style="font-size: 0.875rem; opacity: 0.9;">Total Views</div>
+              <div style="font-size: 2rem; font-weight: 700;">${stats.total_views || 0}</div>
+            </div>
+          </div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+            <i class="fas fa-download" style="font-size: 2rem; opacity: 0.9;"></i>
+            <div>
+              <div style="font-size: 0.875rem; opacity: 0.9;">Total Downloads</div>
+              <div style="font-size: 2rem; font-weight: 700;">${stats.total_downloads || 0}</div>
+            </div>
+          </div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+            <i class="fas fa-users" style="font-size: 2rem; opacity: 0.9;"></i>
+            <div>
+              <div style="font-size: 0.875rem; opacity: 0.9;">Unique Users</div>
+              <div style="font-size: 2rem; font-weight: 700;">${stats.unique_users || 0}</div>
+            </div>
+          </div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+            <i class="fas fa-images" style="font-size: 2rem; opacity: 0.9;"></i>
+            <div>
+              <div style="font-size: 0.875rem; opacity: 0.9;">Assets Accessed</div>
+              <div style="font-size: 2rem; font-weight: 700;">${stats.assets_accessed || 0}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Top Assets Table -->
+      <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1a202c;">
+          <i class="fas fa-trophy" style="color: #f59e0b;"></i>
+          Top 10 Most Viewed Assets
+        </h2>
+        ${topAssets.length === 0 ? `
+          <p style="text-align: center; color: #718096; padding: 2rem;">No data available</p>
+        ` : `
+          <div style="overflow-x: auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px;">#</th>
+                  <th>Asset Title</th>
+                  <th>Brand</th>
+                  <th style="width: 120px; text-align: center;">
+                    <i class="fas fa-eye"></i> Views
+                  </th>
+                  <th style="width: 120px; text-align: center;">
+                    <i class="fas fa-download"></i> Downloads
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                ${topAssets.map((asset, index) => `
+                  <tr>
+                    <td style="font-weight: 600; color: #718096;">${index + 1}</td>
+                    <td>
+                      <a href="/asset/${asset.asset_id}" target="_blank" style="color: #002f57; text-decoration: none; hover: text-decoration: underline;">
+                        ${asset.asset_title || 'Untitled'}
+                      </a>
+                    </td>
+                    <td>
+                      <span class="brand-badge" style="background-color: #002f57;">
+                        ${asset.brand_name || 'N/A'}
+                      </span>
+                    </td>
+                    <td style="text-align: center; font-weight: 600;">${asset.views || 0}</td>
+                    <td style="text-align: center; font-weight: 600;">${asset.downloads || 0}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}
+      </div>
+      
+      <!-- User Activity Table -->
+      <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1a202c;">
+          <i class="fas fa-user-chart"></i>
+          User Activity
+        </h2>
+        ${userActivity.length === 0 ? `
+          <p style="text-align: center; color: #718096; padding: 2rem;">No user activity data</p>
+        ` : `
+          <div style="overflow-x: auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Role</th>
+                  <th style="width: 120px; text-align: center;">
+                    <i class="fas fa-eye"></i> Views
+                  </th>
+                  <th style="width: 120px; text-align: center;">
+                    <i class="fas fa-download"></i> Downloads
+                  </th>
+                  <th style="width: 180px;">Last Activity</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${userActivity.map(user => `
+                  <tr>
+                    <td>
+                      <div style="font-weight: 500;">${user.user_name || 'Unknown'}</div>
+                      <div style="font-size: 0.875rem; color: #718096;">${user.user_email || 'N/A'}</div>
+                    </td>
+                    <td>
+                      <span style="padding: 0.25rem 0.75rem; background: #e2e8f0; border-radius: 12px; font-size: 0.875rem;">
+                        ${user.user_role || 'N/A'}
+                      </span>
+                    </td>
+                    <td style="text-align: center; font-weight: 600;">${user.views || 0}</td>
+                    <td style="text-align: center; font-weight: 600;">${user.downloads || 0}</td>
+                    <td style="font-size: 0.875rem; color: #718096;">
+                      ${user.last_activity ? formatDate(user.last_activity) : 'N/A'}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}
+      </div>
+      
+      <!-- Brand Activity Table -->
+      <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1a202c;">
+          <i class="fas fa-tags"></i>
+          Activity by Brand
+        </h2>
+        ${brandActivity.length === 0 ? `
+          <p style="text-align: center; color: #718096; padding: 2rem;">No brand activity data</p>
+        ` : `
+          <div style="overflow-x: auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Brand</th>
+                  <th style="width: 150px; text-align: center;">
+                    <i class="fas fa-eye"></i> Views
+                  </th>
+                  <th style="width: 150px; text-align: center;">
+                    <i class="fas fa-download"></i> Downloads
+                  </th>
+                  <th style="width: 150px; text-align: center;">Conversion Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${brandActivity.map(brand => {
+                  const conversionRate = brand.views > 0 ? ((brand.downloads / brand.views) * 100).toFixed(1) : '0.0'
+                  return `
+                    <tr>
+                      <td>
+                        <span class="brand-badge" style="background-color: #002f57;">
+                          ${brand.brand_name || 'N/A'}
+                        </span>
+                      </td>
+                      <td style="text-align: center; font-weight: 600;">${brand.views || 0}</td>
+                      <td style="text-align: center; font-weight: 600;">${brand.downloads || 0}</td>
+                      <td style="text-align: center; font-weight: 600; color: ${parseFloat(conversionRate) > 50 ? '#10b981' : parseFloat(conversionRate) > 25 ? '#f59e0b' : '#ef4444'};">
+                        ${conversionRate}%
+                      </td>
+                    </tr>
+                  `
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}
+      </div>
+    `}
+  `
+}
+
 // ============================================
 // Main Render Function
 // ============================================
@@ -3079,6 +3378,9 @@ const render = () => {
       break
     case 'categories':
       pageContent = renderCategoriesPage()
+      break
+    case 'analytics':
+      pageContent = renderAnalyticsPage()
       break
   }
   
