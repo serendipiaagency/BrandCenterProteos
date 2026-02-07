@@ -1844,22 +1844,22 @@ const renderAssetsPage = () => {
                 <span>${formatDate(asset.created_at)}</span>
               </div>
               
-              <div class="asset-actions">
-                <button onclick="copyAssetLink(${asset.id})" class="btn-secondary" style="flex: 0 0 auto; padding: 0.5rem 0.75rem; font-size: 0.875rem; margin-right: 0.5rem;">
+              <div class="asset-actions" style="display: grid; grid-template-columns: ${state.currentUser.role === 'admin' ? 'auto 1fr 1fr auto' : state.currentUser.role === 'marketing' ? 'auto 1fr 1fr' : 'auto 1fr'}; gap: 0.5rem; margin-top: 1rem;">
+                <button onclick="copyAssetLink(${asset.id})" class="btn-icon-only" style="background: white; border: 2px solid #e2e8f0; color: #4a5568; padding: 0.625rem; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; min-width: 40px;" title="Copy link">
                   <i class="fas fa-link"></i>
                 </button>
                 ${state.currentUser.role === 'admin' || state.currentUser.role === 'marketing' ? `
-                  <button onclick="openAssetEditModal(${asset.id})" class="btn-secondary" style="flex: 1; margin-right: 0.5rem;">
+                  <button onclick="openAssetEditModal(${asset.id})" class="btn-secondary" style="background: white; border: 2px solid #e2e8f0; color: #002f57; padding: 0.625rem 1rem; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 600; font-size: 0.875rem;">
                     <i class="fas fa-edit"></i>
                     Edit
                   </button>
                 ` : ''}
-                <a href="${asset.file_url}" download class="btn-download" style="flex: 1;">
+                <a href="${asset.file_url}" download class="btn-download" style="background: linear-gradient(135deg, #002f57 0%, #004080 100%); color: white; padding: 0.625rem 1rem; border-radius: 8px; text-decoration: none; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 600; font-size: 0.875rem;">
                   <i class="fas fa-download"></i>
                   Download
                 </a>
                 ${state.currentUser.role === 'admin' ? `
-                  <button onclick="handleDeleteAsset(${asset.id})" style="background: #dc2626; color: white; border: none; padding: 0.625rem; border-radius: 8px; cursor: pointer; margin-left: 0.5rem;">
+                  <button onclick="handleDeleteAsset(${asset.id})" class="btn-delete" style="background: #dc2626; color: white; border: none; padding: 0.625rem; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; min-width: 40px;" title="Delete">
                     <i class="fas fa-trash"></i>
                   </button>
                 ` : ''}

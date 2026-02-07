@@ -709,14 +709,16 @@ const renderAssets = () => {
                 <div class="asset-description-placeholder" style="min-height: 1.5rem; margin: 0.5rem 0 1rem 0;"></div>
               `}
               
-              <div class="asset-actions">
-                <button onclick="copyAssetLink(${asset.id})" class="btn btn-secondary" style="flex: 0 0 auto; padding: 0.5rem 0.75rem; font-size: 0.875rem;">
+              <div class="asset-actions" style="display: grid; grid-template-columns: auto 1fr 1fr; gap: 0.5rem; margin-top: auto; padding-top: 1rem;">
+                <button onclick="copyAssetLink(${asset.id})" class="btn btn-icon-only" title="Copy link">
                   <i class="fas fa-link"></i>
                 </button>
-                <a href="${asset.file_url}" download class="btn btn-primary" style="flex: 1;">
+                <a href="${asset.file_url}" download class="btn btn-primary">
+                  <i class="fas fa-download"></i>
                   ${t('assets.download')}
                 </a>
-                <a href="${asset.file_url}" target="_blank" class="btn btn-secondary" style="flex: 1;">
+                <a href="${asset.file_url}" target="_blank" class="btn btn-secondary">
+                  <i class="fas fa-eye"></i>
                   ${t('assets.preview')}
                 </a>
               </div>

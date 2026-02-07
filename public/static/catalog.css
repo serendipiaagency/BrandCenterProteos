@@ -719,14 +719,15 @@ body {
 }
 
 .asset-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.5rem;
   margin-top: auto;
   padding-top: 1rem;
 }
 
 .btn {
-  padding: 0.625rem 1.25rem;
+  padding: 0.625rem;
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 600;
@@ -739,28 +740,41 @@ body {
   align-items: center;
   gap: 0.5rem;
   justify-content: center;
+  white-space: nowrap;
 }
 
 .btn-primary {
   background-color: var(--corporate-blue);
   color: var(--text-light);
-  flex: 1;
 }
 
 .btn-primary:hover {
   background-color: var(--corporate-blue-light);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 47, 87, 0.3);
 }
 
 .btn-secondary {
-  background-color: transparent;
+  background-color: white;
   color: var(--corporate-blue);
-  border: 1px solid var(--corporate-blue);
-  flex: 1;
+  border: 2px solid #e2e8f0;
 }
 
 .btn-secondary:hover {
-  background-color: var(--corporate-blue);
-  color: var(--text-light);
+  background-color: #f8f9fa;
+  border-color: var(--corporate-blue);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-icon-only {
+  padding: 0.625rem;
+  width: auto;
+  min-width: 40px;
+}
+
+.btn-icon-only i {
+  margin: 0;
 }
 
 /* ============================================
