@@ -1601,19 +1601,19 @@ app.post('/api/analytics/track/view', async (c) => {
     `).bind(
       'view',
       assetId,
-      asset.title || asset.original_filename,
+      asset.title ?? asset.original_filename ?? null,
       userId,
-      user?.email || null,
-      user?.name || null,
-      user?.role || null,
-      user?.region || null,
-      asset.brand_id,
-      asset.brand_name,
-      asset.material_type,
-      asset.file_type,
-      c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For'),
-      c.req.header('User-Agent'),
-      c.req.header('Referer')
+      user?.email ?? null,
+      user?.name ?? null,
+      user?.role ?? null,
+      user?.region ?? null,
+      asset.brand_id ?? null,
+      asset.brand_name ?? null,
+      asset.material_type ?? null,
+      asset.file_type ?? null,
+      c.req.header('CF-Connecting-IP') ?? c.req.header('X-Forwarded-For') ?? null,
+      c.req.header('User-Agent') ?? null,
+      c.req.header('Referer') ?? null
     ).run()
     
     console.log('✅ View tracked successfully:', result.meta)
@@ -1665,19 +1665,19 @@ app.post('/api/analytics/track/download', async (c) => {
     `).bind(
       'download',
       assetId,
-      asset.title || asset.original_filename,
+      asset.title ?? asset.original_filename ?? null,
       userId,
-      user?.email || null,
-      user?.name || null,
-      user?.role || null,
-      user?.region || null,
-      asset.brand_id,
-      asset.brand_name,
-      asset.material_type,
-      asset.file_type,
-      c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For'),
-      c.req.header('User-Agent'),
-      c.req.header('Referer')
+      user?.email ?? null,
+      user?.name ?? null,
+      user?.role ?? null,
+      user?.region ?? null,
+      asset.brand_id ?? null,
+      asset.brand_name ?? null,
+      asset.material_type ?? null,
+      asset.file_type ?? null,
+      c.req.header('CF-Connecting-IP') ?? c.req.header('X-Forwarded-For') ?? null,
+      c.req.header('User-Agent') ?? null,
+      c.req.header('Referer') ?? null
     ).run()
     
     console.log('✅ Download tracked successfully:', result.meta)
