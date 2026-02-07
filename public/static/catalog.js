@@ -726,7 +726,7 @@ const renderAssets = () => {
                 <button onclick="copyAssetLink(${asset.id})" class="btn btn-icon-only" title="Copy link">
                   <i class="fas fa-link"></i>
                 </button>
-                <a href="${asset.file_url}" download class="btn btn-primary">
+                <a href="${asset.file_url}" download class="btn btn-primary" id="download-asset-${asset.id}" data-asset-id="${asset.id}">
                   <i class="fas fa-download"></i>
                   ${t('assets.download')}
                 </a>
@@ -738,6 +738,21 @@ const renderAssets = () => {
             </div>
           </div>
         `).join('')}
+      </div>
+    </div>
+  `).join('')
+  
+  // Add download tracking listeners after rendering
+  setTimeout(() => {
+    document.querySelectorAll('[id^="download-asset-"]').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        const assetId = this.getAttribute('data-asset-id')
+        if (assetId) {
+          trackDownload(assetId)
+        }
+      })
+    })
+  }, 100)
       </div>
     </div>
   `).join('')
@@ -925,6 +940,29 @@ const fallbackCopy = (text) => {
   }
   
   document.body.removeChild(textArea)
+}
+
+// ============================================
+// Analytics Tracking
+// ============================================
+
+const trackDownload = async (assetId) => {
+  try {
+    const userId = localStorage.getItem('userId')
+    if (!userId) {
+      console.warn('No user ID found for tracking')
+      return
+    }
+    
+    await axios.post('/api/analytics/track/download', {
+      assetId: parseInt(assetId),
+      userId: parseInt(userId)
+    })
+    
+    console.log('✅ Download tracked:', assetId)
+  } catch (error) {
+    console.error('❌ Failed to track download:', error)
+  }
 }
 
 // ============================================

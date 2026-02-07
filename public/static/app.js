@@ -28,6 +28,7 @@ const state = {
     userActivity: [],
     brandActivity: [],
     timeline: [],
+    allAssets: [],
     selectedPeriod: 30
   }
 }
@@ -393,6 +394,11 @@ const api = {
   async getTimeline(days = 30) {
     const response = await axios.get(`/api/analytics/timeline?days=${days}`)
     return response.data
+  },
+  
+  async getAllAssetsAnalytics(days = 30) {
+    const response = await axios.get(`/api/analytics/all-assets?days=${days}`)
+    return response.data
   }
 }
 
@@ -660,12 +666,13 @@ const loadAnalytics = async () => {
     showLoading()
     const days = state.analyticsData.selectedPeriod
     
-    const [stats, topAssets, userActivity, brandActivity, timeline] = await Promise.all([
+    const [stats, topAssets, userActivity, brandActivity, timeline, allAssets] = await Promise.all([
       api.getAnalyticsStats(days),
       api.getTopAssets(days, 10),
       api.getUserActivity(days),
       api.getBrandActivity(days),
-      api.getTimeline(days)
+      api.getTimeline(days),
+      api.getAllAssetsAnalytics(days)
     ])
     
     state.analyticsData.stats = stats
@@ -673,6 +680,7 @@ const loadAnalytics = async () => {
     state.analyticsData.userActivity = userActivity.users
     state.analyticsData.brandActivity = brandActivity.brands
     state.analyticsData.timeline = timeline.timeline
+    state.analyticsData.allAssets = allAssets.assets
     
     render()
   } catch (error) {
@@ -1854,7 +1862,7 @@ const renderAssetsPage = () => {
                     Edit
                   </button>
                 ` : ''}
-                <a href="${asset.file_url}" download class="btn-download" style="background: linear-gradient(135deg, #002f57 0%, #004080 100%); color: white; padding: 0.625rem 1rem; border-radius: 8px; text-decoration: none; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 600; font-size: 0.875rem;">
+                <a href="${asset.file_url}" download class="btn-download" id="download-asset-${asset.id}" data-asset-id="${asset.id}" style="background: linear-gradient(135deg, #002f57 0%, #004080 100%); color: white; padding: 0.625rem 1rem; border-radius: 8px; text-decoration: none; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 600; font-size: 0.875rem;">
                   <i class="fas fa-download"></i>
                   Download
                 </a>
@@ -1870,6 +1878,18 @@ const renderAssetsPage = () => {
       </div>
     `}
   `
+  
+  // Add download tracking listeners after rendering
+  setTimeout(() => {
+    document.querySelectorAll('[id^="download-asset-"]').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        const assetId = this.getAttribute('data-asset-id')
+        if (assetId) {
+          trackDownload(assetId)
+        }
+      })
+    })
+  }, 100)
 }
 
 const renderInstructionsPage = () => {
@@ -3344,6 +3364,76 @@ const renderAnalyticsPage = () => {
           </div>
         `}
       </div>
+      
+      <!-- All Assets Analytics Table -->
+      <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-top: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1a202c;">
+          <i class="fas fa-chart-bar"></i>
+          All Assets Analytics
+          <span style="font-size: 0.875rem; font-weight: normal; color: #718096; margin-left: 0.5rem;">
+            (${allAssets.length} total assets)
+          </span>
+        </h2>
+        ${allAssets.length === 0 ? `
+          <p style="text-align: center; color: #718096; padding: 2rem;">No assets data</p>
+        ` : `
+          <div style="overflow-x: auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Asset</th>
+                  <th>Brand</th>
+                  <th>Material Type</th>
+                  <th style="width: 100px; text-align: center;">
+                    <i class="fas fa-eye"></i> Views
+                  </th>
+                  <th style="width: 100px; text-align: center;">
+                    <i class="fas fa-download"></i> Downloads
+                  </th>
+                  <th style="width: 100px; text-align: center;">Rate</th>
+                  <th style="width: 150px;">Last Activity</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${allAssets.map(asset => {
+                  const conversionRate = asset.views > 0 ? ((asset.downloads / asset.views) * 100).toFixed(1) : '0.0'
+                  const hasActivity = asset.views > 0 || asset.downloads > 0
+                  
+                  return `
+                    <tr style="${!hasActivity ? 'opacity: 0.6;' : ''}">
+                      <td>
+                        <a href="/asset/${asset.id}" target="_blank" style="color: #002f57; text-decoration: none; font-weight: 500;">
+                          ${asset.title || asset.original_filename}
+                        </a>
+                      </td>
+                      <td>
+                        <span class="brand-badge" style="background-color: #002f57; font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                          ${asset.brand_display_name || asset.brand_name || 'N/A'}
+                        </span>
+                      </td>
+                      <td style="font-size: 0.875rem; color: #4a5568;">
+                        ${asset.material_type || 'N/A'}
+                      </td>
+                      <td style="text-align: center; font-weight: 600;">
+                        ${asset.views || 0}
+                      </td>
+                      <td style="text-align: center; font-weight: 600;">
+                        ${asset.downloads || 0}
+                      </td>
+                      <td style="text-align: center; font-weight: 600; font-size: 0.875rem; color: ${parseFloat(conversionRate) > 50 ? '#10b981' : parseFloat(conversionRate) > 25 ? '#f59e0b' : '#94a3b8'};">
+                        ${conversionRate}%
+                      </td>
+                      <td style="font-size: 0.875rem; color: #718096;">
+                        ${asset.last_activity ? formatDate(asset.last_activity) : 'No activity'}
+                      </td>
+                    </tr>
+                  `
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}
+      </div>
     `}
   `
 }
@@ -3506,6 +3596,25 @@ const copyBrandLink = (brandName) => {
       })
   } else {
     fallbackCopy(brandUrl)
+  }
+}
+
+const trackDownload = async (assetId) => {
+  try {
+    const userId = state.currentUser?.id
+    if (!userId) {
+      console.warn('No user ID found for tracking')
+      return
+    }
+    
+    await axios.post('/api/analytics/track/download', {
+      assetId: parseInt(assetId),
+      userId: parseInt(userId)
+    })
+    
+    console.log('✅ Download tracked:', assetId)
+  } catch (error) {
+    console.error('❌ Failed to track download:', error)
   }
 }
 
