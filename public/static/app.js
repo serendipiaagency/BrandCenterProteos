@@ -3146,7 +3146,7 @@ const renderPasswordModal = () => {
 }
 
 const renderAnalyticsPage = () => {
-  const { stats, topAssets, userActivity, brandActivity, timeline, selectedPeriod } = state.analyticsData
+  const { stats, topAssets, userActivity, brandActivity, timeline, allAssets = [], selectedPeriod } = state.analyticsData
   
   return `
     <div class="page-header">
