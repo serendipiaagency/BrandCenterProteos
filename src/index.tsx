@@ -1566,10 +1566,14 @@ app.post('/api/analytics/track/view', async (c) => {
   try {
     const { assetId, userId } = await c.req.json()
     
+    console.log('👁️ Track view:', { assetId, userId })
+    
     // Get user info
     const user = await c.env.DB.prepare(`
       SELECT email, name, role, region FROM users WHERE id = ? AND active = 1
     `).bind(userId).first()
+    
+    console.log('👤 User found:', user ? user.email : 'not found')
     
     // Get asset info
     const asset = await c.env.DB.prepare(`
@@ -1581,12 +1585,14 @@ app.post('/api/analytics/track/view', async (c) => {
       WHERE a.id = ?
     `).bind(assetId).first()
     
+    console.log('📄 Asset found:', asset ? asset.title : 'not found')
+    
     if (!asset) {
       return c.json({ error: 'Asset not found' }, 404)
     }
     
     // Insert analytics event
-    await c.env.DB.prepare(`
+    const result = await c.env.DB.prepare(`
       INSERT INTO analytics_events 
       (event_type, asset_id, asset_title, user_id, user_email, user_name, user_role, 
        user_region, brand_id, brand_name, material_type, file_type, 
@@ -1610,10 +1616,12 @@ app.post('/api/analytics/track/view', async (c) => {
       c.req.header('Referer')
     ).run()
     
+    console.log('✅ View tracked successfully:', result.meta)
+    
     return c.json({ success: true })
   } catch (error) {
-    console.error('Analytics track view error:', error)
-    return c.json({ error: 'Failed to track view' }, 500)
+    console.error('❌ Analytics track view error:', error)
+    return c.json({ error: 'Failed to track view', details: error.message }, 500)
   }
 })
 
@@ -1622,10 +1630,14 @@ app.post('/api/analytics/track/download', async (c) => {
   try {
     const { assetId, userId } = await c.req.json()
     
+    console.log('📥 Track download:', { assetId, userId })
+    
     // Get user info
     const user = await c.env.DB.prepare(`
       SELECT email, name, role, region FROM users WHERE id = ? AND active = 1
     `).bind(userId).first()
+    
+    console.log('👤 User found:', user ? user.email : 'not found')
     
     // Get asset info
     const asset = await c.env.DB.prepare(`
@@ -1637,12 +1649,14 @@ app.post('/api/analytics/track/download', async (c) => {
       WHERE a.id = ?
     `).bind(assetId).first()
     
+    console.log('📄 Asset found:', asset ? asset.title : 'not found')
+    
     if (!asset) {
       return c.json({ error: 'Asset not found' }, 404)
     }
     
     // Insert analytics event
-    await c.env.DB.prepare(`
+    const result = await c.env.DB.prepare(`
       INSERT INTO analytics_events 
       (event_type, asset_id, asset_title, user_id, user_email, user_name, user_role, 
        user_region, brand_id, brand_name, material_type, file_type, 
@@ -1666,10 +1680,12 @@ app.post('/api/analytics/track/download', async (c) => {
       c.req.header('Referer')
     ).run()
     
+    console.log('✅ Download tracked successfully:', result.meta)
+    
     return c.json({ success: true })
   } catch (error) {
-    console.error('Analytics track download error:', error)
-    return c.json({ error: 'Failed to track download' }, 500)
+    console.error('❌ Analytics track download error:', error)
+    return c.json({ error: 'Failed to track download', details: error.message }, 500)
   }
 })
 
