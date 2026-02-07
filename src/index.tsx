@@ -1836,7 +1836,6 @@ app.get('/api/analytics/all-assets', async (c) => {
       LEFT JOIN material_types mt ON a.material_type_id = mt.id
       LEFT JOIN analytics_events ae ON ae.asset_id = a.id 
         AND ae.timestamp >= datetime('now', '-' || ? || ' days')
-      WHERE a.active = 1
       GROUP BY a.id, a.title, a.original_filename, a.brand_id, b.name, b.display_name, mt.name, a.created_at
       ORDER BY views DESC, downloads DESC, a.created_at DESC
     `).bind(days).all()
