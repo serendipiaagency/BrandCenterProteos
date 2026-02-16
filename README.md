@@ -314,15 +314,22 @@ Proprietary - Proteos Biotech © 2026
 
 ---
 
-**Last Updated**: 2026-01-29
-**Version**: 2.1.0
+**Last Updated**: 2026-02-16
+**Version**: 2.1.1
 **Status**: Production Ready ✅
 
-### Recent Updates (v2.1.0)
+### Recent Updates (v2.1.1)
+- 🐛 **Fixed asset page login** - Moved JavaScript to external file `asset-page.js`
+- 🔧 **Fixed syntax error** - Resolved `Uncaught SyntaxError: Unexpected string` error
+- 📊 **Fixed analytics tracking** - Downloads and views now count correctly
+- 📈 **Analytics Dashboard** - All metrics now working (views, downloads, conversion rate)
+- 🎨 **Fixed asset thumbnails** - Images now display in admin Assets Library
+- 📝 **Brand naming** - Changed all references to "BRAND CENTER" (uppercase)
+
+### Previous Updates (v2.1.0)
 - 🎉 **Large file upload support** (up to 2.5 GB)
 - 🚀 **R2 Multipart Upload API** implementation (fixes 503 timeout)
 - 📊 **Real-time progress tracking** for large uploads
 - ⚡ **Automatic chunking** with 50 MB chunks
 - 🎨 **Dedicated edit pages** for better asset editing UX
 - 🌍 **Multi-select regions** in forms
-- ✅ **Cache busting** system (v=12)
