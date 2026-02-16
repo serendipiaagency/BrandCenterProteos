@@ -2323,7 +2323,7 @@ app.get('/admin', (c) => {
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Brand Portal - Admin Panel</title>
+        <title>BRAND CENTER - Admin Panel</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -2404,7 +2404,7 @@ app.get('/admin', (c) => {
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Brand Portal - Admin Panel</title>
+        <title>BRAND CENTER - Admin Panel</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet" />
@@ -2574,7 +2574,7 @@ app.get('/login', (c) => {
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Login - Proteos Biotech Brand Portal</title>
+        <title>Login - Proteos Biotech BRAND CENTER</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet" />
@@ -2617,7 +2617,7 @@ app.get('/login', (c) => {
           <div class="login-right">
             <div class="welcome-content">
               <h3 class="welcome-subtitle">Welcome to</h3>
-              <h1 class="welcome-title">PROTEOS BIOTECH Brand Portal</h1>
+              <h1 class="welcome-title">PROTEOS BIOTECH BRAND CENTER</h1>
               <div class="hero-image">
                 <div class="image-placeholder"></div>
               </div>
@@ -2640,7 +2640,7 @@ app.get('/asset/:id', (c) => {
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Asset - Proteos Biotech Brand Portal</title>
+        <title>Asset - Proteos Biotech BRAND CENTER</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet" />
@@ -2932,7 +2932,7 @@ app.get('/asset/:id', (c) => {
         <div class="container">
           <div class="header">
             <h1><i class="fas fa-layer-group"></i> Proteos Biotech</h1>
-            <p>Brand Portal</p>
+            <p>BRAND CENTER</p>
           </div>
           
           <div class="content">
@@ -3275,7 +3275,7 @@ app.get('/brand/:brandName', (c) => {
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>{brandName} - Proteos Biotech Brand Portal</title>
+        <title>{brandName} - Proteos Biotech BRAND CENTER</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet" />

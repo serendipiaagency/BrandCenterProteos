@@ -70,7 +70,7 @@ const translations = {
     },
     // Welcome Section
     welcome: {
-      title: 'Welcome to our Brand Portal',
+      title: 'Welcome to our BRAND CENTER',
       subtitle: 'Find all the files, templates and resources you need.'
     },
     // Assets

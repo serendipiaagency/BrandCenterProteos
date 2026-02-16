@@ -1,5 +1,5 @@
 // ============================================
-// Brand Portal - Frontend Application
+// BRAND CENTER - Frontend Application
 // ============================================
 
 // Global state
@@ -1530,7 +1530,7 @@ const renderLoginPage = () => {
             <div class="login-logo-placeholder" style="text-align: center; margin-bottom: 1.5rem;">
               <i class="fas fa-cube" style="font-size: 4rem; color: #0066cc;"></i>
             </div>
-            <h1 class="login-title">Brand Portal</h1>
+            <h1 class="login-title">BRAND CENTER</h1>
             <p class="login-subtitle">Proteos Biotech Asset Management</p>
           </div>
           
@@ -1583,7 +1583,7 @@ const renderHeader = () => {
         <div class="header-brand">
           <div class="header-logo">
             <i class="fas fa-cube"></i>
-            <span>Brand Portal</span>
+            <span>BRAND CENTER</span>
           </div>
           <div class="header-subtitle">Proteos Biotech</div>
         </div>
@@ -1906,7 +1906,7 @@ const renderInstructionsPage = () => {
           <i class="fas fa-book-open" style="margin-right: 0.75rem; color: var(--primary-600);"></i>
           Instrucciones de Uso
         </h1>
-        <p class="page-subtitle">Guía rápida para la gestión del Brand Portal</p>
+        <p class="page-subtitle">Guía rápida para la gestión del BRAND CENTER</p>
       </div>
     </div>
     
