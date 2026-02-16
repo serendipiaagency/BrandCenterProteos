@@ -2932,7 +2932,7 @@ app.get('/asset/:id', (c) => {
         <div class="container">
           <div class="header">
             <h1><i class="fas fa-layer-group"></i> Proteos Biotech</h1>
-            <p>Brand Asset Center</p>
+            <p>Brand Portal</p>
           </div>
           
           <div class="content">
