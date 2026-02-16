@@ -3006,7 +3006,7 @@ app.get('/asset/:id', (c) => {
               const password = document.getElementById('asset-login-password').value;
               const loginError = document.getElementById('login-error');
               
-              console.log('🔐 Attempting login with email:', email);
+              console.log('[LOGIN] Attempting login with email:', email);
               
               try {
                 const response = await axios.post('/api/auth/login', {
@@ -3014,23 +3014,23 @@ app.get('/asset/:id', (c) => {
                   password
                 });
                 
-                console.log('📥 Login response:', response.data);
+                console.log('[LOGIN] Response:', response.data);
                 
                 if (response.data && response.data.success) {
                   // Save user ID to localStorage for session persistence
                   localStorage.setItem('userId', response.data.user.id);
-                  console.log('💾 Saved userId to localStorage:', response.data.user.id);
+                  console.log('[LOGIN] Saved userId to localStorage:', response.data.user.id);
                   
                   // Login successful, reload the page to show asset
-                  console.log('🔄 Reloading page...');
+                  console.log('[LOGIN] Reloading page...');
                   window.location.reload();
                 } else {
-                  console.error('❌ Login failed: invalid response', response.data);
+                  console.error('[LOGIN] Failed - invalid response', response.data);
                   loginError.textContent = 'Invalid credentials';
                   loginError.style.display = 'block';
                 }
               } catch (error) {
-                console.error('❌ Login error:', error);
+                console.error('[LOGIN] Error:', error);
                 loginError.textContent = 'Invalid email or password';
                 loginError.style.display = 'block';
               }
@@ -3041,25 +3041,25 @@ app.get('/asset/:id', (c) => {
               try {
                 // Get userId from localStorage
                 const userId = localStorage.getItem('userId');
-                console.log('🔍 Checking auth, userId from localStorage:', userId);
+                console.log('[AUTH] Checking auth, userId from localStorage:', userId);
                 
                 if (!userId) {
-                  console.log('❌ No userId found in localStorage');
+                  console.log('[AUTH] No userId found in localStorage');
                   return null;
                 }
                 
-                console.log('📡 Calling /api/auth/me with userId:', userId);
+                console.log('[AUTH] Calling /api/auth/me with userId:', userId);
                 const response = await axios.get('/api/auth/me?userId=' + userId);
-                console.log('📥 Auth response:', response.data);
+                console.log('[AUTH] Response:', response.data);
                 
                 if (response.data && response.data.user) {
-                  console.log('✅ User authenticated:', response.data.user.email);
+                  console.log('[AUTH] User authenticated:', response.data.user.email);
                   return response.data.user;
                 }
-                console.log('❌ No user in response');
+                console.log('[AUTH] No user in response');
                 return null;
               } catch (error) {
-                console.error('❌ Auth check error:', error);
+                console.error('[AUTH] Error:', error);
                 return null;
               }
             }
@@ -3101,11 +3101,11 @@ app.get('/asset/:id', (c) => {
             }
             
             function checkAssetAccess(user, asset) {
-              console.log('🔐 Checking asset access for user:', user.email, 'asset:', asset.id);
+              console.log('[ACCESS] Checking asset access for user:', user.email, 'asset:', asset.id);
               
               // Admin has access to everything
               if (user.role === 'admin') {
-                console.log('✅ Admin user - access granted');
+                console.log('[ACCESS] Admin user - access granted');
                 return true;
               }
               
@@ -3115,28 +3115,28 @@ app.get('/asset/:id', (c) => {
                 userBrands = typeof user.brands_access === 'string' 
                   ? JSON.parse(user.brands_access) 
                   : (user.brands_access || []);
-                console.log('👤 User brands:', userBrands);
+                console.log('[ACCESS] User brands:', userBrands);
               } catch (e) {
-                console.error('❌ Error parsing brands_access:', e);
+                console.error('[ACCESS] Error parsing brands_access:', e);
                 userBrands = [];
               }
               
-              console.log('🏷️ Asset brand_id:', asset.brand_id, 'brand_ids:', asset.brand_ids);
+              console.log('[ACCESS] Asset brand_id:', asset.brand_id, 'brand_ids:', asset.brand_ids);
               
               // Check if user has access to any of the asset's brands
               if (asset.brand_ids && asset.brand_ids.length > 0) {
                 const hasAccess = asset.brand_ids.some(brandId => userBrands.includes(brandId));
-                console.log('🔍 Checking brand_ids access:', hasAccess);
+                console.log('[ACCESS] Checking brand_ids access:', hasAccess);
                 if (!hasAccess && asset.brand_id && !userBrands.includes(asset.brand_id)) {
-                  console.log('❌ No access - brand not in user brands');
+                  console.log('[ACCESS] No access - brand not in user brands');
                   return false;
                 }
               } else if (asset.brand_id && !userBrands.includes(asset.brand_id)) {
-                console.log('❌ No access - brand_id not in user brands');
+                console.log('[ACCESS] No access - brand_id not in user brands');
                 return false;
               }
               
-              console.log('✅ Access granted');
+              console.log('[ACCESS] Access granted');
               return true;
             }
             
