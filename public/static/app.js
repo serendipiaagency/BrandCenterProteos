@@ -1835,7 +1835,13 @@ const renderAssetsPage = () => {
             ` : ''}
             
             <div class="asset-thumbnail">
-              <i class="fas ${getFileIcon(asset.file_type)} ${getFileIconColor(asset.file_type)}"></i>
+              ${asset.thumbnail_url ? `
+                <img src="${asset.thumbnail_url}" alt="${asset.title || asset.original_filename}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy" />
+              ` : asset.file_type && asset.file_type.includes('image') ? `
+                <img src="${asset.file_url}" alt="${asset.title || asset.original_filename}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy" />
+              ` : `
+                <i class="fas ${getFileIcon(asset.file_type)} ${getFileIconColor(asset.file_type)}"></i>
+              `}
             </div>
             
             <div class="asset-body">
