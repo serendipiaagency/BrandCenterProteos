@@ -524,7 +524,6 @@ const renderHeader = () => {
         </a>
         
         <nav class="main-nav">
-          <a href="#" class="active">${t('nav.assetsLibrary')}</a>
           <a href="/admin">${t('nav.logout')}</a>
         </nav>
       </div>
