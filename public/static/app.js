@@ -1906,6 +1906,75 @@ const renderInstructionsPage = () => {
     </div>
     
     <div style="max-width: 900px;">
+      <!-- VIDEO TUTORIALS -->
+      <div style="background: white; border-radius: 12px; padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--gray-900); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+          <i class="fas fa-video" style="color: var(--primary-600);"></i>
+          Video Tutorials
+        </h2>
+        
+        <!-- Video Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+          
+          <!-- English Video -->
+          <div style="background: #f9fafb; border-radius: 12px; overflow: hidden; border: 2px solid #e5e7eb;">
+            <div style="position: relative; padding-top: 56.25%; background: #000;">
+              <video 
+                controls 
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='360'%3E%3Crect fill='%23002f57' width='640' height='360'/%3E%3Ctext fill='white' font-size='24' font-family='Arial' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3ETraining%3C/text%3E%3C/svg%3E">
+                <source src="REPLACE_WITH_ENGLISH_VIDEO_URL" type="video/mp4">
+                Your browser does not support the video tag.
+              </video>
+            </div>
+            <div style="padding: 1.5rem;">
+              <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--gray-900); margin: 0 0 0.75rem 0;">
+                Brand Center Video ENG
+              </h3>
+              <p style="color: var(--gray-600); font-size: 0.9rem; line-height: 1.6; margin: 0 0 1rem 0;">
+                Learn how to easily navigate the Brand Center platform in this tutorial video. Discover where to find assets, how to download official materials, and how to make the most of all available tools.
+              </p>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+                <span style="font-size: 0.875rem; color: var(--gray-500);">108.43 MB</span>
+                <a href="REPLACE_WITH_ENGLISH_VIDEO_URL" download class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; font-size: 0.875rem;">
+                  <i class="fas fa-download"></i>
+                  Download
+                </a>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Spanish Video -->
+          <div style="background: #f9fafb; border-radius: 12px; overflow: hidden; border: 2px solid #e5e7eb;">
+            <div style="position: relative; padding-top: 56.25%; background: #000;">
+              <video 
+                controls 
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='360'%3E%3Crect fill='%23002f57' width='640' height='360'/%3E%3Ctext fill='white' font-size='24' font-family='Arial' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3ETraining%3C/text%3E%3C/svg%3E">
+                <source src="REPLACE_WITH_SPANISH_VIDEO_URL" type="video/mp4">
+                Your browser does not support the video tag.
+              </video>
+            </div>
+            <div style="padding: 1.5rem;">
+              <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--gray-900); margin: 0 0 0.75rem 0;">
+                Brand Center Video Guía ESP
+              </h3>
+              <p style="color: var(--gray-600); font-size: 0.9rem; line-height: 1.6; margin: 0 0 1rem 0;">
+                Aprende a navegar fácilmente por la plataforma del Brand Center en este vídeo tutorial. Descubre dónde encontrar recursos de marca, cómo descargar materiales oficiales y cómo aprovechar todas las herramientas disponibles.
+              </p>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+                <span style="font-size: 0.875rem; color: var(--gray-500);">28.52 MB</span>
+                <a href="REPLACE_WITH_SPANISH_VIDEO_URL" download class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; font-size: 0.875rem;">
+                  <i class="fas fa-download"></i>
+                  Download
+                </a>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+      
       <!-- SUBIDA DE ASSETS -->
       <div style="background: white; border-radius: 12px; padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--gray-900); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
