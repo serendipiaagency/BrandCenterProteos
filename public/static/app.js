@@ -1923,7 +1923,7 @@ const renderInstructionsPage = () => {
                 controls 
                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
                 poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='360'%3E%3Crect fill='%23002f57' width='640' height='360'/%3E%3Ctext fill='white' font-size='24' font-family='Arial' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3ETraining%3C/text%3E%3C/svg%3E">
-                <source src="REPLACE_WITH_ENGLISH_VIDEO_URL" type="video/mp4">
+                <source src="https://brandcenter.pbserum.com/api/files/1771429313932-Brand Center Video ENG.mp4" type="video/mp4">
                 Your browser does not support the video tag.
               </video>
             </div>
@@ -1935,8 +1935,8 @@ const renderInstructionsPage = () => {
                 Learn how to easily navigate the Brand Center platform in this tutorial video. Discover where to find assets, how to download official materials, and how to make the most of all available tools.
               </p>
               <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
-                <span style="font-size: 0.875rem; color: var(--gray-500);">108.43 MB</span>
-                <a href="REPLACE_WITH_ENGLISH_VIDEO_URL" download class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; font-size: 0.875rem;">
+                <span style="font-size: 0.875rem; color: var(--gray-500);">113.7 MB</span>
+                <a href="https://brandcenter.pbserum.com/api/files/1771429313932-Brand Center Video ENG.mp4" download class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; font-size: 0.875rem;">
                   <i class="fas fa-download"></i>
                   Download
                 </a>
@@ -1951,7 +1951,7 @@ const renderInstructionsPage = () => {
                 controls 
                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
                 poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='360'%3E%3Crect fill='%23002f57' width='640' height='360'/%3E%3Ctext fill='white' font-size='24' font-family='Arial' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3ETraining%3C/text%3E%3C/svg%3E">
-                <source src="REPLACE_WITH_SPANISH_VIDEO_URL" type="video/mp4">
+                <source src="https://brandcenter.pbserum.com/api/files/1771429270942-Brand Center Video ESP.mp4" type="video/mp4">
                 Your browser does not support the video tag.
               </video>
             </div>
@@ -1963,8 +1963,8 @@ const renderInstructionsPage = () => {
                 Aprende a navegar fácilmente por la plataforma del Brand Center en este vídeo tutorial. Descubre dónde encontrar recursos de marca, cómo descargar materiales oficiales y cómo aprovechar todas las herramientas disponibles.
               </p>
               <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
-                <span style="font-size: 0.875rem; color: var(--gray-500);">28.52 MB</span>
-                <a href="REPLACE_WITH_SPANISH_VIDEO_URL" download class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; font-size: 0.875rem;">
+                <span style="font-size: 0.875rem; color: var(--gray-500);">27.9 MB</span>
+                <a href="https://brandcenter.pbserum.com/api/files/1771429270942-Brand Center Video ESP.mp4" download class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; font-size: 0.875rem;">
                   <i class="fas fa-download"></i>
                   Download
                 </a>
