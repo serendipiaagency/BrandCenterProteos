@@ -1630,7 +1630,7 @@ const renderSidebar = () => {
           <li class="sidebar-item">
             <a href="#" onclick="navigateTo('instructions'); return false;" class="sidebar-link ${state.currentPage === 'instructions' ? 'active' : ''}">
               <i class="fas fa-book-open"></i>
-              <span>Instrucciones de Uso</span>
+              <span>User Guide</span>
             </a>
           </li>
           ${state.currentUser.role === 'admin' ? `
@@ -1899,9 +1899,9 @@ const renderInstructionsPage = () => {
       <div>
         <h1 class="page-title">
           <i class="fas fa-book-open" style="margin-right: 0.75rem; color: var(--primary-600);"></i>
-          Instrucciones de Uso
+          User Guide
         </h1>
-        <p class="page-subtitle">Guía rápida para la gestión del BRAND CENTER</p>
+        <p class="page-subtitle">Quick guide for BRAND CENTER management</p>
       </div>
     </div>
     
@@ -1910,7 +1910,7 @@ const renderInstructionsPage = () => {
       <div style="background: white; border-radius: 12px; padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--gray-900); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
           <i class="fas fa-cloud-upload-alt" style="color: var(--primary-600);"></i>
-          Subida de Assets
+          Asset Upload
         </h2>
         
         <!-- PASO 1 -->
@@ -1919,20 +1919,20 @@ const renderInstructionsPage = () => {
             <div style="background: white; color: #667eea; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700;">
               1
             </div>
-            <h3 style="font-size: 1.25rem; font-weight: 600; margin: 0;">Primer Paso: Subir Archivo</h3>
+            <h3 style="font-size: 1.25rem; font-weight: 600; margin: 0;">First Step: Upload File</h3>
           </div>
           <ul style="list-style: none; padding-left: 0; margin: 0;">
             <li style="padding: 0.5rem 0; display: flex; align-items: start;">
               <i class="fas fa-check-circle" style="margin-right: 0.75rem; margin-top: 0.25rem; font-size: 1.125rem;"></i>
-              <span><strong>Subir archivo:</strong> Selecciona y sube el archivo desde tu equipo</span>
+              <span><strong>Upload file:</strong> Select and upload the file from your computer</span>
             </li>
             <li style="padding: 0.5rem 0; display: flex; align-items: start;">
               <i class="fas fa-check-circle" style="margin-right: 0.75rem; margin-top: 0.25rem; font-size: 1.125rem;"></i>
-              <span><strong>Rellenar Título y Descripción:</strong> Completa estos campos obligatorios</span>
+              <span><strong>Fill in Title and Description:</strong> Complete these required fields</span>
             </li>
             <li style="padding: 0.5rem 0; display: flex; align-items: start;">
               <i class="fas fa-exclamation-triangle" style="margin-right: 0.75rem; margin-top: 0.25rem; font-size: 1.125rem;"></i>
-              <span><strong>NO cerrar la pantalla</strong> hasta completar el Paso 2</span>
+              <span><strong>DO NOT close the screen</strong> until Step 2 is completed</span>
             </li>
           </ul>
         </div>
@@ -1943,20 +1943,20 @@ const renderInstructionsPage = () => {
             <div style="background: white; color: #f5576c; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700;">
               2
             </div>
-            <h3 style="font-size: 1.25rem; font-weight: 600; margin: 0;">Segundo Paso: Clasificar Asset</h3>
+            <h3 style="font-size: 1.25rem; font-weight: 600; margin: 0;">Second Step: Classify Asset</h3>
           </div>
           <ul style="list-style: none; padding-left: 0; margin: 0;">
             <li style="padding: 0.5rem 0; display: flex; align-items: start;">
               <i class="fas fa-check-circle" style="margin-right: 0.75rem; margin-top: 0.25rem; font-size: 1.125rem;"></i>
-              <span><strong>Seleccionar BRAND(S):</strong> Elige una o varias marcas</span>
+              <span><strong>Select BRAND(S):</strong> Choose one or multiple brands</span>
             </li>
             <li style="padding: 0.5rem 0; display: flex; align-items: start;">
               <i class="fas fa-check-circle" style="margin-right: 0.75rem; margin-top: 0.25rem; font-size: 1.125rem;"></i>
-              <span><strong>Seleccionar REGION(ES):</strong> Define las regiones de acceso</span>
+              <span><strong>Select REGION(S):</strong> Define access regions</span>
             </li>
             <li style="padding: 0.5rem 0; display: flex; align-items: start;">
               <i class="fas fa-check-circle" style="margin-right: 0.75rem; margin-top: 0.25rem; font-size: 1.125rem;"></i>
-              <span><strong>Completar resto de opciones:</strong> Material Type, Sub-brand, Tags, etc.</span>
+              <span><strong>Complete remaining options:</strong> Material Type, Sub-brand, Tags, etc.</span>
             </li>
           </ul>
         </div>
@@ -1967,7 +1967,7 @@ const renderInstructionsPage = () => {
             <i class="fas fa-info-circle" style="color: #10b981; font-size: 1.25rem; margin-top: 0.125rem;"></i>
             <div>
               <h4 style="font-weight: 600; color: #047857; margin: 0 0 0.5rem 0;">REGION = GLOBAL</h4>
-              <p style="margin: 0; color: #065f46;">Si seleccionas <strong>REGION = GLOBAL</strong>, el asset será visible en <strong>todas las regiones</strong> (USA, LATAM, EUROPA, MENA, ASIA).</p>
+              <p style="margin: 0; color: #065f46;">If you select <strong>REGION = GLOBAL</strong>, the asset will be visible in <strong>all regions</strong> (USA, LATAM, EUROPA, MENA, ASIA).</p>
             </div>
           </div>
         </div>
@@ -1977,7 +1977,7 @@ const renderInstructionsPage = () => {
       <div style="background: white; border-radius: 12px; padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--gray-900); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
           <i class="fas fa-user-shield" style="color: var(--primary-600);"></i>
-          Permisos de Usuarios
+          User Permissions
         </h2>
         
         <!-- ADVERTENCIA IMPORTANTE -->
@@ -1986,18 +1986,18 @@ const renderInstructionsPage = () => {
             <i class="fas fa-exclamation-triangle" style="color: #dc2626; font-size: 2rem;"></i>
             <div>
               <h3 style="font-weight: 700; color: #991b1b; margin: 0 0 0.75rem 0; font-size: 1.125rem;">
-                ⚠️ ADVERTENCIA: BORRAR CACHÉ DESPUÉS DE CAMBIOS
+                ⚠️ WARNING: CLEAR CACHE AFTER CHANGES
               </h3>
               <p style="margin: 0; color: #7f1d1d; line-height: 1.6;">
-                Después de modificar permisos de usuarios (brands_access o regions), es necesario que el usuario 
-                <strong>borre la caché del navegador</strong> y vuelva a iniciar sesión para que los cambios se apliquen correctamente.
+                After modifying user permissions (brands_access or regions), it is necessary for the user to 
+                <strong>clear the browser cache</strong> and log in again for the changes to take effect correctly.
               </p>
               <div style="margin-top: 1rem; padding: 1rem; background: white; border-radius: 8px;">
-                <strong style="color: #991b1b;">Cómo borrar caché:</strong>
+                <strong style="color: #991b1b;">How to clear cache:</strong>
                 <ul style="margin: 0.5rem 0 0 0; padding-left: 1.5rem; color: #7f1d1d;">
                   <li><strong>Windows/Linux:</strong> Ctrl + Shift + R o Ctrl + F5</li>
                   <li><strong>Mac:</strong> Cmd + Shift + R</li>
-                  <li><strong>Alternativa:</strong> Abrir el navegador en modo incógnito</li>
+                  <li><strong>Alternative:</strong> Open browser in incognito mode</li>
                 </ul>
               </div>
             </div>
@@ -2009,7 +2009,7 @@ const renderInstructionsPage = () => {
       <div style="background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--gray-900); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
           <i class="fas fa-shield-alt" style="color: var(--primary-600);"></i>
-          Reglas de Acceso a Assets
+          Asset Access Rules
         </h2>
         
         <div style="display: grid; gap: 1rem;">
@@ -2018,8 +2018,8 @@ const renderInstructionsPage = () => {
             <div style="display: flex; align-items: start; gap: 0.75rem;">
               <i class="fas fa-check-circle" style="color: #3b82f6; font-size: 1.25rem; margin-top: 0.125rem;"></i>
               <div>
-                <h4 style="font-weight: 600; color: #1e40af; margin: 0 0 0.5rem 0;">Acceso por BRAND</h4>
-                <p style="margin: 0; color: #1e3a8a;">Los usuarios solo pueden ver assets de las <strong>brands asignadas</strong> en su perfil.</p>
+                <h4 style="font-weight: 600; color: #1e40af; margin: 0 0 0.5rem 0;">Access by BRAND</h4>
+                <p style="margin: 0; color: #1e3a8a;">Users can only see assets from <strong>assigned brands</strong> in their profile.</p>
               </div>
             </div>
           </div>
@@ -2029,8 +2029,8 @@ const renderInstructionsPage = () => {
             <div style="display: flex; align-items: start; gap: 0.75rem;">
               <i class="fas fa-check-circle" style="color: #8b5cf6; font-size: 1.25rem; margin-top: 0.125rem;"></i>
               <div>
-                <h4 style="font-weight: 600; color: #6d28d9; margin: 0 0 0.5rem 0;">Acceso por REGIÓN</h4>
-                <p style="margin: 0; color: #5b21b6;">Los usuarios solo pueden ver assets de sus <strong>regiones asignadas</strong> o con <strong>REGION = GLOBAL</strong>.</p>
+                <h4 style="font-weight: 600; color: #6d28d9; margin: 0 0 0.5rem 0;">Access by REGION</h4>
+                <p style="margin: 0; color: #5b21b6;">Users can only see assets from their <strong>assigned regions</strong> or with <strong>REGION = GLOBAL</strong>.</p>
               </div>
             </div>
           </div>
@@ -2041,7 +2041,7 @@ const renderInstructionsPage = () => {
               <i class="fas fa-info-circle" style="color: #f59e0b; font-size: 1.25rem; margin-top: 0.125rem;"></i>
               <div>
                 <h4 style="font-weight: 600; color: #d97706; margin: 0 0 0.5rem 0;">Role: Admin</h4>
-                <p style="margin: 0; color: #b45309;">Los usuarios con <strong>role = admin</strong> ven <strong>todos los assets</strong> sin restricciones.</p>
+                <p style="margin: 0; color: #b45309;">Users with <strong>role = admin</strong> see <strong>all assets</strong> without restrictions.</p>
               </div>
             </div>
           </div>
@@ -2052,7 +2052,7 @@ const renderInstructionsPage = () => {
               <i class="fas fa-info-circle" style="color: #ec4899; font-size: 1.25rem; margin-top: 0.125rem;"></i>
               <div>
                 <h4 style="font-weight: 600; color: #db2777; margin: 0 0 0.5rem 0;">Role: Marketing</h4>
-                <p style="margin: 0; color: #be185d;">Los usuarios con <strong>role = marketing</strong> deben respetar sus <strong>brands_access</strong> y <strong>regions</strong> asignadas.</p>
+                <p style="margin: 0; color: #be185d;">Users with <strong>role = marketing</strong> must respect their <strong>brands_access</strong> and assigned <strong>regions</strong>.</p>
               </div>
             </div>
           </div>
