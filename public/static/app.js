@@ -1599,11 +1599,6 @@ const renderHeader = () => {
             </div>
           </div>
           
-          <a href="/" class="btn-public-catalog" target="_blank" title="Ver Catálogo Público">
-            <i class="fas fa-external-link-alt"></i>
-            <span>Catálogo Público</span>
-          </a>
-          
           <button onclick="handleLogout()" class="btn-logout">
             <i class="fas fa-sign-out-alt"></i>
             Logout
