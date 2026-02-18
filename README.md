@@ -314,11 +314,17 @@ Proprietary - Proteos Biotech © 2026
 
 ---
 
-**Last Updated**: 2026-02-16
-**Version**: 2.1.1
+**Last Updated**: 2026-02-18
+**Version**: 2.2.0
 **Status**: Production Ready ✅
 
-### Recent Updates (v2.1.1)
+### Recent Updates (v2.2.0)
+- 🎬 **Video Tutorials** - Added tutorial videos to User Guide (English & Spanish)
+- 🌐 **Bilingual support** - Video instructions in both languages
+- 📹 **Integrated video player** - Watch tutorials directly in admin panel
+- ⬇️ **Downloadable videos** - Option to download for offline viewing
+
+### Previous Updates (v2.1.1)
 - 🐛 **Fixed asset page login** - Moved JavaScript to external file `asset-page.js`
 - 🔧 **Fixed syntax error** - Resolved `Uncaught SyntaxError: Unexpected string` error
 - 📊 **Fixed analytics tracking** - Downloads and views now count correctly
