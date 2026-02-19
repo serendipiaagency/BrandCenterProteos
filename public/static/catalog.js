@@ -60,6 +60,7 @@ const translations = {
     brandName: 'PROTEOS BIOTECH',
     nav: {
       assetsLibrary: 'Assets Library',
+      userGuide: 'User Guide',
       logout: 'Logout'
     },
     // Filters
@@ -117,6 +118,7 @@ const translations = {
     brandName: 'PROTEOS BIOTECH',
     nav: {
       assetsLibrary: 'Biblioteca de Recursos',
+      userGuide: 'Instrucciones de Uso',
       logout: 'Salir'
     },
     // Filters
@@ -524,6 +526,7 @@ const renderHeader = () => {
         </a>
         
         <nav class="main-nav">
+          <a href="#" onclick="showUserGuide(); return false;" style="cursor: pointer;">${t('nav.userGuide')}</a>
           <a href="/admin">${t('nav.logout')}</a>
         </nav>
       </div>
@@ -958,6 +961,136 @@ const trackDownload = async (assetId) => {
     console.log('✅ Download tracked:', assetId)
   } catch (error) {
     console.error('❌ Failed to track download:', error)
+  }
+}
+
+// ============================================
+// User Guide Modal
+// ============================================
+
+const showUserGuide = () => {
+  const modal = document.createElement('div')
+  modal.id = 'user-guide-modal'
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    padding: 2rem 1rem;
+  `
+  
+  modal.innerHTML = `
+    <div style="background: white; border-radius: 16px; max-width: 1200px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+      <!-- Header -->
+      <div style="padding: 2rem; border-bottom: 2px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #002f57 0%, #004080 100%);">
+        <div>
+          <h2 style="margin: 0; font-size: 1.75rem; font-weight: 700; color: white; display: flex; align-items: center; gap: 0.75rem;">
+            <i class="fas fa-book-open"></i>
+            ${t('nav.userGuide')}
+          </h2>
+          <p style="margin: 0.5rem 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.95rem;">
+            ${state.language === 'en' ? 'Video tutorials for Brand Center platform' : 'Tutoriales en vídeo para la plataforma Brand Center'}
+          </p>
+        </div>
+        <button onclick="closeUserGuide()" style="background: rgba(255,255,255,0.2); border: 2px solid white; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1.25rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <!-- Content -->
+      <div style="padding: 2rem;">
+        <!-- Video Tutorials -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
+          
+          <!-- English Video -->
+          <div style="background: #f9fafb; border-radius: 12px; overflow: hidden; border: 2px solid #e5e7eb;">
+            <div style="position: relative; padding-top: 56.25%; background: #000;">
+              <video 
+                controls 
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='360'%3E%3Crect fill='%23002f57' width='640' height='360'/%3E%3Ctext fill='white' font-size='24' font-family='Arial' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3ETraining%3C/text%3E%3C/svg%3E">
+                <source src="https://brandcenter.pbserum.com/api/files/1771429313932-Brand Center Video ENG.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+              </video>
+            </div>
+            <div style="padding: 1.5rem;">
+              <h3 style="font-size: 1.125rem; font-weight: 600; color: #1f2937; margin: 0 0 0.75rem 0;">
+                Brand Center Video ENG
+              </h3>
+              <p style="color: #6b7280; font-size: 0.9rem; line-height: 1.6; margin: 0 0 1rem 0;">
+                Learn how to easily navigate the Brand Center platform in this tutorial video. Discover where to find assets, how to download official materials, and how to make the most of all available tools.
+              </p>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+                <span style="font-size: 0.875rem; color: #9ca3af;">113.7 MB</span>
+                <a href="https://brandcenter.pbserum.com/api/files/1771429313932-Brand Center Video ENG.mp4" download style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: #002f57; color: white; text-decoration: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; transition: background 0.2s;">
+                  <i class="fas fa-download"></i>
+                  Download
+                </a>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Spanish Video -->
+          <div style="background: #f9fafb; border-radius: 12px; overflow: hidden; border: 2px solid #e5e7eb;">
+            <div style="position: relative; padding-top: 56.25%; background: #000;">
+              <video 
+                controls 
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='360'%3E%3Crect fill='%23002f57' width='640' height='360'/%3E%3Ctext fill='white' font-size='24' font-family='Arial' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3ETraining%3C/text%3E%3C/svg%3E">
+                <source src="https://brandcenter.pbserum.com/api/files/1771429270942-Brand Center Video ESP.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+              </video>
+            </div>
+            <div style="padding: 1.5rem;">
+              <h3 style="font-size: 1.125rem; font-weight: 600; color: #1f2937; margin: 0 0 0.75rem 0;">
+                Brand Center Video Guía ESP
+              </h3>
+              <p style="color: #6b7280; font-size: 0.9rem; line-height: 1.6; margin: 0 0 1rem 0;">
+                Aprende a navegar fácilmente por la plataforma del Brand Center en este vídeo tutorial. Descubre dónde encontrar recursos de marca, cómo descargar materiales oficiales y cómo aprovechar todas las herramientas disponibles.
+              </p>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+                <span style="font-size: 0.875rem; color: #9ca3af;">27.9 MB</span>
+                <a href="https://brandcenter.pbserum.com/api/files/1771429270942-Brand Center Video ESP.mp4" download style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: #002f57; color: white; text-decoration: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; transition: background 0.2s;">
+                  <i class="fas fa-download"></i>
+                  Download
+                </a>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+        
+        <!-- Close Button -->
+        <div style="text-align: center; padding-top: 1rem; border-top: 2px solid #e5e7eb;">
+          <button onclick="closeUserGuide()" style="padding: 0.75rem 2rem; background: #002f57; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500; transition: background 0.2s;">
+            ${state.language === 'en' ? 'Close' : 'Cerrar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  `
+  
+  document.body.appendChild(modal)
+  
+  // Close on background click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      closeUserGuide()
+    }
+  })
+}
+
+const closeUserGuide = () => {
+  const modal = document.getElementById('user-guide-modal')
+  if (modal) {
+    modal.remove()
   }
 }
 
