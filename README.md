@@ -315,11 +315,17 @@ Proprietary - Proteos Biotech © 2026
 ---
 
 **Last Updated**: 2026-02-18
-**Version**: 2.2.0
+**Version**: 2.2.1
 **Status**: Production Ready ✅
 
-### Recent Updates (v2.2.0)
-- 🎬 **Video Tutorials** - Added tutorial videos to User Guide (English & Spanish)
+### Recent Updates (v2.2.1)
+- 📚 **User Guide in Public Catalog** - Added "User Guide" button next to Logout
+- 🎬 **Video tutorials accessible** - Public users can watch tutorial videos
+- 🌐 **Bilingual modal** - User Guide modal with English/Spanish videos
+- 📱 **Responsive design** - Modal works perfectly on all devices
+
+### Previous Updates (v2.2.0)
+- 🎬 **Video Tutorials** - Added tutorial videos to Admin User Guide (English & Spanish)
 - 🌐 **Bilingual support** - Video instructions in both languages
 - 📹 **Integrated video player** - Watch tutorials directly in admin panel
 - ⬇️ **Downloadable videos** - Option to download for offline viewing
