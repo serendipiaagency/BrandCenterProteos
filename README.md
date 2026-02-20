@@ -314,11 +314,16 @@ Proprietary - Proteos Biotech © 2026
 
 ---
 
-**Last Updated**: 2026-02-18
-**Version**: 2.2.1
+**Last Updated**: 2026-02-20
+**Version**: 2.2.2
 **Status**: Production Ready ✅
 
-### Recent Updates (v2.2.1)
+### Recent Updates (v2.2.2)
+- 🎬 **Updated English video** - New compressed version (29.73 MB, was 113.7 MB)
+- ⚡ **Faster loading** - 74% smaller file size for better performance
+- 📹 **Same quality** - Optimized video maintains visual quality
+
+### Previous Updates (v2.2.1)
 - 📚 **User Guide in Public Catalog** - Added "User Guide" button next to Logout
 - 🎬 **Video tutorials accessible** - Public users can watch tutorial videos
 - 🌐 **Bilingual modal** - User Guide modal with English/Spanish videos
