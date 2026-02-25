@@ -25,8 +25,7 @@ const state = {
   analyticsData: {
     stats: null,
     topAssets: [],
-    userActivity: [],
-    usersHistory: [], // NEW: Complete history for all users
+    usersHistory: [], // Complete history for all users
     brandActivity: [],
     timeline: [],
     allAssets: [],
@@ -676,10 +675,9 @@ const loadAnalytics = async () => {
     showLoading()
     const days = state.analyticsData.selectedPeriod
     
-    const [stats, topAssets, userActivity, usersHistory, brandActivity, timeline, allAssets] = await Promise.all([
+    const [stats, topAssets, usersHistory, brandActivity, timeline, allAssets] = await Promise.all([
       api.getAnalyticsStats(days),
       api.getTopAssets(days, 10),
-      api.getUserActivity(days),
       api.getUsersHistory(days),
       api.getBrandActivity(days),
       api.getTimeline(days),
@@ -688,7 +686,6 @@ const loadAnalytics = async () => {
     
     state.analyticsData.stats = stats
     state.analyticsData.topAssets = topAssets.assets
-    state.analyticsData.userActivity = userActivity.users
     state.analyticsData.usersHistory = usersHistory.users
     state.analyticsData.brandActivity = brandActivity.brands
     state.analyticsData.timeline = timeline.timeline
@@ -3269,7 +3266,7 @@ const renderPasswordModal = () => {
 
 const renderUserActivityDetails = () => {
   const { userDetailHistory, selectedUserId, selectedPeriod } = state.analyticsData
-  const selectedUser = state.analyticsData.userActivity.find(u => u.user_id === parseInt(selectedUserId))
+  const selectedUser = state.analyticsData.usersHistory.find(u => u.user_id === parseInt(selectedUserId))
   
   if (!selectedUser) {
     return `<div style="text-align: center; padding: 4rem 2rem;">
@@ -3405,7 +3402,7 @@ const renderUserActivityDetails = () => {
 }
 
 const renderAnalyticsPage = () => {
-  const { stats, topAssets, userActivity, usersHistory, brandActivity, timeline, allAssets = [], selectedPeriod, activeTab } = state.analyticsData
+  const { stats, topAssets, usersHistory, brandActivity, timeline, allAssets = [], selectedPeriod, activeTab } = state.analyticsData
   
   // If showing user details, render that view instead
   if (activeTab === 'user-details') {
@@ -3533,67 +3530,12 @@ const renderAnalyticsPage = () => {
         `}
       </div>
       
-      <!-- User Activity Table -->
-      <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1a202c;">
-          <i class="fas fa-user-chart"></i>
-          User Activity
-        </h2>
-        ${userActivity.length === 0 ? `
-          <p style="text-align: center; color: #718096; padding: 2rem;">No user activity data</p>
-        ` : `
-          <div style="overflow-x: auto;">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Role</th>
-                  <th style="width: 120px; text-align: center;">
-                    <i class="fas fa-eye"></i> Views
-                  </th>
-                  <th style="width: 120px; text-align: center;">
-                    <i class="fas fa-download"></i> Downloads
-                  </th>
-                  <th style="width: 180px;">Last Activity</th>
-                  <th style="width: 120px; text-align: center;">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${userActivity.map(user => `
-                  <tr>
-                    <td>
-                      <div style="font-weight: 500;">${user.user_name || 'Unknown'}</div>
-                      <div style="font-size: 0.875rem; color: #718096;">${user.user_email || 'N/A'}</div>
-                    </td>
-                    <td>
-                      <span style="padding: 0.25rem 0.75rem; background: #e2e8f0; border-radius: 12px; font-size: 0.875rem;">
-                        ${user.user_role || 'N/A'}
-                      </span>
-                    </td>
-                    <td style="text-align: center; font-weight: 600;">${user.views || 0}</td>
-                    <td style="text-align: center; font-weight: 600;">${user.downloads || 0}</td>
-                    <td style="font-size: 0.875rem; color: #718096;">
-                      ${user.last_activity ? formatDate(user.last_activity) : 'N/A'}
-                    </td>
-                    <td style="text-align: center;">
-                      <button onclick="loadUserDetailHistory(${user.user_id})" class="btn-icon" title="View detailed history" style="padding: 0.5rem 1rem; background: var(--primary-500); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.875rem; transition: background 0.2s;">
-                        <i class="fas fa-history"></i> Details
-                      </button>
-                    </td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        `}
-      </div>
-      
       <!-- User Activity Details Table -->
       <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
           <h2 style="font-size: 1.25rem; font-weight: 600; color: #1a202c; margin: 0;">
             <i class="fas fa-user-clock"></i>
-            User Activity Details
+            User Activity
           </h2>
           <span style="font-size: 0.875rem; color: #718096;">
             Click on a user to see their complete activity history
