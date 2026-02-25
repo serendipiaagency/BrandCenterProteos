@@ -49,6 +49,12 @@ Professional brand asset management system for Proteos Biotech, enabling distrib
   - Remove brands (remove specific brands)
 - **🆕 Multi-brand assignment**: Assign assets to multiple brands during upload/edit
 - **🆕 Dedicated edit pages**: Each asset has its own edit page (no modals) for better UX
+- **🆕 Analytics Tracking**: Track all user views and downloads with complete history
+  - User email, name, role
+  - Event type (view/download)
+  - Asset details (title, brand, type)
+  - IP address and user agent
+  - Timestamp for every action
 
 ### 🎨 User Interface
 - **Elegant corporate design** inspired by modern brand portals
@@ -61,6 +67,20 @@ Professional brand asset management system for Proteos Biotech, enabling distrib
 - **Completely custom CSS** - no heavy frameworks, pure performance
 - **🆕 Instructions Page**: Built-in user guide with step-by-step instructions for asset uploads and permission management
 
+### 📊 Analytics Dashboard
+- **Overview statistics**: Total views, downloads, unique users, assets accessed
+- **Top 10 assets**: Most viewed and downloaded materials
+- **User activity summary**: Views, downloads, and last activity per user
+- **🆕 User Activity Details**: Expandable detailed history for each user
+  - Complete timeline of all views and downloads
+  - Asset details: title, brand, material type
+  - Event metadata: timestamp, IP address, action type
+  - Click any user to expand/collapse their full activity history
+  - Filter by period: last 7, 30, 90 days, or 12 months
+- **Brand activity**: Performance metrics by brand
+- **Timeline chart**: Daily views and downloads over time
+- **All assets performance**: Complete asset library with analytics
+
 ## 🗄️ Data Architecture
 
 ### Database (Cloudflare D1 - SQLite)
@@ -70,6 +90,11 @@ Professional brand asset management system for Proteos Biotech, enabling distrib
 - **material_types**: 15 predefined asset categories
 - **assets**: File metadata with taxonomy
 - **🆕 asset_brands**: Many-to-many relationship for multi-brand assets
+- **🆕 analytics_events**: Detailed tracking of all user interactions
+  - event_type: 'view' or 'download'
+  - user information: id, email, name, role, region
+  - asset information: id, title, brand, material type, file type
+  - metadata: timestamp, IP address, user agent, referer, session_id
 - **activity_log**: Audit trail for all actions
 - **user_requests**: Customer requests for specific materials
 
@@ -132,6 +157,18 @@ Para configurar `brandcenter.pbserum.com`, consulta: **[DOMAIN_SETUP.md](./DOMAI
 - `GET /api/users/:id/password` - View user password (admin only)
 - `PUT /api/users/:id/password` - Change user password (admin only)
 
+### Analytics API Endpoints (Admin/Marketing only)
+- `GET /api/analytics/stats?days=30` - Get overview statistics
+- `GET /api/analytics/top-assets?days=30&limit=10` - Get top performing assets
+- `GET /api/analytics/by-user?days=30` - Get activity summary by user
+- `🆕 GET /api/analytics/users-history?days=30` - Get complete activity history for all users with events
+- `GET /api/analytics/user/:userId/history?days=30` - Get activity history for specific user
+- `GET /api/analytics/by-brand?days=30` - Get activity by brand
+- `GET /api/analytics/timeline?days=30` - Get daily activity timeline
+- `GET /api/analytics/all-assets?days=30` - Get performance for all assets
+- `POST /api/analytics/track/view` - Track asset view event
+- `POST /api/analytics/track/download` - Track asset download event
+
 ## 🚀 Deployment Status
 
 ### Current Status: ✅ Production Ready
@@ -139,7 +176,7 @@ Para configurar `brandcenter.pbserum.com`, consulta: **[DOMAIN_SETUP.md](./DOMAI
 ### Live URLs
 - **Production**: https://brandcenter.pbserum.com (DNS pending)
 - **Cloudflare**: https://brand-portal-proteos.pages.dev
-- **Latest Deployment**: https://d967882e.brand-portal-proteos.pages.dev
+- **Latest Deployment**: https://9e6cc16a.brand-portal-proteos.pages.dev
 
 ### Technology Stack
 - **Backend**: Hono (v4.0.0) - Fast, lightweight web framework
