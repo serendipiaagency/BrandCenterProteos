@@ -26,11 +26,16 @@ const state = {
     stats: null,
     topAssets: [],
     userActivity: [],
+    usersHistory: [], // NEW: Complete history for all users
     brandActivity: [],
     timeline: [],
     allAssets: [],
-    selectedPeriod: 30
-  }
+    selectedPeriod: 30,
+    activeTab: 'overview', // 'overview', 'user-details', or 'user-history'
+    selectedUserId: null,
+    userDetailHistory: []
+  },
+  expandedUserId: null // Track which user's history is expanded
 }
 
 // ============================================
@@ -399,6 +404,11 @@ const api = {
   async getAllAssetsAnalytics(days = 30) {
     const response = await axios.get(`/api/analytics/all-assets?days=${days}`)
     return response.data
+  },
+  
+  async getUsersHistory(days = 30) {
+    const response = await axios.get(`/api/analytics/users-history?days=${days}`)
+    return response.data
   }
 }
 
@@ -666,10 +676,11 @@ const loadAnalytics = async () => {
     showLoading()
     const days = state.analyticsData.selectedPeriod
     
-    const [stats, topAssets, userActivity, brandActivity, timeline, allAssets] = await Promise.all([
+    const [stats, topAssets, userActivity, usersHistory, brandActivity, timeline, allAssets] = await Promise.all([
       api.getAnalyticsStats(days),
       api.getTopAssets(days, 10),
       api.getUserActivity(days),
+      api.getUsersHistory(days),
       api.getBrandActivity(days),
       api.getTimeline(days),
       api.getAllAssetsAnalytics(days)
@@ -678,6 +689,7 @@ const loadAnalytics = async () => {
     state.analyticsData.stats = stats
     state.analyticsData.topAssets = topAssets.assets
     state.analyticsData.userActivity = userActivity.users
+    state.analyticsData.usersHistory = usersHistory.users
     state.analyticsData.brandActivity = brandActivity.brands
     state.analyticsData.timeline = timeline.timeline
     state.analyticsData.allAssets = allAssets.assets
@@ -694,6 +706,46 @@ const loadAnalytics = async () => {
 const changeAnalyticsPeriod = async (days) => {
   state.analyticsData.selectedPeriod = days
   await loadAnalytics()
+}
+
+const switchAnalyticsTab = (tab) => {
+  state.analyticsData.activeTab = tab
+  render()
+}
+
+const loadUserDetailHistory = async (userId) => {
+  try {
+    showLoading()
+    state.analyticsData.selectedUserId = userId
+    state.analyticsData.activeTab = 'user-details'
+    
+    const days = state.analyticsData.selectedPeriod
+    const response = await axios.get(`/api/analytics/user/${userId}/history?days=${days}`)
+    
+    state.analyticsData.userDetailHistory = response.data.events || []
+    render()
+  } catch (error) {
+    console.error('Error loading user history:', error)
+    showNotification('Error loading user history', 'error')
+  } finally {
+    hideLoading()
+  }
+}
+
+const backToAnalyticsOverview = () => {
+  state.analyticsData.activeTab = 'overview'
+  state.analyticsData.selectedUserId = null
+  state.analyticsData.userDetailHistory = []
+  render()
+}
+
+const toggleUserHistory = (userId) => {
+  if (state.expandedUserId === userId) {
+    state.expandedUserId = null
+  } else {
+    state.expandedUserId = userId
+  }
+  render()
 }
 
 // ============================================
@@ -3215,8 +3267,150 @@ const renderPasswordModal = () => {
   `
 }
 
+const renderUserActivityDetails = () => {
+  const { userDetailHistory, selectedUserId, selectedPeriod } = state.analyticsData
+  const selectedUser = state.analyticsData.userActivity.find(u => u.user_id === parseInt(selectedUserId))
+  
+  if (!selectedUser) {
+    return `<div style="text-align: center; padding: 4rem 2rem;">
+      <p style="color: #718096;">User not found</p>
+    </div>`
+  }
+  
+  // Group events by date
+  const eventsByDate = {}
+  userDetailHistory.forEach(event => {
+    const date = event.timestamp ? event.timestamp.split(' ')[0] : 'Unknown'
+    if (!eventsByDate[date]) {
+      eventsByDate[date] = []
+    }
+    eventsByDate[date].push(event)
+  })
+  
+  const sortedDates = Object.keys(eventsByDate).sort().reverse()
+  
+  return `
+    <div class="page-header" style="margin-bottom: 2rem;">
+      <div>
+        <button onclick="backToAnalyticsOverview()" class="btn-secondary" style="margin-bottom: 1rem;">
+          <i class="fas fa-arrow-left"></i> Back to Overview
+        </button>
+        <h1 class="page-title" style="margin-top: 0;">
+          <i class="fas fa-user-clock"></i>
+          Activity History
+        </h1>
+        <div style="margin-top: 0.5rem;">
+          <div style="font-size: 1.25rem; font-weight: 600; color: var(--gray-900);">${selectedUser.user_name || 'Unknown'}</div>
+          <div style="font-size: 0.95rem; color: var(--gray-600);">${selectedUser.user_email || 'N/A'}</div>
+          <span style="display: inline-block; margin-top: 0.5rem; padding: 0.25rem 0.75rem; background: var(--gray-100); border-radius: 12px; font-size: 0.875rem;">
+            ${selectedUser.user_role || 'N/A'}
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+      <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #667eea;">
+        <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">Total Events</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--gray-900);">${userDetailHistory.length}</div>
+      </div>
+      <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #667eea;">
+        <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">Views</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--gray-900);">${selectedUser.views || 0}</div>
+      </div>
+      <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #f5576c;">
+        <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">Downloads</div>
+        <div style="font-size: 2rem; font-weight: 700; color: var(--gray-900);">${selectedUser.downloads || 0}</div>
+      </div>
+      <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #43e97b;">
+        <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">Last Activity</div>
+        <div style="font-size: 1rem; font-weight: 600; color: var(--gray-900);">${selectedUser.last_activity ? formatDate(selectedUser.last_activity) : 'N/A'}</div>
+      </div>
+    </div>
+    
+    <!-- Activity Timeline -->
+    <div style="background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+      <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem; color: #1a202c;">
+        <i class="fas fa-history"></i>
+        Activity Timeline (Last ${selectedPeriod} days)
+      </h2>
+      
+      ${userDetailHistory.length === 0 ? `
+        <p style="text-align: center; color: #718096; padding: 2rem;">No activity recorded in this period</p>
+      ` : `
+        <div style="position: relative;">
+          ${sortedDates.map(date => {
+            const events = eventsByDate[date]
+            return `
+              <div style="margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid #e2e8f0;">
+                <h3 style="font-size: 1rem; font-weight: 600; color: var(--gray-700); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                  <i class="fas fa-calendar-day" style="color: var(--primary-500);"></i>
+                  ${formatDate(date)}
+                  <span style="font-size: 0.875rem; font-weight: normal; color: var(--gray-500);">(${events.length} events)</span>
+                </h3>
+                
+                <div style="margin-left: 2rem; border-left: 2px solid #e2e8f0; padding-left: 1.5rem;">
+                  ${events.map(event => {
+                    const time = event.timestamp ? event.timestamp.split(' ')[1] : 'Unknown time'
+                    const isView = event.event_type === 'view'
+                    const isDownload = event.event_type === 'download'
+                    
+                    const icon = isView ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-download"></i>'
+                    const iconColor = isView ? '#667eea' : '#f5576c'
+                    const iconBg = isView ? '#eef2ff' : '#fef2f2'
+                    const eventLabel = isView ? 'Viewed' : 'Downloaded'
+                    
+                    return `
+                      <div style="margin-bottom: 1rem; padding: 1rem; background: ${iconBg}; border-radius: 8px; position: relative;">
+                        <div style="display: flex; align-items: start; gap: 1rem;">
+                          <div style="width: 40px; height: 40px; background: white; border: 2px solid ${iconColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: ${iconColor}; flex-shrink: 0;">
+                            ${icon}
+                          </div>
+                          <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                              <span style="font-weight: 600; color: ${iconColor};">${eventLabel}</span>
+                              <span style="font-size: 0.875rem; color: var(--gray-500);">${time}</span>
+                            </div>
+                            <div style="font-size: 0.95rem; color: var(--gray-900); font-weight: 500; margin-bottom: 0.5rem;">
+                              ${event.asset_title || 'Unknown Asset'}
+                            </div>
+                            ${event.brand_name || event.material_type ? `
+                              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                                ${event.brand_name ? `
+                                  <span style="padding: 0.25rem 0.5rem; background: white; border-radius: 6px; font-size: 0.8rem; color: var(--gray-600);">
+                                    <i class="fas fa-tag"></i> ${event.brand_name}
+                                  </span>
+                                ` : ''}
+                                ${event.material_type ? `
+                                  <span style="padding: 0.25rem 0.5rem; background: white; border-radius: 6px; font-size: 0.8rem; color: var(--gray-600);">
+                                    <i class="fas fa-folder"></i> ${event.material_type}
+                                  </span>
+                                ` : ''}
+                              </div>
+                            ` : ''}
+                          </div>
+                        </div>
+                      </div>
+                    `
+                  }).join('')}
+                </div>
+              </div>
+            `
+          }).join('')}
+        </div>
+      `}
+    </div>
+  `
+}
+
 const renderAnalyticsPage = () => {
-  const { stats, topAssets, userActivity, brandActivity, timeline, allAssets = [], selectedPeriod } = state.analyticsData
+  const { stats, topAssets, userActivity, usersHistory, brandActivity, timeline, allAssets = [], selectedPeriod, activeTab } = state.analyticsData
+  
+  // If showing user details, render that view instead
+  if (activeTab === 'user-details') {
+    return renderUserActivityDetails()
+  }
   
   return `
     <div class="page-header">
@@ -3361,6 +3555,7 @@ const renderAnalyticsPage = () => {
                     <i class="fas fa-download"></i> Downloads
                   </th>
                   <th style="width: 180px;">Last Activity</th>
+                  <th style="width: 120px; text-align: center;">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -3380,10 +3575,127 @@ const renderAnalyticsPage = () => {
                     <td style="font-size: 0.875rem; color: #718096;">
                       ${user.last_activity ? formatDate(user.last_activity) : 'N/A'}
                     </td>
+                    <td style="text-align: center;">
+                      <button onclick="loadUserDetailHistory(${user.user_id})" class="btn-icon" title="View detailed history" style="padding: 0.5rem 1rem; background: var(--primary-500); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.875rem; transition: background 0.2s;">
+                        <i class="fas fa-history"></i> Details
+                      </button>
+                    </td>
                   </tr>
                 `).join('')}
               </tbody>
             </table>
+          </div>
+        `}
+      </div>
+      
+      <!-- User Activity Details Table -->
+      <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 style="font-size: 1.25rem; font-weight: 600; color: #1a202c; margin: 0;">
+            <i class="fas fa-user-clock"></i>
+            User Activity Details
+          </h2>
+          <span style="font-size: 0.875rem; color: #718096;">
+            Click on a user to see their complete activity history
+          </span>
+        </div>
+        ${!state.analyticsData.usersHistory || state.analyticsData.usersHistory.length === 0 ? `
+          <p style="text-align: center; color: #718096; padding: 2rem;">No detailed activity data available</p>
+        ` : `
+          <div style="overflow-x: auto;">
+            ${state.analyticsData.usersHistory.map(user => {
+              const isExpanded = state.expandedUserId === user.user_id
+              return `
+                <div style="margin-bottom: 1.5rem; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                  <!-- User Header (Clickable) -->
+                  <div onclick="toggleUserHistory(${user.user_id})" style="background: #f7fafc; padding: 1rem 1.5rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;" onmouseover="this.style.background='#edf2f7'" onmouseout="this.style.background='#f7fafc'">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                      <i class="fas fa-user-circle" style="font-size: 2rem; color: #667eea;"></i>
+                      <div>
+                        <div style="font-weight: 600; font-size: 1.1rem; color: #1a202c;">${user.user_name || 'Unknown'}</div>
+                        <div style="font-size: 0.875rem; color: #718096;">${user.user_email || 'N/A'}</div>
+                      </div>
+                      <span style="padding: 0.25rem 0.75rem; background: #e2e8f0; border-radius: 12px; font-size: 0.875rem; margin-left: 1rem;">
+                        ${user.user_role || 'N/A'}
+                      </span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 2rem;">
+                      <div style="text-align: center;">
+                        <div style="font-size: 0.75rem; color: #718096; text-transform: uppercase;">Views</div>
+                        <div style="font-size: 1.25rem; font-weight: 700; color: #667eea;">${user.views || 0}</div>
+                      </div>
+                      <div style="text-align: center;">
+                        <div style="font-size: 0.75rem; color: #718096; text-transform: uppercase;">Downloads</div>
+                        <div style="font-size: 1.25rem; font-weight: 700; color: #f5576c;">${user.downloads || 0}</div>
+                      </div>
+                      <div style="text-align: center;">
+                        <div style="font-size: 0.75rem; color: #718096; text-transform: uppercase;">Last Activity</div>
+                        <div style="font-size: 0.875rem; font-weight: 600; color: #1a202c;">${user.last_activity ? formatDate(user.last_activity) : 'N/A'}</div>
+                      </div>
+                      <i class="fas fa-chevron-${isExpanded ? 'up' : 'down'}" style="color: #718096; font-size: 1.25rem;"></i>
+                    </div>
+                  </div>
+                  
+                  <!-- User Events (Expandable) -->
+                  ${isExpanded ? `
+                    <div style="padding: 1.5rem; background: white;">
+                      ${user.events && user.events.length > 0 ? `
+                        <table class="data-table">
+                          <thead>
+                            <tr>
+                              <th style="width: 140px;">Date & Time</th>
+                              <th style="width: 100px; text-align: center;">Action</th>
+                              <th>Asset</th>
+                              <th>Brand</th>
+                              <th>Type</th>
+                              <th style="width: 150px;">IP Address</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${user.events.map(event => `
+                              <tr>
+                                <td style="font-size: 0.875rem; color: #4a5568;">
+                                  ${event.timestamp ? formatDate(event.timestamp) : 'N/A'}
+                                </td>
+                                <td style="text-align: center;">
+                                  ${event.event_type === 'view' ? 
+                                    '<span style="padding: 0.25rem 0.75rem; background: #dbeafe; color: #1e40af; border-radius: 12px; font-size: 0.75rem; font-weight: 600;"><i class="fas fa-eye"></i> VIEW</span>' :
+                                    '<span style="padding: 0.25rem 0.75rem; background: #fce7f3; color: #be185d; border-radius: 12px; font-size: 0.75rem; font-weight: 600;"><i class="fas fa-download"></i> DOWNLOAD</span>'
+                                  }
+                                </td>
+                                <td>
+                                  <div style="font-weight: 500; color: #1a202c;">${event.asset_title || 'Unknown Asset'}</div>
+                                  <div style="font-size: 0.75rem; color: #718096;">ID: ${event.asset_id || 'N/A'}</div>
+                                </td>
+                                <td>
+                                  <span class="brand-badge" style="background-color: #002f57; font-size: 0.75rem;">
+                                    ${event.brand_name || 'N/A'}
+                                  </span>
+                                </td>
+                                <td style="font-size: 0.875rem; color: #718096;">
+                                  ${event.material_type || 'N/A'}
+                                </td>
+                                <td style="font-size: 0.875rem; color: #718096; font-family: monospace;">
+                                  ${event.ip_address || 'N/A'}
+                                </td>
+                              </tr>
+                            `).join('')}
+                          </tbody>
+                        </table>
+                        
+                        <div style="margin-top: 1rem; padding: 1rem; background: #f7fafc; border-radius: 6px; font-size: 0.875rem; color: #4a5568;">
+                          <strong>Total Events:</strong> ${user.events.length} | 
+                          <strong>Views:</strong> ${user.events.filter(e => e.event_type === 'view').length} | 
+                          <strong>Downloads:</strong> ${user.events.filter(e => e.event_type === 'download').length}
+                        </div>
+                      ` : `
+                        <p style="text-align: center; color: #718096; padding: 2rem;">No events recorded for this user</p>
+                      `}
+                    </div>
+                  ` : ''}
+                </div>
+              `
+            }).join('')}
           </div>
         `}
       </div>

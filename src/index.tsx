@@ -1745,6 +1745,7 @@ app.get('/api/analytics/by-user', async (c) => {
     
     const { results } = await c.env.DB.prepare(`
       SELECT 
+        user_id,
         user_email,
         user_name,
         user_role,
@@ -1844,6 +1845,108 @@ app.get('/api/analytics/all-assets', async (c) => {
   } catch (error) {
     console.error('Analytics all assets error:', error)
     return c.json({ error: 'Failed to get all assets analytics', details: error.message }, 500)
+  }
+})
+
+// Get detailed user activity history
+app.get('/api/analytics/user/:userId/history', async (c) => {
+  try {
+    const userId = c.req.param('userId')
+    const days = c.req.query('days') || '30'
+    
+    const { results } = await c.env.DB.prepare(`
+      SELECT 
+        ae.id,
+        ae.event_type,
+        ae.asset_id,
+        ae.asset_title,
+        ae.brand_name,
+        ae.material_type,
+        ae.timestamp,
+        ae.ip_address,
+        ae.user_agent,
+        u.email as user_email,
+        u.name as user_name,
+        u.role as user_role
+      FROM analytics_events ae
+      LEFT JOIN users u ON ae.user_id = u.id
+      WHERE ae.user_id = ?
+        AND ae.timestamp >= datetime('now', '-' || ? || ' days')
+      ORDER BY ae.timestamp DESC
+      LIMIT 500
+    `).bind(userId, days).all()
+    
+    return c.json({ 
+      events: results,
+      total: results.length,
+      userId: userId,
+      period: days
+    })
+  } catch (error) {
+    console.error('User history error:', error)
+    return c.json({ error: 'Failed to get user history', details: error.message }, 500)
+  }
+})
+
+// Get all users with their complete activity history
+app.get('/api/analytics/users-history', async (c) => {
+  try {
+    const days = c.req.query('days') || '30'
+    
+    // Get all users with their activity
+    const usersResult = await c.env.DB.prepare(`
+      SELECT DISTINCT
+        user_id,
+        user_email,
+        user_name,
+        user_role
+      FROM analytics_events
+      WHERE user_id IS NOT NULL
+        AND timestamp >= datetime('now', '-' || ? || ' days')
+      ORDER BY user_name
+    `).bind(days).all()
+    
+    const users = usersResult.results
+    
+    // For each user, get their detailed activity
+    const usersWithActivity = await Promise.all(users.map(async (user) => {
+      // Get all events for this user
+      const eventsResult = await c.env.DB.prepare(`
+        SELECT 
+          id,
+          event_type,
+          asset_id,
+          asset_title,
+          brand_name,
+          material_type,
+          file_type,
+          timestamp,
+          ip_address
+        FROM analytics_events
+        WHERE user_id = ?
+          AND timestamp >= datetime('now', '-' || ? || ' days')
+        ORDER BY timestamp DESC
+        LIMIT 500
+      `).bind(user.user_id, days).all()
+      
+      // Count totals
+      const views = eventsResult.results.filter(e => e.event_type === 'view').length
+      const downloads = eventsResult.results.filter(e => e.event_type === 'download').length
+      const lastActivity = eventsResult.results.length > 0 ? eventsResult.results[0].timestamp : null
+      
+      return {
+        ...user,
+        views,
+        downloads,
+        last_activity: lastActivity,
+        events: eventsResult.results
+      }
+    }))
+    
+    return c.json({ users: usersWithActivity })
+  } catch (error) {
+    console.error('Users history error:', error)
+    return c.json({ error: 'Failed to get users history', details: error.message }, 500)
   }
 })
 
