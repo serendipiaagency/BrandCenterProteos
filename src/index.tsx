@@ -1893,18 +1893,17 @@ app.get('/api/analytics/users-history', async (c) => {
   try {
     const days = c.req.query('days') || '30'
     
-    // Get all users with their activity
+    // Get ALL users from users table (not just those with activity)
     const usersResult = await c.env.DB.prepare(`
-      SELECT DISTINCT
-        user_id,
-        user_email,
-        user_name,
-        user_role
-      FROM analytics_events
-      WHERE user_id IS NOT NULL
-        AND timestamp >= datetime('now', '-' || ? || ' days')
-      ORDER BY user_name
-    `).bind(days).all()
+      SELECT 
+        id as user_id,
+        email as user_email,
+        name as user_name,
+        role as user_role
+      FROM users
+      WHERE active = 1
+      ORDER BY name
+    `).all()
     
     const users = usersResult.results
     
@@ -1926,7 +1925,7 @@ app.get('/api/analytics/users-history', async (c) => {
         WHERE user_id = ?
           AND timestamp >= datetime('now', '-' || ? || ' days')
         ORDER BY timestamp DESC
-        LIMIT 500
+        LIMIT 1000
       `).bind(user.user_id, days).all()
       
       // Count totals
