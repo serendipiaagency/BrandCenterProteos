@@ -71,12 +71,14 @@ Professional brand asset management system for Proteos Biotech, enabling distrib
 - **Overview statistics**: Total views, downloads, unique users, assets accessed
 - **Top 10 assets**: Most viewed and downloaded materials
 - **User activity summary**: Views, downloads, and last activity per user
-- **🆕 User Activity Details**: Expandable detailed history for each user
-  - Complete timeline of all views and downloads
+- **🆕 User Activity Details**: Complete activity history for ALL registered users (94+ users)
+  - Shows ALL users in the platform, even those without activity yet
+  - Complete timeline of all views and downloads (up to 1,000 events per user)
   - Asset details: title, brand, material type
   - Event metadata: timestamp, IP address, action type
   - Click any user to expand/collapse their full activity history
   - Filter by period: last 7, 30, 90 days, or 12 months
+  - Users without activity show 0 views/downloads
 - **Brand activity**: Performance metrics by brand
 - **Timeline chart**: Daily views and downloads over time
 - **All assets performance**: Complete asset library with analytics
@@ -176,7 +178,7 @@ Para configurar `brandcenter.pbserum.com`, consulta: **[DOMAIN_SETUP.md](./DOMAI
 ### Live URLs
 - **Production**: https://brandcenter.pbserum.com (DNS pending)
 - **Cloudflare**: https://brand-portal-proteos.pages.dev
-- **Latest Deployment**: https://9e6cc16a.brand-portal-proteos.pages.dev
+- **Latest Deployment**: https://ca977642.brand-portal-proteos.pages.dev
 
 ### Technology Stack
 - **Backend**: Hono (v4.0.0) - Fast, lightweight web framework
