@@ -1257,30 +1257,70 @@ app.post('/api/assets/bulk-edit', async (c) => {
 })
 
 app.delete('/api/assets/:id', async (c) => {
-  const id = c.req.param('id')
-  
-  // Get file URL to delete from R2
-  const asset = await c.env.DB.prepare(`
-    SELECT filename FROM assets WHERE id = ?
-  `).bind(id).first()
-  
-  if (asset && asset.filename) {
-    await c.env.R2.delete(asset.filename as string)
-  }
-  
-  await c.env.DB.prepare(`
-    DELETE FROM assets WHERE id = ?
-  `).bind(id).run()
-  
-  return c.json({ success: true }, {
-    headers: {
-      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-      'Clear-Site-Data': '"cache"',
-      'X-Cache-Invalidate': 'all'
+  try {
+    const id = c.req.param('id')
+    
+    // Get asset info before deletion (for R2 cleanup)
+    const asset = await c.env.DB.prepare(`
+      SELECT filename, thumbnail_url FROM assets WHERE id = ?
+    `).bind(id).first()
+    
+    if (!asset) {
+      return c.json({ error: 'Asset not found' }, 404)
     }
-  })
+    
+    // Step 1: Delete analytics events (no CASCADE)
+    await c.env.DB.prepare(`
+      DELETE FROM analytics_events WHERE asset_id = ?
+    `).bind(id).run()
+    
+    // Step 2: Delete asset_brands relationships (has CASCADE but better to be explicit)
+    await c.env.DB.prepare(`
+      DELETE FROM asset_brands WHERE asset_id = ?
+    `).bind(id).run()
+    
+    // Step 3: Delete from R2 storage
+    if (asset.filename) {
+      try {
+        await c.env.R2.delete(asset.filename as string)
+      } catch (error) {
+        console.error('Error deleting file from R2:', error)
+        // Continue deletion even if R2 delete fails
+      }
+    }
+    
+    // Step 4: Delete thumbnail from R2 if exists
+    if (asset.thumbnail_url) {
+      try {
+        const thumbnailPath = (asset.thumbnail_url as string).replace('/api/files/', '')
+        await c.env.R2.delete(thumbnailPath)
+      } catch (error) {
+        console.error('Error deleting thumbnail from R2:', error)
+        // Continue deletion even if thumbnail delete fails
+      }
+    }
+    
+    // Step 5: Delete asset record from database
+    await c.env.DB.prepare(`
+      DELETE FROM assets WHERE id = ?
+    `).bind(id).run()
+    
+    return c.json({ success: true }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Clear-Site-Data': '"cache"',
+        'X-Cache-Invalidate': 'all'
+      }
+    })
+  } catch (error) {
+    console.error('Error deleting asset:', error)
+    return c.json({ 
+      error: 'Failed to delete asset', 
+      details: error.message 
+    }, 500)
+  }
 })
 
 // ============================================
