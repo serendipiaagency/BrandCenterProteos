@@ -179,7 +179,45 @@ Para configurar `brandcenter.pbserum.com`, consulta: **[DOMAIN_SETUP.md](./DOMAI
 ### Live URLs
 - **Production**: https://brandcenter.pbserum.com (DNS pending)
 - **Cloudflare**: https://brand-portal-proteos.pages.dev
-- **Latest Deployment**: https://8d778405.brand-portal-proteos.pages.dev
+- **Latest Deployment**: https://e779b1f0.brand-portal-proteos.pages.dev
+
+## 📧 Transactional Email System
+
+**Status**: ✅ Implemented (Requires RESEND_API_KEY configuration)
+
+The system uses **Resend** (https://resend.com) to send professional transactional emails from `brandcenter@pbserum.com`.
+
+### Email Templates Available
+
+1. **Welcome Email** - Sent when creating new users
+   - Includes login credentials
+   - Security warning to change password
+   - Direct access button
+
+2. **Password Reset** - Sent when user requests password recovery
+   - Secure token link (expires in 1 hour)
+   - One-time use only
+   - Professional design
+
+3. **Password Changed** - Sent after successful password change
+   - Confirmation with timestamp
+   - Security alert section
+
+### Configuration Required
+
+To enable email sending, you need to:
+
+1. **Create Resend account** at https://resend.com
+2. **Verify domain** `pbserum.com` (add DNS records)
+3. **Get API Key** from Resend Dashboard
+4. **Configure in Cloudflare**:
+   ```bash
+   npx wrangler pages secret put RESEND_API_KEY --project-name brandcenter-pbserum
+   ```
+
+📖 **Complete setup guide**: See [EMAIL_SETUP.md](./EMAIL_SETUP.md) for detailed instructions.
+
+**Note**: Without RESEND_API_KEY configured, the system works in DEV mode (tokens shown in logs, no emails sent).
 
 ### Technology Stack
 - **Backend**: Hono (v4.0.0) - Fast, lightweight web framework
