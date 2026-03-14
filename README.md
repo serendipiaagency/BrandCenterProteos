@@ -80,9 +80,48 @@ Professional brand asset management system for Proteos Biotech, enabling distrib
   - Click any user to expand/collapse their full activity history
   - Filter by period: last 7, 30, 90 days, or 12 months
   - Users without activity show 0 views/downloads
-- **Brand activity**: Performance metrics by brand
-- **Timeline chart**: Daily views and downloads over time
-- **All assets performance**: Complete asset library with analytics
+
+### 📧 Transactional Email System
+- **🆕 Welcome Emails**: Automatic email sent to new users with login credentials
+- **🆕 Password Reset**: Secure token-based password recovery system (1-hour expiration)
+- **🆕 Password Changed**: Confirmation email when password is updated
+- **Professional templates**: Responsive HTML emails with brand styling
+- **Powered by Resend**: Reliable transactional email delivery
+- **From address**: brandcenter@pbserum.com
+
+### 📤 User Data Export
+- **🆕 Excel Export**: Download complete user database as .xlsx file
+  - All user fields: email, name, role, region, country, distributor, language, brands access
+  - Status indicators: active/inactive, creation date, last login
+  - Timestamped filename for record-keeping
+  - One-click export from User Management panel
+
+### 🔄 Mailchimp Integration
+- **🆕 Automatic Synchronization**: Users automatically synced to Mailchimp list "BrandCenter"
+  - New user creation → Subscribe to Mailchimp
+  - User update → Update Mailchimp data
+  - User deactivation → Unsubscribe from Mailchimp
+- **🆕 Manual Bulk Sync**: Admin can trigger full user sync to Mailchimp
+  - Processes all active users in batches
+  - Rate-limited to respect Mailchimp API limits (10 users per batch)
+  - Detailed sync results with success/failure counts
+- **🆕 Rich Data Mapping**: Full user profile synced to Mailchimp
+  - Merge fields: FNAME, LNAME, ROLE, REGION, COUNTRY, DISTRIB, LANGUAGE
+  - Tags: BrandCenter, user role, user region
+- **🆕 Configuration Status**: Check if Mailchimp is properly configured
+- **Error Handling**: Failed syncs don't prevent user operations
+- **Documentation**: Complete setup guide in MAILCHIMP_SETUP.md
+
+### 🎨 User Interface
+- **Elegant corporate design** inspired by modern brand portals
+- **Professional color palette** with blue gradient header
+- **Clean sidebar navigation** with hierarchical organization
+- **Interactive dashboard** with stats cards and brand grid
+- **Responsive asset library** with visual thumbnails
+- **Smooth animations** and hover effects throughout
+- **Modal-based workflows** for uploads and user management
+- **Completely custom CSS** - no heavy frameworks, pure performance
+- **🆕 Instructions Page**: Built-in user guide with step-by-step instructions for asset uploads and permission management
 
 ## 🗄️ Data Architecture
 
@@ -159,6 +198,8 @@ Para configurar `brandcenter.pbserum.com`, consulta: **[DOMAIN_SETUP.md](./DOMAI
 - `DELETE /api/users/:id` - Delete user (admin only)
 - `GET /api/users/:id/password` - View user password (admin only)
 - `PUT /api/users/:id/password` - Change user password (admin only)
+- `🆕 GET /api/users/export` - Export all users to Excel (admin only)
+- `🆕 POST /api/users/sync-mailchimp` - Bulk sync all active users to Mailchimp (admin only)
 
 ### Analytics API Endpoints (Admin/Marketing only)
 - `GET /api/analytics/stats?days=30` - Get overview statistics
@@ -172,6 +213,10 @@ Para configurar `brandcenter.pbserum.com`, consulta: **[DOMAIN_SETUP.md](./DOMAI
 - `POST /api/analytics/track/view` - Track asset view event
 - `POST /api/analytics/track/download` - Track asset download event
 
+### Mailchimp Integration API Endpoints (Admin only)
+- `🆕 GET /api/mailchimp/status` - Check Mailchimp configuration status
+- `🆕 POST /api/users/sync-mailchimp` - Bulk synchronize all active users to Mailchimp list
+
 ## 🚀 Deployment Status
 
 ### Current Status: ✅ Production Ready
@@ -179,7 +224,7 @@ Para configurar `brandcenter.pbserum.com`, consulta: **[DOMAIN_SETUP.md](./DOMAI
 ### Live URLs
 - **Production**: https://brandcenter.pbserum.com (DNS pending)
 - **Cloudflare**: https://brand-portal-proteos.pages.dev
-- **Latest Deployment**: https://e779b1f0.brand-portal-proteos.pages.dev
+- **Latest Deployment**: https://ac741454.brand-portal-proteos.pages.dev
 
 ## 📧 Transactional Email System
 
@@ -219,6 +264,62 @@ To enable email sending, you need to:
 
 **Note**: Without RESEND_API_KEY configured, the system works in DEV mode (tokens shown in logs, no emails sent).
 
+## 🔄 Mailchimp Integration
+
+**Status**: ✅ Implemented (Requires MAILCHIMP_API_KEY and MAILCHIMP_LIST_ID configuration)
+
+The system automatically synchronizes user data with Mailchimp list "BrandCenter" for email marketing campaigns.
+
+### Features
+
+1. **Automatic Sync** - Users are synced automatically:
+   - ✅ **New user created** → Subscribes to Mailchimp
+   - ✅ **User data updated** → Updates Mailchimp record
+   - ✅ **User deactivated** → Unsubscribes from Mailchimp
+
+2. **Manual Bulk Sync** - Admin can sync all active users:
+   - Click "Sync to Mailchimp" button in User Management
+   - Processes users in batches (10 per batch)
+   - Shows detailed results (success/failed counts)
+   - Rate-limited to respect Mailchimp API limits
+
+3. **Rich Data Mapping** - Full user profile synced:
+   ```javascript
+   Merge Fields: FNAME, LNAME, ROLE, REGION, COUNTRY, DISTRIB, LANGUAGE
+   Tags: BrandCenter, user_role, user_region
+   ```
+
+4. **Configuration Status** - Check if properly configured:
+   - API endpoint: `GET /api/mailchimp/status`
+   - Shows: hasApiKey, hasListId, server
+
+### Mailchimp List Setup
+
+Required merge fields in your Mailchimp list:
+- `FNAME` (Text) - First Name
+- `LNAME` (Text) - Last Name  
+- `ROLE` (Text) - User Role
+- `REGION` (Text) - Region
+- `COUNTRY` (Text) - Country
+- `DISTRIB` (Text) - Distributor
+- `LANGUAGE` (Text) - Language
+
+### Configuration Required
+
+To enable Mailchimp sync, you need to:
+
+1. **Get Mailchimp API Key** from Account > Extras > API Keys
+2. **Get List ID** from Audience > Settings > Audience name and defaults
+3. **Configure in Cloudflare**:
+   ```bash
+   npx wrangler pages secret put MAILCHIMP_API_KEY --project-name brandcenter-pbserum
+   npx wrangler pages secret put MAILCHIMP_LIST_ID --project-name brandcenter-pbserum
+   ```
+
+📖 **Complete setup guide**: See [MAILCHIMP_SETUP.md](./MAILCHIMP_SETUP.md) for detailed instructions.
+
+**Note**: Without proper configuration, sync operations are skipped (logged but don't fail user operations).
+
 ### Technology Stack
 - **Backend**: Hono (v4.0.0) - Fast, lightweight web framework
 - **Frontend**: Vanilla JavaScript with TailwindCSS CDN
@@ -246,6 +347,8 @@ To enable email sending, you need to:
 4. **Upload assets** through the Upload button (supports multi-brand)
 5. **Use Bulk Edit** to assign multiple assets to brands at once
 6. **Monitor activity** in the dashboard
+7. **🆕 Export users** to Excel for record-keeping
+8. **🆕 Sync users** to Mailchimp for email marketing campaigns
 
 ### For Distributors
 1. **Login** with provided credentials
