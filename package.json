@@ -15,6 +15,7 @@
     "clean-port": "fuser -k 3000/tcp 2>/dev/null || true"
   },
   "dependencies": {
+    "@mailchimp/mailchimp_marketing": "^3.0.80",
     "bcryptjs": "^3.0.3",
     "hono": "^4.11.4",
     "xlsx": "^0.18.5"

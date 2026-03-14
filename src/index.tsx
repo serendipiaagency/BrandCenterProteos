@@ -5,12 +5,21 @@ import type { FC } from 'hono/jsx'
 import { changePasswordHTML } from './change-password-html'
 import * as XLSX from 'xlsx'
 import { emailTemplates } from './email-templates'
+import { 
+  syncMemberToMailchimp, 
+  unsubscribeMemberFromMailchimp,
+  getMailchimpServer,
+  type MailchimpConfig,
+  type MailchimpMember 
+} from './mailchimp'
 
 // Type definitions
 type Bindings = {
   DB: D1Database
   R2: R2Bucket
-  RESEND_API_KEY?: string  // Optional for backward compatibility
+  RESEND_API_KEY?: string
+  MAILCHIMP_API_KEY?: string
+  MAILCHIMP_LIST_ID?: string
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -562,6 +571,115 @@ app.get('/api/users/export', async (c) => {
   }
 })
 
+// Check Mailchimp configuration status
+app.get('/api/mailchimp/status', async (c) => {
+  try {
+    const hasApiKey = !!c.env.MAILCHIMP_API_KEY
+    const hasListId = !!c.env.MAILCHIMP_LIST_ID
+    
+    const configured = hasApiKey && hasListId
+    
+    let server = ''
+    if (hasApiKey) {
+      server = getMailchimpServer(c.env.MAILCHIMP_API_KEY)
+    }
+
+    return c.json({
+      configured,
+      hasApiKey,
+      hasListId,
+      server: configured ? server : null
+    })
+  } catch (error) {
+    return c.json({ error: error.message }, 500)
+  }
+})
+
+// Sync users to Mailchimp (bulk sync endpoint)
+app.post('/api/users/sync-mailchimp', async (c) => {
+  try {
+    // Check if user is admin
+    const authHeader = c.req.header('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json({ error: 'Unauthorized' }, 401)
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const session = await c.env.DB.prepare(`
+      SELECT u.* FROM sessions s
+      JOIN users u ON s.user_id = u.id
+      WHERE s.token = ? AND s.expires_at > datetime('now')
+    `).bind(token).first()
+
+    if (!session || session.role !== 'admin') {
+      return c.json({ error: 'Admin access required' }, 403)
+    }
+
+    // Check Mailchimp configuration
+    if (!c.env.MAILCHIMP_API_KEY || !c.env.MAILCHIMP_LIST_ID) {
+      return c.json({ 
+        error: 'Mailchimp not configured',
+        details: 'Please configure MAILCHIMP_API_KEY and MAILCHIMP_LIST_ID environment variables'
+      }, 500)
+    }
+
+    const mailchimpConfig: MailchimpConfig = {
+      apiKey: c.env.MAILCHIMP_API_KEY,
+      server: getMailchimpServer(c.env.MAILCHIMP_API_KEY),
+      listId: c.env.MAILCHIMP_LIST_ID
+    }
+
+    // Get all active users
+    const { results } = await c.env.DB.prepare(`
+      SELECT 
+        email,
+        name,
+        role,
+        region,
+        country,
+        distributor,
+        language
+      FROM users 
+      WHERE active = 1
+      ORDER BY created_at DESC
+    `).all()
+
+    // Prepare members for Mailchimp
+    const members: MailchimpMember[] = results.map((user: any) => ({
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      region: user.region,
+      country: user.country,
+      distributor: user.distributor,
+      language: user.language || 'EN',
+      status: 'subscribed'
+    }))
+
+    console.log(`🔄 Starting bulk sync of ${members.length} users to Mailchimp...`)
+
+    // Perform bulk sync
+    const syncResults = await bulkSyncUsersToMailchimp(mailchimpConfig, members)
+
+    console.log(`✅ Mailchimp sync completed: ${syncResults.success} success, ${syncResults.failed} failed`)
+
+    return c.json({
+      success: true,
+      total: members.length,
+      synced: syncResults.success,
+      failed: syncResults.failed,
+      errors: syncResults.errors.slice(0, 10) // Return first 10 errors only
+    })
+
+  } catch (error) {
+    console.error('Error syncing to Mailchimp:', error)
+    return c.json({ 
+      error: 'Failed to sync users to Mailchimp', 
+      details: error.message 
+    }, 500)
+  }
+})
+
 app.post('/api/users', async (c) => {
   try {
     const data = await c.req.json()
@@ -621,6 +739,39 @@ app.post('/api/users', async (c) => {
       }
     }
     
+    // Sync to Mailchimp
+    if (c.env.MAILCHIMP_API_KEY && c.env.MAILCHIMP_LIST_ID) {
+      try {
+        const mailchimpConfig: MailchimpConfig = {
+          apiKey: c.env.MAILCHIMP_API_KEY,
+          server: getMailchimpServer(c.env.MAILCHIMP_API_KEY),
+          listId: c.env.MAILCHIMP_LIST_ID
+        }
+        
+        const mailchimpMember: MailchimpMember = {
+          email: data.email,
+          name: data.name,
+          role: data.role,
+          region: data.region,
+          country: data.country,
+          distributor: data.distributor,
+          language: data.language || 'EN',
+          status: 'subscribed'
+        }
+        
+        const syncResult = await syncMemberToMailchimp(mailchimpConfig, mailchimpMember)
+        
+        if (syncResult.success) {
+          console.log('✅ User synced to Mailchimp:', data.email)
+        } else {
+          console.error('⚠️ Mailchimp sync failed:', syncResult.error)
+        }
+      } catch (mailchimpError) {
+        console.error('Error syncing to Mailchimp:', mailchimpError)
+        // Don't fail user creation if Mailchimp sync fails
+      }
+    }
+    
     return c.json({ success: true, id: result.meta.last_row_id, password })
   } catch (error) {
     console.error('Error creating user:', error)
@@ -629,36 +780,131 @@ app.post('/api/users', async (c) => {
 })
 
 app.put('/api/users/:id', async (c) => {
-  const id = c.req.param('id')
-  const data = await c.req.json()
-  
-  await c.env.DB.prepare(`
-    UPDATE users 
-    SET name = ?, role = ?, region = ?, country = ?, distributor = ?, language = ?, brands_access = ?, active = ?
-    WHERE id = ?
-  `).bind(
-    data.name,
-    data.role,
-    data.region,
-    data.country,
-    data.distributor,
-    data.language,
-    data.brands_access ? JSON.stringify(data.brands_access) : null,
-    data.active ? 1 : 0,
-    id
-  ).run()
-  
-  return c.json({ success: true })
+  try {
+    const id = c.req.param('id')
+    const data = await c.req.json()
+    
+    // Get user email before update (for Mailchimp sync)
+    const user = await c.env.DB.prepare(`
+      SELECT email FROM users WHERE id = ?
+    `).bind(id).first()
+    
+    if (!user) {
+      return c.json({ error: 'User not found' }, 404)
+    }
+    
+    await c.env.DB.prepare(`
+      UPDATE users 
+      SET name = ?, role = ?, region = ?, country = ?, distributor = ?, language = ?, brands_access = ?, active = ?
+      WHERE id = ?
+    `).bind(
+      data.name,
+      data.role,
+      data.region,
+      data.country,
+      data.distributor,
+      data.language,
+      data.brands_access ? JSON.stringify(data.brands_access) : null,
+      data.active ? 1 : 0,
+      id
+    ).run()
+    
+    // Sync to Mailchimp
+    if (c.env.MAILCHIMP_API_KEY && c.env.MAILCHIMP_LIST_ID) {
+      try {
+        const mailchimpConfig: MailchimpConfig = {
+          apiKey: c.env.MAILCHIMP_API_KEY,
+          server: getMailchimpServer(c.env.MAILCHIMP_API_KEY),
+          listId: c.env.MAILCHIMP_LIST_ID
+        }
+        
+        // If user is inactive, unsubscribe from Mailchimp
+        if (!data.active || data.active === 0) {
+          const unsubResult = await unsubscribeMemberFromMailchimp(
+            mailchimpConfig,
+            user.email
+          )
+          
+          if (unsubResult.success) {
+            console.log('✅ User unsubscribed from Mailchimp:', user.email)
+          }
+        } else {
+          // Otherwise, sync updated data
+          const mailchimpMember: MailchimpMember = {
+            email: user.email,
+            name: data.name,
+            role: data.role,
+            region: data.region,
+            country: data.country,
+            distributor: data.distributor,
+            language: data.language || 'EN',
+            status: 'subscribed'
+          }
+          
+          const syncResult = await syncMemberToMailchimp(mailchimpConfig, mailchimpMember)
+          
+          if (syncResult.success) {
+            console.log('✅ User updated in Mailchimp:', user.email)
+          }
+        }
+      } catch (mailchimpError) {
+        console.error('Error syncing to Mailchimp:', mailchimpError)
+        // Don't fail update if Mailchimp sync fails
+      }
+    }
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Error updating user:', error)
+    return c.json({ error: 'Failed to update user', details: error.message }, 500)
+  }
 })
 
 app.delete('/api/users/:id', async (c) => {
-  const id = c.req.param('id')
-  
-  await c.env.DB.prepare(`
-    UPDATE users SET active = 0 WHERE id = ?
-  `).bind(id).run()
-  
-  return c.json({ success: true })
+  try {
+    const id = c.req.param('id')
+    
+    // Get user email before deactivation
+    const user = await c.env.DB.prepare(`
+      SELECT email FROM users WHERE id = ?
+    `).bind(id).first()
+    
+    if (!user) {
+      return c.json({ error: 'User not found' }, 404)
+    }
+    
+    await c.env.DB.prepare(`
+      UPDATE users SET active = 0 WHERE id = ?
+    `).bind(id).run()
+    
+    // Unsubscribe from Mailchimp
+    if (c.env.MAILCHIMP_API_KEY && c.env.MAILCHIMP_LIST_ID) {
+      try {
+        const mailchimpConfig: MailchimpConfig = {
+          apiKey: c.env.MAILCHIMP_API_KEY,
+          server: getMailchimpServer(c.env.MAILCHIMP_API_KEY),
+          listId: c.env.MAILCHIMP_LIST_ID
+        }
+        
+        const unsubResult = await unsubscribeMemberFromMailchimp(
+          mailchimpConfig,
+          user.email
+        )
+        
+        if (unsubResult.success) {
+          console.log('✅ User unsubscribed from Mailchimp:', user.email)
+        }
+      } catch (mailchimpError) {
+        console.error('Error unsubscribing from Mailchimp:', mailchimpError)
+        // Don't fail deactivation if Mailchimp fails
+      }
+    }
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Error deactivating user:', error)
+    return c.json({ error: 'Failed to deactivate user', details: error.message }, 500)
+  }
 })
 
 // ============================================

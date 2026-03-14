@@ -337,6 +337,11 @@ const api = {
     return response.data
   },
   
+  async syncUsersToMailchimp() {
+    const response = await axios.post('/api/users/sync-mailchimp')
+    return response.data
+  },
+  
   async getStats() {
     const response = await axios.get('/api/stats')
     return response.data
@@ -1356,6 +1361,50 @@ const exportUsersToExcel = async () => {
   }
 }
 
+const syncUsersToMailchimp = async () => {
+  try {
+    // First check Mailchimp configuration status
+    const statusResponse = await axios.get('/api/mailchimp/status')
+    const mailchimpStatus = statusResponse.data
+    
+    if (!mailchimpStatus.configured) {
+      let message = 'Mailchimp is not configured. Please set the following environment variables:\n\n'
+      if (!mailchimpStatus.hasApiKey) message += '- MAILCHIMP_API_KEY\n'
+      if (!mailchimpStatus.hasListId) message += '- MAILCHIMP_LIST_ID\n'
+      showNotification(message, 'error')
+      return
+    }
+
+    // Confirm before sync
+    if (!confirm('This will sync all active users to Mailchimp list "BrandCenter". Continue?')) {
+      return
+    }
+
+    showLoading()
+    
+    const response = await api.syncUsersToMailchimp()
+    
+    if (response.success) {
+      const message = `Mailchimp sync completed!\n\nTotal users: ${response.total}\nSuccessfully synced: ${response.synced}\nFailed: ${response.failed}`
+      
+      if (response.failed > 0) {
+        console.error('Mailchimp sync errors:', response.errors)
+        showNotification(message + '\n\nCheck console for error details.', 'warning')
+      } else {
+        showNotification(message, 'success')
+      }
+    } else {
+      throw new Error(response.error || 'Unknown error')
+    }
+  } catch (error) {
+    console.error('Error syncing to Mailchimp:', error)
+    const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message
+    showNotification(`Error syncing to Mailchimp: ${errorMessage}`, 'error')
+  } finally {
+    hideLoading()
+  }
+}
+
 const openPasswordModal = async (userId) => {
   try {
     const result = await api.getUserPassword(userId)
@@ -2232,6 +2281,10 @@ const renderUsersPage = () => {
       </div>
       
       <div class="page-actions" style="display: flex; gap: 0.75rem;">
+        <button onclick="syncUsersToMailchimp()" class="btn-secondary" title="Sync all active users to Mailchimp" style="background: #FFE01B; color: #241C15;">
+          <i class="fas fa-sync"></i>
+          Sync to Mailchimp
+        </button>
         <button onclick="exportUsersToExcel()" class="btn-secondary" title="Export all users to Excel">
           <i class="fas fa-file-excel"></i>
           Export to Excel
