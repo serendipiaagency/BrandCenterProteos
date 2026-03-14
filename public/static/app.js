@@ -1289,6 +1289,50 @@ const openUserModal = (user = null) => {
       ...user,
       regions: regions,
       region: user.region, // Keep original for backward compatibility
+
+// Export users to Excel
+const exportUsersToExcel = async () => {
+  try {
+    showLoading()
+    
+    const response = await axios.get('/api/users/export', {
+      responseType: 'blob'
+    })
+    
+    // Create blob and download
+    const blob = new Blob([response.data], { 
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    })
+    
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    
+    // Get filename from response headers or use default
+    const contentDisposition = response.headers['content-disposition']
+    let filename = 'brand-center-users.xlsx'
+    if (contentDisposition) {
+      const matches = /filename="(.+)"/.exec(contentDisposition)
+      if (matches && matches[1]) {
+        filename = matches[1]
+      }
+    }
+    
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    
+    showNotification('Users exported successfully!', 'success')
+  } catch (error) {
+    console.error('Error exporting users:', error)
+    showNotification('Error exporting users', 'error')
+  } finally {
+    hideLoading()
+  }
+}
+
       brands_access: brandsAccess // Override with parsed array
     }
   } else {
@@ -2188,7 +2232,11 @@ const renderUsersPage = () => {
         <p class="page-subtitle">Manage user accounts and permissions</p>
       </div>
       
-      <div class="page-actions">
+      <div class="page-actions" style="display: flex; gap: 0.75rem;">
+        <button onclick="exportUsersToExcel()" class="btn-secondary" title="Export all users to Excel">
+          <i class="fas fa-file-excel"></i>
+          Export to Excel
+        </button>
         <button onclick="openUserModal()" class="btn-primary">
           <i class="fas fa-user-plus"></i>
           Add User

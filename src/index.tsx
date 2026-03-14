@@ -3,6 +3,7 @@ import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
 import type { FC } from 'hono/jsx'
 import { changePasswordHTML } from './change-password-html'
+import * as XLSX from 'xlsx'
 
 // Type definitions
 type Bindings = {
@@ -474,6 +475,85 @@ app.get('/api/users', async (c) => {
   const { results } = await c.env.DB.prepare(query).all()
   
   return c.json({ users: results, isAdmin })
+})
+
+// Export users to Excel
+app.get('/api/users/export', async (c) => {
+  try {
+    const { results } = await c.env.DB.prepare(`
+      SELECT 
+        id,
+        email,
+        name,
+        role,
+        region,
+        country,
+        distributor,
+        language,
+        brands_access,
+        active,
+        created_at,
+        last_login
+      FROM users 
+      ORDER BY created_at DESC
+    `).all()
+    
+    // Format data for Excel
+    const excelData = results.map((user: any) => ({
+      'ID': user.id,
+      'Email': user.email,
+      'Name': user.name,
+      'Role': user.role,
+      'Region': user.region || 'N/A',
+      'Country': user.country || 'N/A',
+      'Distributor': user.distributor || 'N/A',
+      'Language': user.language || 'N/A',
+      'Brands Access': user.brands_access ? JSON.parse(user.brands_access).join(', ') : 'All',
+      'Active': user.active ? 'Yes' : 'No',
+      'Created At': user.created_at,
+      'Last Login': user.last_login || 'Never'
+    }))
+    
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new()
+    const ws = XLSX.utils.json_to_sheet(excelData)
+    
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 5 },   // ID
+      { wch: 30 },  // Email
+      { wch: 25 },  // Name
+      { wch: 12 },  // Role
+      { wch: 10 },  // Region
+      { wch: 15 },  // Country
+      { wch: 25 },  // Distributor
+      { wch: 10 },  // Language
+      { wch: 30 },  // Brands Access
+      { wch: 8 },   // Active
+      { wch: 20 },  // Created At
+      { wch: 20 }   // Last Login
+    ]
+    
+    XLSX.utils.book_append_sheet(wb, ws, 'Users')
+    
+    // Generate Excel file
+    const excelBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+    
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().split('T')[0]
+    const filename = `brand-center-users-${timestamp}.xlsx`
+    
+    return new Response(excelBuffer, {
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-cache'
+      }
+    })
+  } catch (error) {
+    console.error('Error exporting users:', error)
+    return c.json({ error: 'Failed to export users', details: error.message }, 500)
+  }
 })
 
 app.post('/api/users', async (c) => {
