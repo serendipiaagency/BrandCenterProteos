@@ -4,6 +4,7 @@ import { serveStatic } from 'hono/cloudflare-workers'
 import type { FC } from 'hono/jsx'
 import { changePasswordHTML } from './change-password-html'
 import * as XLSX from 'xlsx'
+import { emailTemplates } from './email-templates'
 
 // Type definitions
 type Bindings = {
@@ -177,6 +178,8 @@ app.post('/api/auth/forgot-password', async (c) => {
     
     if (c.env.RESEND_API_KEY) {
       try {
+        const emailContent = emailTemplates.passwordReset(user.name, resetLink)
+        
         const resendResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
@@ -184,71 +187,18 @@ app.post('/api/auth/forgot-password', async (c) => {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            from: 'Brand Portal <noreply@pbserum.com>',
+            from: 'Brand Center <brandcenter@pbserum.com>',
             to: [email],
-            subject: 'Recuperación de Contraseña - Brand Portal',
-            html: `
-              <!DOCTYPE html>
-              <html>
-              <head>
-                <meta charset="utf-8">
-                <style>
-                  body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                  .header { background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-                  .content { background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; }
-                  .button { display: inline-block; background: #0066cc; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
-                  .footer { background: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; border-radius: 0 0 8px 8px; }
-                  .warning { background: #fef3c7; border-left: 4px solid #fbbf24; padding: 15px; margin: 20px 0; }
-                </style>
-              </head>
-              <body>
-                <div class="container">
-                  <div class="header">
-                    <h1 style="margin: 0; font-size: 28px;">🔑 Recuperación de Contraseña</h1>
-                  </div>
-                  <div class="content">
-                    <p>Hola <strong>${user.name}</strong>,</p>
-                    
-                    <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en <strong>Brand Portal</strong>.</p>
-                    
-                    <p>Haz clic en el siguiente botón para crear una nueva contraseña:</p>
-                    
-                    <div style="text-align: center;">
-                      <a href="${resetLink}" class="button">Restablecer Contraseña</a>
-                    </div>
-                    
-                    <p>O copia y pega este enlace en tu navegador:</p>
-                    <p style="background: #f3f4f6; padding: 12px; border-radius: 4px; word-break: break-all; font-size: 14px;">
-                      ${resetLink}
-                    </p>
-                    
-                    <div class="warning">
-                      <strong>⚠️ Importante:</strong>
-                      <ul style="margin: 10px 0 0 0; padding-left: 20px;">
-                        <li>Este enlace expira en <strong>1 hora</strong></li>
-                        <li>Solo se puede usar una vez</li>
-                        <li>Si no solicitaste esto, ignora este email</li>
-                      </ul>
-                    </div>
-                    
-                    <p>Saludos,<br><strong>Equipo de Brand Portal</strong></p>
-                  </div>
-                  <div class="footer">
-                    <p>Proteos Biotech - Brand Portal</p>
-                    <p>Este es un email automático, por favor no respondas.</p>
-                  </div>
-                </div>
-              </body>
-              </html>
-            `
+            subject: emailContent.subject,
+            html: emailContent.html,
+            text: emailContent.text
           })
         })
         
         if (!resendResponse.ok) {
           console.error('❌ Resend API error:', await resendResponse.text())
         } else {
-          console.log('✅ Email sent successfully via Resend')
+          console.log('✅ Password reset email sent successfully')
         }
       } catch (emailError) {
         console.error('❌ Error sending email:', emailError)
@@ -332,10 +282,12 @@ app.post('/api/auth/reset-password', async (c) => {
       return c.json({ error: 'Password must be at least 6 characters' }, 400)
     }
     
-    // Check if token is valid
+    // Check if token is valid and get user info
     const resetToken = await c.env.DB.prepare(`
-      SELECT * FROM password_reset_tokens 
-      WHERE token = ? AND used = 0 AND expires_at > datetime('now')
+      SELECT prt.*, u.email, u.name 
+      FROM password_reset_tokens prt
+      JOIN users u ON prt.user_id = u.id
+      WHERE prt.token = ? AND prt.used = 0 AND prt.expires_at > datetime('now')
     `).bind(token).first()
     
     if (!resetToken) {
@@ -352,6 +304,33 @@ app.post('/api/auth/reset-password', async (c) => {
     await c.env.DB.prepare(`
       UPDATE password_reset_tokens SET used = 1 WHERE token = ?
     `).bind(token).run()
+    
+    // Send confirmation email
+    if (c.env.RESEND_API_KEY) {
+      try {
+        const emailContent = emailTemplates.passwordChanged(resetToken.name, resetToken.email)
+        
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${c.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'Brand Center <brandcenter@pbserum.com>',
+            to: [resetToken.email],
+            subject: emailContent.subject,
+            html: emailContent.html,
+            text: emailContent.text
+          })
+        })
+        
+        console.log('✅ Password change confirmation email sent')
+      } catch (emailError) {
+        console.error('Error sending confirmation email:', emailError)
+        // Don't fail the request if email fails
+      }
+    }
     
     // Log activity
     await c.env.DB.prepare(`
@@ -427,6 +406,33 @@ app.post('/api/auth/change-password', async (c) => {
     await c.env.DB.prepare(`
       UPDATE users SET password_hash = ? WHERE id = ?
     `).bind(newPassword, user.id).run()
+    
+    // Send confirmation email
+    if (c.env.RESEND_API_KEY) {
+      try {
+        const emailContent = emailTemplates.passwordChanged(user.name, user.email)
+        
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${c.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'Brand Center <brandcenter@pbserum.com>',
+            to: [user.email],
+            subject: emailContent.subject,
+            html: emailContent.html,
+            text: emailContent.text
+          })
+        })
+        
+        console.log('✅ Password change confirmation email sent')
+      } catch (emailError) {
+        console.error('Error sending confirmation email:', emailError)
+        // Don't fail the request if email fails
+      }
+    }
     
     // Log activity
     await c.env.DB.prepare(`
@@ -557,27 +563,69 @@ app.get('/api/users/export', async (c) => {
 })
 
 app.post('/api/users', async (c) => {
-  const data = await c.req.json()
-  
-  // Generar contraseña aleatoria si no se proporciona
-  const password = data.password || Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase()
-  
-  const result = await c.env.DB.prepare(`
-    INSERT INTO users (email, password_hash, name, role, region, country, distributor, language, brands_access)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).bind(
-    data.email,
-    password, // En producción, hash con bcrypt
-    data.name,
-    data.role,
-    data.region || null,
-    data.country || null,
-    data.distributor || null,
-    data.language || 'ING',
-    data.brands_access ? JSON.stringify(data.brands_access) : null
-  ).run()
-  
-  return c.json({ success: true, id: result.meta.last_row_id, password })
+  try {
+    const data = await c.req.json()
+    
+    // Generar contraseña aleatoria si no se proporciona
+    const password = data.password || Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase()
+    
+    const result = await c.env.DB.prepare(`
+      INSERT INTO users (email, password_hash, name, role, region, country, distributor, language, brands_access)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      data.email,
+      password, // En producción, hash con bcrypt
+      data.name,
+      data.role,
+      data.region || null,
+      data.country || null,
+      data.distributor || null,
+      data.language || 'ING',
+      data.brands_access ? JSON.stringify(data.brands_access) : null
+    ).run()
+    
+    // Send welcome email
+    if (c.env.RESEND_API_KEY) {
+      try {
+        const loginUrl = 'https://brandcenter.pbserum.com'
+        const emailContent = emailTemplates.newUserWelcome(
+          data.name,
+          data.email,
+          password,
+          loginUrl
+        )
+        
+        const emailResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${c.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'Brand Center <brandcenter@pbserum.com>',
+            to: [data.email],
+            subject: emailContent.subject,
+            html: emailContent.html,
+            text: emailContent.text
+          })
+        })
+        
+        if (!emailResponse.ok) {
+          console.error('Failed to send welcome email:', await emailResponse.text())
+        } else {
+          console.log('✅ Welcome email sent to:', data.email)
+        }
+      } catch (emailError) {
+        console.error('Error sending welcome email:', emailError)
+        // Don't fail user creation if email fails
+      }
+    }
+    
+    return c.json({ success: true, id: result.meta.last_row_id, password })
+  } catch (error) {
+    console.error('Error creating user:', error)
+    return c.json({ error: 'Failed to create user', details: error.message }, 500)
+  }
 })
 
 app.put('/api/users/:id', async (c) => {
