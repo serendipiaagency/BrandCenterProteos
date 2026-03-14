@@ -1289,6 +1289,29 @@ const openUserModal = (user = null) => {
       ...user,
       regions: regions,
       region: user.region, // Keep original for backward compatibility
+      brands_access: brandsAccess // Override with parsed array
+    }
+  } else {
+    userModal = { 
+      email: '', 
+      name: '', 
+      role: 'distributor',
+      region: '',
+      regions: [],
+      country: '',
+      distributor: '',
+      language: 'ENG',
+      brands_access: [],
+      active: true
+    }
+  }
+  render()
+}
+
+const closeUserModal = () => {
+  userModal = null
+  render()
+}
 
 // Export users to Excel
 const exportUsersToExcel = async () => {
@@ -1331,30 +1354,6 @@ const exportUsersToExcel = async () => {
   } finally {
     hideLoading()
   }
-}
-
-      brands_access: brandsAccess // Override with parsed array
-    }
-  } else {
-    userModal = { 
-      email: '', 
-      name: '', 
-      role: 'distributor',
-      region: '',
-      regions: [],
-      country: '',
-      distributor: '',
-      language: 'ENG',
-      brands_access: [],
-      active: true
-    }
-  }
-  render()
-}
-
-const closeUserModal = () => {
-  userModal = null
-  render()
 }
 
 const openPasswordModal = async (userId) => {
