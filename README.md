@@ -266,9 +266,16 @@ To enable email sending, you need to:
 
 ## 🔄 Mailchimp Integration
 
-**Status**: ✅ Implemented (Requires MAILCHIMP_API_KEY and MAILCHIMP_LIST_ID configuration)
+**Status**: ✅ **CONFIGURED AND ACTIVE** (List ID: c01bb7b337, Server: us15)
 
-The system automatically synchronizes user data with Mailchimp list "BrandCenter" for email marketing campaigns.
+The system automatically synchronizes user data with Mailchimp for email marketing campaigns.
+
+### Current Configuration
+- ✅ **MAILCHIMP_API_KEY**: Configured (us15 server)
+- ✅ **MAILCHIMP_LIST_ID**: Configured (c01bb7b337)
+- ✅ **Tag**: `brandcenter` (lowercase)
+- ✅ **Active Users**: 107 users ready to sync
+- ✅ **Status Endpoint**: https://brandcenter.pbserum.com/api/mailchimp/status
 
 ### Features
 
@@ -286,7 +293,7 @@ The system automatically synchronizes user data with Mailchimp list "BrandCenter
 3. **Rich Data Mapping** - Full user profile synced:
    ```javascript
    Merge Fields: FNAME, LNAME, ROLE, REGION, COUNTRY, DISTRIB, LANGUAGE
-   Tags: BrandCenter, user_role, user_region
+   Tags: brandcenter, user_role, user_region
    ```
 
 4. **Configuration Status** - Check if properly configured:
@@ -295,7 +302,7 @@ The system automatically synchronizes user data with Mailchimp list "BrandCenter
 
 ### Mailchimp List Setup
 
-Required merge fields in your Mailchimp list:
+Required merge fields in your Mailchimp list (c01bb7b337):
 - `FNAME` (Text) - First Name
 - `LNAME` (Text) - Last Name  
 - `ROLE` (Text) - User Role
@@ -304,21 +311,14 @@ Required merge fields in your Mailchimp list:
 - `DISTRIB` (Text) - Distributor
 - `LANGUAGE` (Text) - Language
 
-### Configuration Required
+### Next Steps
 
-To enable Mailchimp sync, you need to:
+1. **Create merge fields** in Mailchimp list (5 minutes)
+2. **Run first sync** from Admin Panel > Users > "Sync to Mailchimp" (2 minutes)
+3. **Verify contacts** in Mailchimp (107 active users will be synced)
 
-1. **Get Mailchimp API Key** from Account > Extras > API Keys
-2. **Get List ID** from Audience > Settings > Audience name and defaults
-3. **Configure in Cloudflare**:
-   ```bash
-   npx wrangler pages secret put MAILCHIMP_API_KEY --project-name brandcenter-pbserum
-   npx wrangler pages secret put MAILCHIMP_LIST_ID --project-name brandcenter-pbserum
-   ```
-
-📖 **Complete setup guide**: See [MAILCHIMP_SETUP.md](./MAILCHIMP_SETUP.md) for detailed instructions.
-
-**Note**: Without proper configuration, sync operations are skipped (logged but don't fail user operations).
+📖 **Activation guide**: See [MAILCHIMP_READY.md](./MAILCHIMP_READY.md) for step-by-step instructions.
+📖 **Technical guide**: See [MAILCHIMP_SETUP.md](./MAILCHIMP_SETUP.md) for detailed documentation.
 
 ### Technology Stack
 - **Backend**: Hono (v4.0.0) - Fast, lightweight web framework
