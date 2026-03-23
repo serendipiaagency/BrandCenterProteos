@@ -224,7 +224,7 @@ Para configurar `brandcenter.pbserum.com`, consulta: **[DOMAIN_SETUP.md](./DOMAI
 ### Live URLs
 - **Production**: https://brandcenter.pbserum.com (DNS pending)
 - **Cloudflare**: https://brand-portal-proteos.pages.dev
-- **Latest Deployment**: https://e695e8bb.brand-portal-proteos.pages.dev
+- **Latest Deployment**: https://c80e5ed4.brand-portal-proteos.pages.dev
 
 ## 📧 Transactional Email System
 
