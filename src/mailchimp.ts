@@ -48,7 +48,7 @@ export async function syncMemberToMailchimp(
         LANGUAGE: member.language || 'EN'
       },
       tags: [
-        'BrandCenter',
+        'brandcenter',
         member.role,
         member.region || 'GLOBAL'
       ].filter(Boolean)
