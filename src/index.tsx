@@ -8,6 +8,7 @@ import { emailTemplates } from './email-templates'
 import { 
   syncMemberToMailchimp, 
   unsubscribeMemberFromMailchimp,
+  bulkSyncUsersToMailchimp,
   getMailchimpServer,
   type MailchimpConfig,
   type MailchimpMember 
