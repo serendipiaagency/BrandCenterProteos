@@ -1414,8 +1414,22 @@ const syncUsersToMailchimp = async () => {
     const message = `Mailchimp sync completed!\n\nTotal users: ${totalUsers}\nSuccessfully synced: ${totalSynced}\nFailed: ${totalFailed}`
     
     if (totalFailed > 0) {
+      // Check if all errors are compliance-related
+      const complianceErrors = allErrors.filter(e => e.includes('Compliance State'))
+      const technicalErrors = allErrors.filter(e => !e.includes('Compliance State'))
+      
       console.error('Mailchimp sync errors:', allErrors)
-      showNotification(message + '\n\nCheck console for error details.', 'warning')
+      
+      if (technicalErrors.length === 0) {
+        // Only compliance errors - this is expected
+        showNotification(
+          message + `\n\n⚠️ ${complianceErrors.length} user(s) could not be synced due to Mailchimp compliance state (unsubscribe, bounce, or compliance review).\n\nThese users must be reviewed manually in Mailchimp.`, 
+          'success'
+        )
+      } else {
+        // Has technical errors
+        showNotification(message + '\n\nCheck console for error details.', 'warning')
+      }
     } else {
       showNotification(message, 'success')
     }
