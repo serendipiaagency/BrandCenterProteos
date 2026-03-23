@@ -496,6 +496,15 @@ app.get('/api/users', async (c) => {
 // Export users to Excel
 app.get('/api/users/export', async (c) => {
   try {
+    // Get all brands first for ID to name mapping
+    const { results: brands } = await c.env.DB.prepare(`
+      SELECT id, name FROM brands
+    `).all()
+    
+    const brandMap = Object.fromEntries(
+      brands.map((b: any) => [b.id, b.name])
+    )
+    
     const { results } = await c.env.DB.prepare(`
       SELECT 
         id,
@@ -515,20 +524,39 @@ app.get('/api/users/export', async (c) => {
     `).all()
     
     // Format data for Excel
-    const excelData = results.map((user: any) => ({
-      'ID': user.id,
-      'Email': user.email,
-      'Name': user.name,
-      'Role': user.role,
-      'Region': user.region || 'N/A',
-      'Country': user.country || 'N/A',
-      'Distributor': user.distributor || 'N/A',
-      'Language': user.language || 'N/A',
-      'Brands Access': user.brands_access ? JSON.parse(user.brands_access).join(', ') : 'All',
-      'Active': user.active ? 'Yes' : 'No',
-      'Created At': user.created_at,
-      'Last Login': user.last_login || 'Never'
-    }))
+    const excelData = results.map((user: any) => {
+      let brandAccessText = 'All Brands'
+      
+      if (user.brands_access) {
+        try {
+          const brandIds = JSON.parse(user.brands_access)
+          if (Array.isArray(brandIds) && brandIds.length > 0) {
+            // Convert IDs to names
+            const brandNames = brandIds
+              .map(id => brandMap[id] || `Brand ${id}`)
+              .join(', ')
+            brandAccessText = brandNames
+          }
+        } catch (e) {
+          brandAccessText = user.brands_access
+        }
+      }
+      
+      return {
+        'ID': user.id,
+        'Email': user.email,
+        'Name': user.name,
+        'Role': user.role,
+        'Region': user.region || 'N/A',
+        'Country': user.country || 'N/A',
+        'Distributor': user.distributor || 'N/A',
+        'Language': user.language || 'N/A',
+        'Brands Access': brandAccessText,
+        'Active': user.active ? 'Yes' : 'No',
+        'Created At': user.created_at,
+        'Last Login': user.last_login || 'Never'
+      }
+    })
     
     // Create workbook and worksheet
     const wb = XLSX.utils.book_new()
@@ -544,7 +572,7 @@ app.get('/api/users/export', async (c) => {
       { wch: 15 },  // Country
       { wch: 25 },  // Distributor
       { wch: 10 },  // Language
-      { wch: 30 },  // Brands Access
+      { wch: 40 },  // Brands Access (wider for brand names)
       { wch: 8 },   // Active
       { wch: 20 },  // Created At
       { wch: 20 }   // Last Login
