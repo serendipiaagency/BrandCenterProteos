@@ -596,7 +596,7 @@ app.get('/api/mailchimp/status', async (c) => {
   }
 })
 
-// Sync users to Mailchimp (bulk sync endpoint)
+// Sync users to Mailchimp (bulk sync endpoint with pagination)
 app.post('/api/users/sync-mailchimp', async (c) => {
   try {
     // Check if user is admin (use userId like other endpoints)
@@ -628,7 +628,18 @@ app.post('/api/users/sync-mailchimp', async (c) => {
       listId: c.env.MAILCHIMP_LIST_ID
     }
 
-    // Get all active users
+    // Support pagination to avoid Cloudflare Workers subrequest limit (50)
+    const offset = parseInt(c.req.query('offset') || '0')
+    const limit = parseInt(c.req.query('limit') || '40') // Process max 40 users per batch
+
+    // Get total count first
+    const countResult = await c.env.DB.prepare(`
+      SELECT COUNT(*) as total FROM users WHERE active = 1
+    `).first()
+    
+    const totalUsers = countResult?.total || 0
+
+    // Get paginated users
     const { results } = await c.env.DB.prepare(`
       SELECT 
         email,
@@ -641,7 +652,8 @@ app.post('/api/users/sync-mailchimp', async (c) => {
       FROM users 
       WHERE active = 1
       ORDER BY created_at DESC
-    `).all()
+      LIMIT ? OFFSET ?
+    `).bind(limit, offset).all()
 
     // Prepare members for Mailchimp
     const members: MailchimpMember[] = results.map((user: any) => ({
@@ -655,18 +667,22 @@ app.post('/api/users/sync-mailchimp', async (c) => {
       status: 'subscribed'
     }))
 
-    console.log(`🔄 Starting bulk sync of ${members.length} users to Mailchimp...`)
+    console.log(`🔄 Syncing batch: ${members.length} users (offset: ${offset}, total: ${totalUsers})`)
 
     // Perform bulk sync
     const syncResults = await bulkSyncUsersToMailchimp(mailchimpConfig, members)
 
-    console.log(`✅ Mailchimp sync completed: ${syncResults.success} success, ${syncResults.failed} failed`)
+    console.log(`✅ Batch sync completed: ${syncResults.success} success, ${syncResults.failed} failed`)
 
     return c.json({
       success: true,
-      total: members.length,
+      total: totalUsers,
+      processed: members.length,
+      offset: offset,
       synced: syncResults.success,
       failed: syncResults.failed,
+      hasMore: (offset + limit) < totalUsers,
+      nextOffset: offset + limit,
       errors: syncResults.errors.slice(0, 10) // Return first 10 errors only
     })
 

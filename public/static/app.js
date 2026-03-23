@@ -337,9 +337,9 @@ const api = {
     return response.data
   },
   
-  async syncUsersToMailchimp() {
+  async syncUsersToMailchimp(offset = 0, limit = 40) {
     const currentUserId = state.currentUser?.id
-    const response = await axios.post(`/api/users/sync-mailchimp?currentUserId=${currentUserId}`)
+    const response = await axios.post(`/api/users/sync-mailchimp?currentUserId=${currentUserId}&offset=${offset}&limit=${limit}`)
     return response.data
   },
   
@@ -1383,20 +1383,43 @@ const syncUsersToMailchimp = async () => {
 
     showLoading()
     
-    const response = await api.syncUsersToMailchimp()
+    // Process in batches to avoid Cloudflare Workers subrequest limit
+    let offset = 0
+    const limit = 40 // Process 40 users per batch
+    let totalSynced = 0
+    let totalFailed = 0
+    let allErrors = []
+    let hasMore = true
+    let totalUsers = 0
     
-    if (response.success) {
-      const message = `Mailchimp sync completed!\n\nTotal users: ${response.total}\nSuccessfully synced: ${response.synced}\nFailed: ${response.failed}`
+    while (hasMore) {
+      const response = await api.syncUsersToMailchimp(offset, limit)
       
-      if (response.failed > 0) {
-        console.error('Mailchimp sync errors:', response.errors)
-        showNotification(message + '\n\nCheck console for error details.', 'warning')
-      } else {
-        showNotification(message, 'success')
+      if (!response.success) {
+        throw new Error(response.error || 'Unknown error')
       }
-    } else {
-      throw new Error(response.error || 'Unknown error')
+      
+      totalUsers = response.total
+      totalSynced += response.synced
+      totalFailed += response.failed
+      allErrors = allErrors.concat(response.errors || [])
+      hasMore = response.hasMore
+      offset = response.nextOffset
+      
+      // Show progress
+      const progress = Math.round((offset / totalUsers) * 100)
+      console.log(`Progress: ${progress}% (${offset}/${totalUsers} users processed)`)
     }
+    
+    const message = `Mailchimp sync completed!\n\nTotal users: ${totalUsers}\nSuccessfully synced: ${totalSynced}\nFailed: ${totalFailed}`
+    
+    if (totalFailed > 0) {
+      console.error('Mailchimp sync errors:', allErrors)
+      showNotification(message + '\n\nCheck console for error details.', 'warning')
+    } else {
+      showNotification(message, 'success')
+    }
+    
   } catch (error) {
     console.error('Error syncing to Mailchimp:', error)
     const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message
