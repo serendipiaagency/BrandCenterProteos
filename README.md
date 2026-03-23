@@ -228,7 +228,7 @@ Para configurar `brandcenter.pbserum.com`, consulta: **[DOMAIN_SETUP.md](./DOMAI
 
 ## 📧 Transactional Email System
 
-**Status**: ✅ Implemented (Requires RESEND_API_KEY configuration)
+**Status**: ✅ **CONFIGURED AND ACTIVE** (Resend API configured)
 
 The system uses **Resend** (https://resend.com) to send professional transactional emails from `brandcenter@pbserum.com`.
 
@@ -250,19 +250,16 @@ The system uses **Resend** (https://resend.com) to send professional transaction
 
 ### Configuration Required
 
-To enable email sending, you need to:
+✅ **CONFIGURED** - Resend API Key is active in production
 
-1. **Create Resend account** at https://resend.com
-2. **Verify domain** `pbserum.com` (add DNS records)
-3. **Get API Key** from Resend Dashboard
-4. **Configure in Cloudflare**:
-   ```bash
-   npx wrangler pages secret put RESEND_API_KEY --project-name brandcenter-pbserum
-   ```
+For local development, add to `.dev.vars`:
+```bash
+RESEND_API_KEY=your_api_key_here
+```
 
 📖 **Complete setup guide**: See [EMAIL_SETUP.md](./EMAIL_SETUP.md) for detailed instructions.
 
-**Note**: Without RESEND_API_KEY configured, the system works in DEV mode (tokens shown in logs, no emails sent).
+**Note**: Emails are now sent automatically for new users, password resets, and password changes.
 
 ## 🔄 Mailchimp Integration
 
