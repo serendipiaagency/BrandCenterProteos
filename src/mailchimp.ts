@@ -205,27 +205,22 @@ export async function bulkSyncUsersToMailchimp(
     errors: [] as string[]
   }
 
-  // Process in batches of 10 to avoid rate limits
-  const batchSize = 10
-  for (let i = 0; i < members.length; i += batchSize) {
-    const batch = members.slice(i, i + batchSize)
+  // Process sequentially to avoid Cloudflare Workers subrequest limit (50)
+  // This is slower but more reliable for large user bases
+  for (let i = 0; i < members.length; i++) {
+    const member = members[i]
+    const result = await syncMemberToMailchimp(config, member)
     
-    const batchResults = await Promise.all(
-      batch.map(member => syncMemberToMailchimp(config, member))
-    )
+    if (result.success) {
+      results.success++
+    } else {
+      results.failed++
+      results.errors.push(`${member.email}: ${result.error}`)
+    }
 
-    batchResults.forEach((result, index) => {
-      if (result.success) {
-        results.success++
-      } else {
-        results.failed++
-        results.errors.push(`${batch[index].email}: ${result.error}`)
-      }
-    })
-
-    // Rate limiting: wait 100ms between batches
-    if (i + batchSize < members.length) {
-      await new Promise(resolve => setTimeout(resolve, 100))
+    // Small delay to avoid rate limiting (10ms between requests)
+    if (i < members.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 10))
     }
   }
 
