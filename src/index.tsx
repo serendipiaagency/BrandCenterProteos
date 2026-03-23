@@ -598,20 +598,18 @@ app.get('/api/mailchimp/status', async (c) => {
 // Sync users to Mailchimp (bulk sync endpoint)
 app.post('/api/users/sync-mailchimp', async (c) => {
   try {
-    // Check if user is admin
-    const authHeader = c.req.header('Authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Check if user is admin (use userId like other endpoints)
+    const userId = c.req.query('currentUserId') || c.req.header('X-User-Id')
+    
+    if (!userId) {
       return c.json({ error: 'Unauthorized' }, 401)
     }
 
-    const token = authHeader.replace('Bearer ', '')
-    const session = await c.env.DB.prepare(`
-      SELECT u.* FROM sessions s
-      JOIN users u ON s.user_id = u.id
-      WHERE s.token = ? AND s.expires_at > datetime('now')
-    `).bind(token).first()
+    const user = await c.env.DB.prepare(`
+      SELECT id, role FROM users WHERE id = ? AND active = 1
+    `).bind(userId).first()
 
-    if (!session || session.role !== 'admin') {
+    if (!user || user.role !== 'admin') {
       return c.json({ error: 'Admin access required' }, 403)
     }
 

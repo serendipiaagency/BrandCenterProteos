@@ -338,7 +338,8 @@ const api = {
   },
   
   async syncUsersToMailchimp() {
-    const response = await axios.post('/api/users/sync-mailchimp')
+    const currentUserId = state.currentUser?.id
+    const response = await axios.post(`/api/users/sync-mailchimp?currentUserId=${currentUserId}`)
     return response.data
   },
   
