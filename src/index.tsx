@@ -600,6 +600,77 @@ app.get('/api/users/export', async (c) => {
   }
 })
 
+// Check Resend configuration status
+app.get('/api/resend/status', async (c) => {
+  try {
+    const configured = !!c.env.RESEND_API_KEY
+    
+    return c.json({
+      configured,
+      hasApiKey: configured,
+      emailsEnabled: configured
+    })
+  } catch (error) {
+    return c.json({ error: error.message }, 500)
+  }
+})
+
+// Test Resend email sending (admin only)
+app.post('/api/resend/test', async (c) => {
+  try {
+    const { email } = await c.req.json()
+    
+    if (!c.env.RESEND_API_KEY) {
+      return c.json({ 
+        success: false,
+        error: 'Resend API Key not configured' 
+      }, 500)
+    }
+    
+    const emailResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${c.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'Brand Center <brandcenter@pbserum.com>',
+        to: [email],
+        subject: 'Test Email from Brand Center',
+        html: '<h1>Test Email</h1><p>This is a test email from Brand Center to verify Resend integration.</p>',
+        text: 'Test Email - This is a test email from Brand Center to verify Resend integration.'
+      })
+    })
+    
+    const responseData = await emailResponse.json()
+    
+    if (!emailResponse.ok) {
+      console.error('❌ Resend test email failed:', responseData)
+      return c.json({ 
+        success: false,
+        error: 'Failed to send test email',
+        details: responseData
+      }, emailResponse.status)
+    }
+    
+    console.log('✅ Test email sent via Resend:', email, responseData)
+    
+    return c.json({
+      success: true,
+      emailId: responseData.id,
+      message: 'Test email sent successfully'
+    })
+    
+  } catch (error) {
+    console.error('Error sending test email:', error)
+    return c.json({ 
+      success: false,
+      error: 'Failed to send test email', 
+      details: error.message 
+    }, 500)
+  }
+})
+
 // Check Mailchimp configuration status
 app.get('/api/mailchimp/status', async (c) => {
   try {
