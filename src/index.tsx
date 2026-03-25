@@ -3,6 +3,7 @@ import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
 import type { FC } from 'hono/jsx'
 import { changePasswordHTML } from './change-password-html'
+import { forgotPasswordHTML } from './forgot-password-html'
 import * as XLSX from 'xlsx'
 import { emailTemplates } from './email-templates'
 import { 
@@ -37,6 +38,13 @@ app.get('/change-password', (c) => {
 })
 app.get('/change-password.html', (c) => {
   return c.html(changePasswordHTML)
+})
+
+app.get('/forgot-password', (c) => {
+  return c.html(forgotPasswordHTML)
+})
+app.get('/forgot-password.html', (c) => {
+  return c.html(forgotPasswordHTML)
 })
 
 // ============================================
@@ -3238,7 +3246,7 @@ app.get('/login', (c) => {
                 </div>
                 <button type="submit" class="login-button">Login</button>
                 <div class="login-footer">
-                  <a href="/change-password" class="forgot-password">Lost your password?</a>
+                  <a href="/forgot-password" class="forgot-password">Lost your password?</a>
                 </div>
               </form>
               <div id="error-message" class="error-message" style="display: none;"></div>
