@@ -4,6 +4,7 @@ import { serveStatic } from 'hono/cloudflare-workers'
 import type { FC } from 'hono/jsx'
 import { changePasswordHTML } from './change-password-html'
 import { forgotPasswordHTML } from './forgot-password-html'
+import { resetPasswordHTML } from './reset-password-html'
 import * as XLSX from 'xlsx'
 import { emailTemplates } from './email-templates'
 import { 
@@ -45,6 +46,13 @@ app.get('/forgot-password', (c) => {
 })
 app.get('/forgot-password.html', (c) => {
   return c.html(forgotPasswordHTML)
+})
+
+app.get('/reset-password', (c) => {
+  return c.html(resetPasswordHTML)
+})
+app.get('/reset-password.html', (c) => {
+  return c.html(resetPasswordHTML)
 })
 
 // ============================================
