@@ -1,9 +1,9 @@
 export const forgotPasswordHTML = `<!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Recuperar Contraseña - Brand Center</title>
+  <title>Forgot Password - Brand Center</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     * {
@@ -173,9 +173,9 @@ export const forgotPasswordHTML = `<!DOCTYPE html>
       <div class="logo">
         <i class="fas fa-key"></i>
       </div>
-      <h1 class="title">Recuperar Contraseña</h1>
+      <h1 class="title">Forgot Password</h1>
       <p class="subtitle">
-        Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña
+        Enter your email and we'll send you a link to reset your password
       </p>
     </div>
 
@@ -190,7 +190,7 @@ export const forgotPasswordHTML = `<!DOCTYPE html>
           type="email"
           id="email"
           class="form-input"
-          placeholder="tu-email@example.com"
+          placeholder="your-email@example.com"
           required
         />
       </div>
@@ -198,12 +198,12 @@ export const forgotPasswordHTML = `<!DOCTYPE html>
       <button type="submit" class="btn-primary" id="submit-btn">
         <span class="spinner"></span>
         <i class="fas fa-paper-plane"></i>
-        Enviar Enlace de Recuperación
+        Send Recovery Link
       </button>
     </form>
 
     <a href="/" class="back-link">
-      <i class="fas fa-arrow-left"></i> Volver al Login
+      <i class="fas fa-arrow-left"></i> Back to Login
     </a>
   </div>
 
@@ -229,7 +229,7 @@ export const forgotPasswordHTML = `<!DOCTYPE html>
       const email = emailInput.value.trim();
 
       if (!email) {
-        showMessage('Por favor, ingresa tu email', 'error');
+        showMessage('Please enter your email', 'error');
         return;
       }
 
@@ -248,16 +248,16 @@ export const forgotPasswordHTML = `<!DOCTYPE html>
 
         if (data.success) {
           showMessage(
-            '✅ Si el email existe en nuestro sistema, recibirás un enlace de recuperación en tu bandeja de entrada. Por favor, revisa también tu carpeta de spam.',
+            '✅ If the email exists in our system, you will receive a recovery link in your inbox. Please also check your spam folder.',
             'success'
           );
           emailInput.value = '';
         } else {
-          showMessage(data.message || 'Error al procesar la solicitud', 'error');
+          showMessage(data.message || 'Error processing request', 'error');
         }
       } catch (error) {
         console.error('Error:', error);
-        showMessage('Error al conectar con el servidor. Intenta nuevamente.', 'error');
+        showMessage('Error connecting to server. Please try again.', 'error');
       } finally {
         submitBtn.disabled = false;
       }

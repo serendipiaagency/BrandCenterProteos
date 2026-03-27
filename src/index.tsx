@@ -245,7 +245,7 @@ app.post('/api/auth/forgot-password', async (c) => {
     // Response (same for both dev and production for security)
     const response: any = { 
       success: true, 
-      message: 'Si el email existe, recibirás instrucciones para recuperar tu contraseña.'
+      message: 'If the email exists, you will receive instructions to recover your password.'
     }
     
     // DEV ONLY: Include token in response if no Resend API key

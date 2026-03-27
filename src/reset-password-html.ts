@@ -1,9 +1,9 @@
 export const resetPasswordHTML = `<!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Restablecer Contraseña - Brand Center</title>
+  <title>Reset Password - Brand Center</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     * {
@@ -224,9 +224,9 @@ export const resetPasswordHTML = `<!DOCTYPE html>
       <div class="logo">
         <i class="fas fa-lock"></i>
       </div>
-      <h1 class="title">Restablecer Contraseña</h1>
+      <h1 class="title">Reset Password</h1>
       <p class="subtitle">
-        Ingresa tu nueva contraseña
+        Enter your new password
       </p>
     </div>
 
@@ -236,7 +236,7 @@ export const resetPasswordHTML = `<!DOCTYPE html>
       <form id="reset-password-form">
         <div class="form-group">
           <label class="form-label">
-            <i class="fas fa-lock"></i> Nueva Contraseña
+            <i class="fas fa-lock"></i> New Password
           </label>
           <input
             type="password"
@@ -250,7 +250,7 @@ export const resetPasswordHTML = `<!DOCTYPE html>
 
         <div class="form-group">
           <label class="form-label">
-            <i class="fas fa-lock"></i> Confirmar Nueva Contraseña
+            <i class="fas fa-lock"></i> Confirm New Password
           </label>
           <input
             type="password"
@@ -265,24 +265,24 @@ export const resetPasswordHTML = `<!DOCTYPE html>
         <div class="password-requirements">
           <div class="title">
             <i class="fas fa-info-circle"></i>
-            Requisitos de la nueva contraseña:
+            New password requirements:
           </div>
           <ul>
-            <li>Mínimo 6 caracteres</li>
-            <li>Se recomienda usar letras, números y símbolos</li>
+            <li>Minimum 6 characters</li>
+            <li>We recommend using letters, numbers and symbols</li>
           </ul>
         </div>
 
         <button type="submit" class="btn-primary" id="submit-btn">
           <span class="spinner"></span>
           <i class="fas fa-check"></i>
-          Restablecer Contraseña
+          Reset Password
         </button>
       </form>
     </div>
 
     <a href="/" class="back-link">
-      <i class="fas fa-arrow-left"></i> Volver al Login
+      <i class="fas fa-arrow-left"></i> Back to Login
     </a>
   </div>
 
@@ -310,7 +310,7 @@ export const resetPasswordHTML = `<!DOCTYPE html>
     // Verify token on page load
     async function verifyToken() {
       if (!token) {
-        showMessage('❌ Token de recuperación no válido o faltante.', 'error');
+        showMessage('❌ Invalid or missing recovery token.', 'error');
         return;
       }
 
@@ -321,18 +321,18 @@ export const resetPasswordHTML = `<!DOCTYPE html>
         if (data.valid) {
           formContainer.classList.add('show');
           showMessage(
-            '<i class="fas fa-check-circle"></i> Token válido. Puedes proceder a cambiar tu contraseña.',
+            '<i class="fas fa-check-circle"></i> Valid token. You can proceed to change your password.',
             'info'
           );
         } else {
           showMessage(
-            '❌ ' + (data.error || 'El enlace ha expirado o no es válido. Por favor, solicita uno nuevo.'),
+            '❌ ' + (data.error || 'The link has expired or is invalid. Please request a new one.'),
             'error'
           );
         }
       } catch (error) {
         console.error('Error:', error);
-        showMessage('❌ Error al verificar el token. Intenta nuevamente.', 'error');
+        showMessage('❌ Error verifying token. Please try again.', 'error');
       }
     }
 
@@ -347,12 +347,12 @@ export const resetPasswordHTML = `<!DOCTYPE html>
       const confirmPassword = confirmPasswordInput.value;
 
       if (password.length < 6) {
-        showMessage('❌ La contraseña debe tener al menos 6 caracteres', 'error');
+        showMessage('❌ Password must be at least 6 characters', 'error');
         return;
       }
 
       if (password !== confirmPassword) {
-        showMessage('❌ Las contraseñas no coinciden', 'error');
+        showMessage('❌ Passwords do not match', 'error');
         return;
       }
 
@@ -374,7 +374,7 @@ export const resetPasswordHTML = `<!DOCTYPE html>
 
         if (data.success) {
           showMessage(
-            '✅ ¡Contraseña restablecida exitosamente!<br><br>Serás redirigido al login en 3 segundos...',
+            '✅ Password reset successfully!<br><br>You will be redirected to login in 3 seconds...',
             'success'
           );
           
@@ -382,12 +382,12 @@ export const resetPasswordHTML = `<!DOCTYPE html>
             window.location.href = '/';
           }, 3000);
         } else {
-          showMessage('❌ ' + (data.message || 'Error al restablecer la contraseña'), 'error');
+          showMessage('❌ ' + (data.message || 'Error resetting password'), 'error');
           submitBtn.disabled = false;
         }
       } catch (error) {
         console.error('Error:', error);
-        showMessage('❌ Error al conectar con el servidor. Intenta nuevamente.', 'error');
+        showMessage('❌ Error connecting to server. Please try again.', 'error');
         submitBtn.disabled = false;
       }
     });
