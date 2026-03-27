@@ -14,7 +14,7 @@ export const resetPasswordHTML = `<!DOCTYPE html>
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #002f57 0%, #004080 100%);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -38,7 +38,7 @@ export const resetPasswordHTML = `<!DOCTYPE html>
 
     .logo {
       font-size: 3rem;
-      color: #667eea;
+      color: #002f57;
       margin-bottom: 1rem;
     }
 
@@ -78,8 +78,8 @@ export const resetPasswordHTML = `<!DOCTYPE html>
 
     .form-input:focus {
       outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      border-color: #002f57;
+      box-shadow: 0 0 0 3px rgba(0, 47, 87, 0.1);
     }
 
     .password-requirements {
@@ -125,7 +125,7 @@ export const resetPasswordHTML = `<!DOCTYPE html>
       font-size: 1rem;
       font-weight: 600;
       color: white;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #002f57 0%, #004080 100%);
       border: none;
       border-radius: 8px;
       cursor: pointer;
@@ -138,7 +138,7 @@ export const resetPasswordHTML = `<!DOCTYPE html>
 
     .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+      box-shadow: 0 10px 20px rgba(0, 47, 87, 0.3);
     }
 
     .btn-primary:disabled {
@@ -151,14 +151,14 @@ export const resetPasswordHTML = `<!DOCTYPE html>
       display: block;
       text-align: center;
       margin-top: 1.5rem;
-      color: #667eea;
+      color: #002f57;
       text-decoration: none;
       font-size: 0.875rem;
       transition: color 0.2s;
     }
 
     .back-link:hover {
-      color: #764ba2;
+      color: #004080;
     }
 
     .message {
@@ -192,7 +192,7 @@ export const resetPasswordHTML = `<!DOCTYPE html>
 
     .spinner {
       border: 2px solid #f3f3f3;
-      border-top: 2px solid #667eea;
+      border-top: 2px solid #002f57;
       border-radius: 50%;
       width: 16px;
       height: 16px;
