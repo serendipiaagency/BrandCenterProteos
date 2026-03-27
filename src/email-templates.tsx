@@ -68,9 +68,16 @@ export const emailTemplates = {
                       </a>
                     </div>
                     
-                    <p style="color: #718096; font-size: 14px; line-height: 1.6; margin: 30px 0 0 0;">
-                      If you have any questions or need assistance, please don't hesitate to contact our support team.
+                    <p style="color: #718096; font-size: 14px; line-height: 1.6; margin: 30px 0 15px 0;">
+                      If you have any questions or need assistance, please don't hesitate to contact our support team:
                     </p>
+                    
+                    <!-- Support Contact CTA -->
+                    <div style="text-align: center; margin: 20px 0;">
+                      <a href="mailto:brandcenter@pbserum.com" style="display: inline-block; background-color: #f7fafc; color: #002f57; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; border: 2px solid #002f57;">
+                        📧 brandcenter@pbserum.com
+                      </a>
+                    </div>
                   </td>
                 </tr>
                 
@@ -108,7 +115,8 @@ Password: ${password}
 
 Access Brand Center: ${loginUrl}
 
-If you have any questions or need assistance, please don't hesitate to contact our support team.
+If you have any questions or need assistance, please contact our support team at:
+brandcenter@pbserum.com
 
 © ${new Date().getFullYear()} Proteos Biotech. All rights reserved.
     `
@@ -274,8 +282,15 @@ Security Notice:
                         ⚠️ Didn't make this change?
                       </p>
                       <p style="color: #7f1d1d; font-size: 13px; margin: 0; line-height: 1.6;">
-                        If you did not change your password, please contact support immediately at <strong>support@pbserum.com</strong> or reset your password right away.
+                        If you did not change your password, please contact support immediately or reset your password right away.
                       </p>
+                    </div>
+                    
+                    <!-- Support Contact CTA -->
+                    <div style="text-align: center; margin: 25px 0;">
+                      <a href="mailto:brandcenter@pbserum.com" style="display: inline-block; background-color: #fef2f2; color: #991b1b; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; border: 2px solid #ef4444;">
+                        📧 Contact Support: brandcenter@pbserum.com
+                      </a>
                     </div>
                     
                     <p style="color: #718096; font-size: 14px; line-height: 1.6; margin: 25px 0 0 0;">
@@ -314,7 +329,7 @@ Account: ${email}
 Changed: ${new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
 
 ⚠️ Didn't make this change?
-If you did not change your password, please contact support immediately at support@pbserum.com or reset your password right away.
+If you did not change your password, please contact support immediately at brandcenter@pbserum.com or reset your password right away.
 
 Thank you for using Brand Center securely.
 
