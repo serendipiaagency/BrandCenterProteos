@@ -1,0 +1,36 @@
+name: Import from Cloudflare Pages
+
+on:
+  workflow_dispatch:
+
+jobs:
+  import:
+    name: Download & commit project files
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Wrangler
+        run: npm install -g wrangler@latest
+
+      - name: Download project from Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node .github/scripts/import-cloudflare.js
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --staged --quiet && echo "Nothing to commit" || \
+            git commit -m "feat: import source files from Cloudflare Pages brandcenter-pbserum"
+          git push
