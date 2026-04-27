@@ -1,0 +1,13 @@
+name = "brandcenter-pbserum"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-01-20"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "DB"
+database_id = "c601bc0d-52e3-4b45-bc22-1683580c7c7e"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "brand-portal-assets"
