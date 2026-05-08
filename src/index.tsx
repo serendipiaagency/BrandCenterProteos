@@ -27,6 +27,14 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>()
 
+// GLOBAL MIDDLEWARE: Disable ALL caching on ALL responses
+app.use('*', async (c, next) => {
+  await next()
+  c.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0')
+  c.header('Pragma', 'no-cache')
+  c.header('Expires', '0')
+})
+
 // Enable CORS
 app.use('/api/*', cors())
 
