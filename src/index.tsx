@@ -312,13 +312,21 @@ app.post('/api/auth/reset-password', async (c) => {
       return c.json({ error: 'Token and new password are required' }, 400)
     }
     
-    if (newPassword.length < 6) {
+    // Trim password to remove accidental spaces
+    const trimmedPassword = newPassword.trim()
+    
+    // Validate no spaces in password
+    if (trimmedPassword.includes(' ')) {
+      return c.json({ error: 'Password cannot contain spaces' }, 400)
+    }
+    
+    if (trimmedPassword.length < 6) {
       return c.json({ error: 'Password must be at least 6 characters' }, 400)
     }
     
     // Check if token is valid and get user info
     const resetToken = await c.env.DB.prepare(`
-      SELECT prt.*, u.email, u.name 
+      SELECT prt.*, u.email, u.name, u.password_hash as old_password
       FROM password_reset_tokens prt
       JOIN users u ON prt.user_id = u.id
       WHERE prt.token = ? AND prt.used = 0 AND prt.expires_at > datetime('now')
@@ -328,11 +336,16 @@ app.post('/api/auth/reset-password', async (c) => {
       return c.json({ error: 'Invalid or expired token' }, 400)
     }
     
-    // Update user password
-    // In production: hash with bcrypt
+    // Record password change in history
     await c.env.DB.prepare(`
-      UPDATE users SET password_hash = ? WHERE id = ?
-    `).bind(newPassword, resetToken.user_id).run()
+      INSERT INTO password_history (user_id, old_password, new_password, changed_by)
+      VALUES (?, ?, ?, NULL)
+    `).bind(resetToken.user_id, resetToken.old_password, trimmedPassword).run()
+    
+    // Update user password and last_password_change
+    await c.env.DB.prepare(`
+      UPDATE users SET password_hash = ?, last_password_change = datetime('now') WHERE id = ?
+    `).bind(trimmedPassword, resetToken.user_id).run()
     
     // Mark token as used
     await c.env.DB.prepare(`
@@ -393,14 +406,26 @@ app.post('/api/auth/change-password', async (c) => {
     if (!email || !currentPassword || !newPassword) {
       return c.json({ 
         success: false,
-        message: 'Email, contraseña actual y nueva contraseña son requeridos' 
+        message: 'Email, current password and new password are required' 
       }, 400)
     }
     
-    if (newPassword.length < 6) {
+    // Trim passwords to remove accidental spaces
+    const trimmedCurrent = currentPassword.trim()
+    const trimmedNew = newPassword.trim()
+    
+    // Validate no spaces in passwords
+    if (trimmedNew.includes(' ')) {
       return c.json({ 
         success: false,
-        message: 'La nueva contraseña debe tener al menos 6 caracteres' 
+        message: 'Password cannot contain spaces' 
+      }, 400)
+    }
+    
+    if (trimmedNew.length < 6) {
+      return c.json({ 
+        success: false,
+        message: 'New password must be at least 6 characters' 
       }, 400)
     }
     
@@ -412,34 +437,36 @@ app.post('/api/auth/change-password', async (c) => {
     if (!user) {
       return c.json({ 
         success: false,
-        message: 'Credenciales inválidas' 
+        message: 'Invalid credentials' 
       }, 401)
     }
     
-    // Verify current password
-    // The system stores passwords as plain text (password_hash field)
-    // In production, this should use bcrypt.compare(currentPassword, user.password_hash)
-    if (user.password_hash !== currentPassword) {
+    // Verify current password (compare with trimmed version)
+    if (user.password_hash.trim() !== trimmedCurrent) {
       return c.json({ 
         success: false,
-        message: 'La contraseña actual es incorrecta' 
+        message: 'Current password is incorrect' 
       }, 401)
     }
     
     // Same password check
-    if (currentPassword === newPassword) {
+    if (trimmedCurrent === trimmedNew) {
       return c.json({ 
         success: false,
-        message: 'La nueva contraseña debe ser diferente a la actual' 
+        message: 'New password must be different from current password' 
       }, 400)
     }
     
-    // Update user password
-    // Store as plain text (password_hash field name is misleading)
-    // In production with proper backend: use bcrypt.hash(newPassword, 10)
+    // Record password change in history
     await c.env.DB.prepare(`
-      UPDATE users SET password_hash = ? WHERE id = ?
-    `).bind(newPassword, user.id).run()
+      INSERT INTO password_history (user_id, old_password, new_password, changed_by)
+      VALUES (?, ?, ?, ?)
+    `).bind(user.id, user.password_hash, trimmedNew, user.id).run()
+    
+    // Update user password and last_password_change
+    await c.env.DB.prepare(`
+      UPDATE users SET password_hash = ?, last_password_change = datetime('now') WHERE id = ?
+    `).bind(trimmedNew, user.id).run()
     
     // Send confirmation email
     if (c.env.RESEND_API_KEY) {
@@ -507,9 +534,9 @@ app.get('/api/users', async (c) => {
   
   const isAdmin = currentUser && currentUser.role === 'admin'
   
-  // Si es admin, incluir password_hash
+  // Si es admin, incluir password_hash y last_password_change
   const query = isAdmin 
-    ? `SELECT id, email, name, role, region, country, distributor, language, brands_access, password_hash, active, created_at, last_login FROM users ORDER BY created_at DESC`
+    ? `SELECT id, email, name, role, region, country, distributor, language, brands_access, password_hash, active, created_at, last_login, last_password_change FROM users ORDER BY created_at DESC`
     : `SELECT id, email, name, role, region, country, distributor, language, brands_access, active, created_at, last_login FROM users ORDER BY created_at DESC`
   
   const { results } = await c.env.DB.prepare(query).all()
@@ -822,15 +849,21 @@ app.post('/api/users', async (c) => {
   try {
     const data = await c.req.json()
     
-    // Generar contraseña aleatoria si no se proporciona
-    const password = data.password || Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase()
+    // Generate random password if not provided, then trim and validate
+    let password = data.password || Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase()
+    password = password.trim()
+    
+    // Validate no spaces in password
+    if (password.includes(' ')) {
+      return c.json({ error: 'Password cannot contain spaces' }, 400)
+    }
     
     const result = await c.env.DB.prepare(`
-      INSERT INTO users (email, password_hash, name, role, region, country, distributor, language, brands_access)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (email, password_hash, name, role, region, country, distributor, language, brands_access, last_password_change)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     `).bind(
       data.email,
-      password, // En producción, hash con bcrypt
+      password,
       data.name,
       data.role,
       data.region || null,
@@ -839,6 +872,12 @@ app.post('/api/users', async (c) => {
       data.language || 'ING',
       data.brands_access ? JSON.stringify(data.brands_access) : null
     ).run()
+    
+    // Record initial password in history
+    await c.env.DB.prepare(`
+      INSERT INTO password_history (user_id, old_password, new_password, changed_by)
+      VALUES (?, NULL, ?, ?)
+    `).bind(result.meta.last_row_id, password, data.currentUserId || null).run()
     
     // Send welcome email
     if (c.env.RESEND_API_KEY) {
@@ -995,6 +1034,128 @@ app.put('/api/users/:id', async (c) => {
   } catch (error) {
     console.error('Error updating user:', error)
     return c.json({ error: 'Failed to update user', details: error.message }, 500)
+  }
+})
+
+// Get password history for a user (admin only)
+app.get('/api/users/:id/password-history', async (c) => {
+  try {
+    const userId = c.req.param('id')
+    const currentUserId = c.req.query('currentUserId')
+    
+    // Verify admin
+    const currentUser = await c.env.DB.prepare(`
+      SELECT role FROM users WHERE id = ?
+    `).bind(currentUserId).first()
+    
+    if (!currentUser || currentUser.role !== 'admin') {
+      return c.json({ error: 'Unauthorized' }, 403)
+    }
+    
+    // Get password history
+    const { results } = await c.env.DB.prepare(`
+      SELECT 
+        ph.id,
+        ph.old_password,
+        ph.new_password,
+        ph.changed_at,
+        u.name as changed_by_name,
+        u.email as changed_by_email
+      FROM password_history ph
+      LEFT JOIN users u ON ph.changed_by = u.id
+      WHERE ph.user_id = ?
+      ORDER BY ph.changed_at DESC
+    `).bind(userId).all()
+    
+    return c.json({ history: results })
+  } catch (error) {
+    console.error('Error fetching password history:', error)
+    return c.json({ error: 'Failed to fetch password history' }, 500)
+  }
+})
+
+// Admin: Change user password (admin only)
+app.post('/api/users/:id/change-password', async (c) => {
+  try {
+    const userId = c.req.param('id')
+    const { newPassword, currentUserId } = await c.req.json()
+    
+    // Verify admin
+    const currentUser = await c.env.DB.prepare(`
+      SELECT role FROM users WHERE id = ?
+    `).bind(currentUserId).first()
+    
+    if (!currentUser || currentUser.role !== 'admin') {
+      return c.json({ error: 'Unauthorized' }, 403)
+    }
+    
+    if (!newPassword) {
+      return c.json({ error: 'New password is required' }, 400)
+    }
+    
+    // Trim and validate password
+    const trimmedPassword = newPassword.trim()
+    
+    if (trimmedPassword.includes(' ')) {
+      return c.json({ error: 'Password cannot contain spaces' }, 400)
+    }
+    
+    if (trimmedPassword.length < 6) {
+      return c.json({ error: 'Password must be at least 6 characters' }, 400)
+    }
+    
+    // Get user info and old password
+    const user = await c.env.DB.prepare(`
+      SELECT id, email, name, password_hash FROM users WHERE id = ?
+    `).bind(userId).first()
+    
+    if (!user) {
+      return c.json({ error: 'User not found' }, 404)
+    }
+    
+    // Record password change in history
+    await c.env.DB.prepare(`
+      INSERT INTO password_history (user_id, old_password, new_password, changed_by)
+      VALUES (?, ?, ?, ?)
+    `).bind(userId, user.password_hash, trimmedPassword, currentUserId).run()
+    
+    // Update user password
+    await c.env.DB.prepare(`
+      UPDATE users SET password_hash = ?, last_password_change = datetime('now') WHERE id = ?
+    `).bind(trimmedPassword, userId).run()
+    
+    // Send notification email
+    if (c.env.RESEND_API_KEY) {
+      try {
+        const emailContent = emailTemplates.passwordChanged(user.name, user.email)
+        
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${c.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'Brand Center <brandcenter@pbserum.com>',
+            to: [user.email],
+            subject: emailContent.subject,
+            html: emailContent.html,
+            text: emailContent.text
+          })
+        })
+      } catch (emailError) {
+        console.error('Error sending email:', emailError)
+      }
+    }
+    
+    return c.json({ 
+      success: true, 
+      message: 'Password changed successfully',
+      newPassword: trimmedPassword 
+    })
+  } catch (error) {
+    console.error('Error changing password:', error)
+    return c.json({ error: 'Failed to change password' }, 500)
   }
 })
 
