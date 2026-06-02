@@ -20,7 +20,7 @@ export const emailTemplates = {
                 
                 <!-- Header -->
                 <tr>
-                  <td style="background: linear-gradient(135deg, #002f57 0%, #004080 100%); padding: 40px; text-align: center;">
+                  <td style="background-color: #002f57; padding: 40px; text-align: center;">
                     <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">
                       Welcome to Brand Center
                     </h1>
@@ -62,22 +62,15 @@ export const emailTemplates = {
                     </div>
                     
                     <!-- CTA Button -->
-                    <div style="text-align: center; margin: 35px 0;">
-                      <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #002f57 0%, #004080 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,47,87,0.3);">
-                        Access Brand Center
-                      </a>
-                    </div>
-                    
-                    <p style="color: #718096; font-size: 14px; line-height: 1.6; margin: 30px 0 15px 0;">
-                      If you have any questions or need assistance, please don't hesitate to contact our support team:
-                    </p>
-                    
-                    <!-- Support Contact CTA -->
-                    <div style="text-align: center; margin: 20px 0;">
-                      <a href="mailto:brandcenter@pbserum.com" style="display: inline-block; background-color: #f7fafc; color: #002f57; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; border: 2px solid #002f57;">
-                        📧 brandcenter@pbserum.com
-                      </a>
-                    </div>
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td align="center" style="padding: 35px 0;">
+                          <a href="${loginUrl}" style="display: inline-block; background-color: #002f57; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; font-family: Arial, sans-serif;">
+                            Access Brand Center
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
                 
@@ -141,8 +134,8 @@ brandcenter@pbserum.com
                 
                 <!-- Header -->
                 <tr>
-                  <td style="background: linear-gradient(135deg, #002f57 0%, #004080 100%); padding: 40px; text-align: center;">
-                    <div style="background-color: rgba(255,255,255,0.1); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+                  <td style="background-color: #002f57; padding: 40px; text-align: center;">
+                    <div style="background-color: rgba(255,255,255,0.1); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: table-cell; vertical-align: middle; text-align: center;">
                       <span style="color: #ffffff; font-size: 40px;">🔑</span>
                     </div>
                     <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">
@@ -163,11 +156,15 @@ brandcenter@pbserum.com
                     </p>
                     
                     <!-- CTA Button -->
-                    <div style="text-align: center; margin: 35px 0;">
-                      <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #002f57 0%, #004080 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,47,87,0.3);">
-                        Reset Password
-                      </a>
-                    </div>
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td align="center" style="padding: 35px 0;">
+                          <a href="${resetLink}" style="display: inline-block; background-color: #002f57; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; font-family: Arial, sans-serif;">
+                            Reset Password
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
                     
                     <!-- Security Info -->
                     <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 20px; margin: 30px 0; border-radius: 4px;">
@@ -244,8 +241,8 @@ Security Notice:
                 
                 <!-- Header -->
                 <tr>
-                  <td style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px; text-align: center;">
-                    <div style="background-color: rgba(255,255,255,0.2); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+                  <td style="background-color: #059669; padding: 40px; text-align: center;">
+                    <div style="background-color: rgba(255,255,255,0.2); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: table-cell; vertical-align: middle; text-align: center;">
                       <span style="color: #ffffff; font-size: 40px;">✓</span>
                     </div>
                     <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">
