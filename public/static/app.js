@@ -317,6 +317,16 @@ const api = {
     return response.data
   },
   
+  async deactivateUser(id) {
+    const response = await axios.patch(`/api/users/${id}/deactivate`)
+    return response.data
+  },
+
+  async activateUser(id) {
+    const response = await axios.patch(`/api/users/${id}/activate`)
+    return response.data
+  },
+
   async deleteUser(id) {
     const response = await axios.delete(`/api/users/${id}`)
     return response.data
@@ -1520,17 +1530,47 @@ const handleUserSubmit = async (e) => {
   }
 }
 
-const handleDeleteUser = async (userId) => {
-  if (!confirm('Are you sure you want to delete this user?')) return
-  
+const handleDeactivateUser = async (userId) => {
+  if (!confirm('¿Inactivar este usuario?\n\nEl usuario quedará bloqueado y no podrá iniciar sesión. Sus datos se conservan.')) return
+  try {
+    showLoading()
+    await api.deactivateUser(userId)
+    showNotification('Usuario inactivado. No puede volver a iniciar sesión.', 'success')
+    await loadUsers()
+  } catch (error) {
+    console.error('Deactivate error:', error)
+    showNotification('Error al inactivar el usuario', 'error')
+  } finally {
+    hideLoading()
+  }
+}
+
+const handleActivateUser = async (userId) => {
+  if (!confirm('¿Reactivar este usuario?\n\nPodrá volver a iniciar sesión con sus credenciales.')) return
+  try {
+    showLoading()
+    await api.activateUser(userId)
+    showNotification('Usuario reactivado correctamente.', 'success')
+    await loadUsers()
+  } catch (error) {
+    console.error('Activate error:', error)
+    showNotification('Error al activar el usuario', 'error')
+  } finally {
+    hideLoading()
+  }
+}
+
+const handleDeleteUser = async (userId, userName) => {
+  const msg = `⚠️ ELIMINAR PERMANENTEMENTE\n\nUsuario: ${userName || 'este usuario'}\n\nEsta acción eliminará al usuario y TODOS sus registros de forma IRREVERSIBLE.\n\n¿Estás completamente seguro?`
+  if (!confirm(msg)) return
   try {
     showLoading()
     await api.deleteUser(userId)
-    showNotification('User deleted successfully!', 'success')
+    showNotification('Usuario eliminado permanentemente.', 'success')
     await loadUsers()
   } catch (error) {
     console.error('Delete error:', error)
-    showNotification('Error deleting user', 'error')
+    showNotification('Error al eliminar el usuario', 'error')
   } finally {
     hideLoading()
   }
@@ -2381,28 +2421,45 @@ const renderUsersPage = () => {
                   ${user.active ? 'Active' : 'Inactive'}
                 </span>
               </td>
-              <td style="width: 23%;">
-                <div style="display: flex; gap: 0.5rem; justify-content: center;">
-                  <button 
+              <td style="width: 28%;">
+                <div style="display: flex; gap: 0.4rem; justify-content: center; flex-wrap: wrap;">
+                  <button
                     onclick='openUserModal(${JSON.stringify(user).replace(/"/g, '&quot;')})'
                     class="icon-btn"
-                    title="Edit user"
+                    title="Editar usuario"
                   >
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button 
+                  <button
                     onclick="openPasswordModal(${user.id})"
                     class="icon-btn"
-                    title="View/Change password"
+                    title="Ver/cambiar contraseña"
                   >
                     <i class="fas fa-key"></i>
                   </button>
-                  <button 
-                    onclick="handleDeleteUser(${user.id})"
-                    class="icon-btn danger"
-                    title="Delete user"
+                  ${user.active ? `
+                  <button
+                    onclick="handleDeactivateUser(${user.id})"
+                    title="Inactivar usuario (no podrá entrar)"
+                    style="background: #fef3c7; color: #92400e; border: 1.5px solid #fcd34d; padding: 0.4rem 0.65rem; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 0.3rem; white-space: nowrap;"
                   >
-                    <i class="fas fa-trash"></i>
+                    <i class="fas fa-user-slash"></i> Inactivo
+                  </button>
+                  ` : `
+                  <button
+                    onclick="handleActivateUser(${user.id})"
+                    title="Reactivar usuario"
+                    style="background: #d1fae5; color: #065f46; border: 1.5px solid #6ee7b7; padding: 0.4rem 0.65rem; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 0.3rem; white-space: nowrap;"
+                  >
+                    <i class="fas fa-user-check"></i> Activar
+                  </button>
+                  `}
+                  <button
+                    onclick="handleDeleteUser(${user.id}, '${(user.name || '').replace(/'/g, "\\'")}')"
+                    title="Eliminar permanentemente"
+                    style="background: #dc2626; color: white; border: none; padding: 0.4rem 0.65rem; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 0.3rem; white-space: nowrap;"
+                  >
+                    <i class="fas fa-trash"></i> Eliminar
                   </button>
                 </div>
               </td>

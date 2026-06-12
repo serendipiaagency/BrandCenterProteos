@@ -1159,23 +1159,23 @@ app.post('/api/users/:id/change-password', async (c) => {
   }
 })
 
-app.delete('/api/users/:id', async (c) => {
+// Deactivate user (soft disable — cannot log in, data preserved)
+app.patch('/api/users/:id/deactivate', async (c) => {
   try {
     const id = c.req.param('id')
-    
-    // Get user email before deactivation
+
     const user = await c.env.DB.prepare(`
       SELECT email FROM users WHERE id = ?
     `).bind(id).first()
-    
+
     if (!user) {
       return c.json({ error: 'User not found' }, 404)
     }
-    
+
     await c.env.DB.prepare(`
       UPDATE users SET active = 0 WHERE id = ?
     `).bind(id).run()
-    
+
     // Unsubscribe from Mailchimp
     if (c.env.MAILCHIMP_API_KEY && c.env.MAILCHIMP_LIST_ID) {
       try {
@@ -1184,25 +1184,83 @@ app.delete('/api/users/:id', async (c) => {
           server: getMailchimpServer(c.env.MAILCHIMP_API_KEY),
           listId: c.env.MAILCHIMP_LIST_ID
         }
-        
-        const unsubResult = await unsubscribeMemberFromMailchimp(
-          mailchimpConfig,
-          user.email
-        )
-        
-        if (unsubResult.success) {
-          console.log('✅ User unsubscribed from Mailchimp:', user.email)
-        }
+        await unsubscribeMemberFromMailchimp(mailchimpConfig, user.email as string)
       } catch (mailchimpError) {
-        console.error('Error unsubscribing from Mailchimp:', mailchimpError)
-        // Don't fail deactivation if Mailchimp fails
+        console.error('Mailchimp unsubscribe error (non-fatal):', mailchimpError)
       }
     }
-    
+
     return c.json({ success: true })
   } catch (error) {
     console.error('Error deactivating user:', error)
     return c.json({ error: 'Failed to deactivate user', details: error.message }, 500)
+  }
+})
+
+// Activate user (re-enable login)
+app.patch('/api/users/:id/activate', async (c) => {
+  try {
+    const id = c.req.param('id')
+
+    const user = await c.env.DB.prepare(`
+      SELECT id FROM users WHERE id = ?
+    `).bind(id).first()
+
+    if (!user) {
+      return c.json({ error: 'User not found' }, 404)
+    }
+
+    await c.env.DB.prepare(`
+      UPDATE users SET active = 1 WHERE id = ?
+    `).bind(id).run()
+
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Error activating user:', error)
+    return c.json({ error: 'Failed to activate user', details: error.message }, 500)
+  }
+})
+
+// Permanently delete user and all their records
+app.delete('/api/users/:id', async (c) => {
+  try {
+    const id = c.req.param('id')
+
+    const user = await c.env.DB.prepare(`
+      SELECT email, name FROM users WHERE id = ?
+    `).bind(id).first()
+
+    if (!user) {
+      return c.json({ error: 'User not found' }, 404)
+    }
+
+    // Delete all related records first (FK order)
+    await c.env.DB.prepare(`DELETE FROM analytics_events WHERE user_id = ?`).bind(id).run()
+    await c.env.DB.prepare(`DELETE FROM activity_log WHERE user_id = ?`).bind(id).run()
+    await c.env.DB.prepare(`DELETE FROM password_reset_tokens WHERE user_id = ?`).bind(id).run()
+    await c.env.DB.prepare(`UPDATE user_requests SET resolved_by = NULL WHERE resolved_by = ?`).bind(id).run()
+    await c.env.DB.prepare(`DELETE FROM users WHERE id = ?`).bind(id).run()
+
+    console.log(`🗑️ User permanently deleted: ${user.name} (${user.email})`)
+
+    // Unsubscribe from Mailchimp
+    if (c.env.MAILCHIMP_API_KEY && c.env.MAILCHIMP_LIST_ID) {
+      try {
+        const mailchimpConfig: MailchimpConfig = {
+          apiKey: c.env.MAILCHIMP_API_KEY,
+          server: getMailchimpServer(c.env.MAILCHIMP_API_KEY),
+          listId: c.env.MAILCHIMP_LIST_ID
+        }
+        await unsubscribeMemberFromMailchimp(mailchimpConfig, user.email as string)
+      } catch (mailchimpError) {
+        console.error('Mailchimp unsubscribe error (non-fatal):', mailchimpError)
+      }
+    }
+
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting user:', error)
+    return c.json({ error: 'Failed to delete user', details: error.message }, 500)
   }
 })
 
