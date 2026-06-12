@@ -199,12 +199,12 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
           </div>
         </div>
         
-        <div class="grid grid-cols-2 gap-6 mb-8">
+        <div class="grid grid-cols-2 gap-6 mb-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
               Regulatory
             </label>
-            <select 
+            <select
               id="regulatory"
               name="regulatory"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -215,12 +215,12 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
               <option value="COFEPRIS" ${asset.regulatory === 'COFEPRIS' ? 'selected' : ''}>COFEPRIS</option>
             </select>
           </div>
-          
+
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
               Language
             </label>
-            <select 
+            <select
               id="language"
               name="language"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -233,6 +233,23 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
               <option value="POR" ${asset.language === 'POR' ? 'selected' : ''}>Portuguese</option>
             </select>
           </div>
+        </div>
+
+        <!-- Status -->
+        <div class="mb-8 p-4 border-2 rounded-lg ${asset.status === 'draft' ? 'border-amber-400 bg-amber-50' : 'border-green-300 bg-green-50'}">
+          <label class="block text-sm font-semibold text-gray-800 mb-2">
+            <i class="fas ${asset.status === 'draft' ? 'fa-eye-slash text-amber-500' : 'fa-eye text-green-600'} mr-2"></i>
+            Estado / Status
+          </label>
+          <select
+            id="status"
+            name="status"
+            onchange="this.closest('.mb-8').className = 'mb-8 p-4 border-2 rounded-lg ' + (this.value === 'draft' ? 'border-amber-400 bg-amber-50' : 'border-green-300 bg-green-50')"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium"
+          >
+            <option value="published" ${!asset.status || asset.status === 'published' ? 'selected' : ''}>Publicado — visible para todos los usuarios</option>
+            <option value="draft" ${asset.status === 'draft' ? 'selected' : ''}>Borrador — solo visible para Admin y Marketing</option>
+          </select>
         </div>
         
         <div class="bg-gray-50 p-4 rounded-lg mb-8">
@@ -332,7 +349,8 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
       const country = document.getElementById('country').value.trim() || null;
       const regulatory = document.getElementById('regulatory').value;
       const language = document.getElementById('language').value;
-      
+      const status = document.getElementById('status').value;
+
       const updateData = {
         title: title || 'Untitled',
         description: description || null,
@@ -341,7 +359,8 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
         regions: regions,
         country: country,
         regulatory: regulatory,
-        language: language
+        language: language,
+        status: status
       };
       
       console.log('📦 Sending update:', updateData);

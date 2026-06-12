@@ -1995,19 +1995,24 @@ const renderAssetsPage = () => {
     ` : `
       <div class="asset-grid">
         ${state.assets.map(asset => `
-          <div class="asset-card" style="position: relative;">
+          <div class="asset-card" style="position: relative; ${asset.status === 'draft' ? 'opacity: 0.85;' : ''}">
             ${state.bulkEditMode ? `
               <div style="position: absolute; top: 0.75rem; left: 0.75rem; z-index: 10;">
-                <input 
-                  type="checkbox" 
-                  id="asset-checkbox-${asset.id}" 
+                <input
+                  type="checkbox"
+                  id="asset-checkbox-${asset.id}"
                   ${state.selectedAssets.includes(asset.id) ? 'checked' : ''}
                   onchange="toggleAssetSelection(${asset.id})"
                   style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary-600);"
                 />
               </div>
             ` : ''}
-            
+            ${asset.status === 'draft' ? `
+              <div style="position: absolute; top: 0.75rem; right: 0.75rem; z-index: 10; background: #f59e0b; color: #ffffff; font-size: 0.65rem; font-weight: 800; padding: 0.2rem 0.5rem; border-radius: 4px; letter-spacing: 0.08em; text-transform: uppercase; pointer-events: none;">
+                BORRADOR
+              </div>
+            ` : ''}
+
             <div class="asset-thumbnail">
               ${asset.thumbnail_url ? `
                 <img src="${asset.thumbnail_url}" alt="${asset.title || asset.original_filename}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy" />

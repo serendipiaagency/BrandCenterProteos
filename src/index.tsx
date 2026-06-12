@@ -1524,7 +1524,12 @@ app.get('/api/assets', async (c) => {
     })
     }
   }
-  
+
+  // Hide draft assets from non-admin and non-marketing users
+  if (userRole !== 'admin' && userRole !== 'marketing') {
+    filteredAssets = filteredAssets.filter((asset: any) => asset.status !== 'draft')
+  }
+
   return c.json({ assets: filteredAssets }, {
     headers: {
       'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
@@ -1614,8 +1619,8 @@ app.post('/api/assets', async (c) => {
     INSERT INTO assets (
       filename, original_filename, title, description, file_type, file_size, file_url,
       brand_id, sub_brand_id, material_type_id, region, country, regulatory, language,
-      tags, created_by
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      tags, created_by, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.filename,
     data.original_filename,
@@ -1632,7 +1637,8 @@ app.post('/api/assets', async (c) => {
     sanitize(data.regulatory) || 'GLOBAL',
     sanitize(data.language) || 'ENG',
     data.tags ? JSON.stringify(data.tags) : null,
-    data.created_by
+    data.created_by,
+    sanitize(data.status) || 'published'
   ).run()
   
   const assetId = result.meta.last_row_id
@@ -1742,7 +1748,8 @@ app.put('/api/assets/:id', async (c) => {
         region = ?,
         country = ?,
         regulatory = ?,
-        language = ?
+        language = ?,
+        status = ?
       WHERE id = ?
     `).bind(
       sanitizedData.title,
@@ -1753,6 +1760,7 @@ app.put('/api/assets/:id', async (c) => {
       sanitizedData.country,
       sanitizedData.regulatory,
       sanitizedData.language,
+      sanitize(data.status) || 'published',
       id
     ).run()
     
@@ -2820,21 +2828,24 @@ app.get('/api/public/assets', async (c) => {
   let userBrandsAccess: number[] = []
   let userRegions: string[] = []
   let isAdmin = false
-  
+  let isMarketing = false
+
   // If token exists, get user's brands_access and regions
   if (token) {
     try {
       const decoded = Buffer.from(token, 'base64').toString('utf-8')
       const [userId] = decoded.split(':')
-      
+
       const user = await c.env.DB.prepare(`
         SELECT brands_access, region, role FROM users WHERE id = ? AND active = 1
       `).bind(userId).first()
-      
+
       if (user) {
-        // Only admin sees all brands and regions
+        // Admin and marketing can see draft assets
         if (user.role === 'admin') {
           isAdmin = true
+        } else if (user.role === 'marketing') {
+          isMarketing = true
         } else {
           // Parse brands_access
           try {
@@ -2996,7 +3007,12 @@ app.get('/api/public/assets', async (c) => {
       return hasBrandAccess && hasRegionAccess
     })
   }
-  
+
+  // Hide draft assets from regular users (only admin and marketing can see drafts)
+  if (!isAdmin && !isMarketing) {
+    filteredAssets = filteredAssets.filter((asset: any) => asset.status !== 'draft')
+  }
+
   return c.json({ assets: filteredAssets })
 })
 
