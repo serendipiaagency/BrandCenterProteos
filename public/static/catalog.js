@@ -715,7 +715,7 @@ const renderAssets = () => {
       <div class="assets-grid">
         ${assets.map(asset => `
           <div class="asset-card">
-            <div class="asset-thumbnail">
+            <div class="asset-thumbnail" style="position: relative;">
               ${asset.thumbnail_url ? `
                 <img src="${asset.thumbnail_url}" alt="${asset.title || asset.original_filename}" loading="lazy" />
               ` : asset.file_type && asset.file_type.includes('image') ? `
@@ -723,6 +723,15 @@ const renderAssets = () => {
               ` : `
                 <i class="fas fa-file-pdf" style="font-size: 4rem; color: #dc2626;"></i>
               `}
+              ${asset.labels && asset.labels.length > 0 ? `
+                <div style="position: absolute; bottom: 0.5rem; left: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem; z-index: 5;">
+                  ${asset.labels.map(label => `
+                    <span style="display: inline-block; background-color: ${label.color}; color: ${label.text_color}; font-size: 0.65rem; font-weight: 800; padding: 0.2rem 0.55rem; border-radius: 4px; letter-spacing: 0.06em; text-transform: uppercase; box-shadow: 0 1px 3px rgba(0,0,0,0.25);">
+                      ${label.name}
+                    </span>
+                  `).join('')}
+                </div>
+              ` : ''}
             </div>
             
             <div class="asset-content">

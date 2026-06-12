@@ -1,4 +1,4 @@
-export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: any[], selectedBrandIds: number[], regions: string[]) {
+export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: any[], selectedBrandIds: number[], regions: string[], allLabels: any[] = [], selectedLabelIds: number[] = []) {
   const brandsOptions = brands.map(brand => `
     <option value="${brand.id}" ${selectedBrandIds.includes(brand.id) ? 'selected' : ''}>
       ${brand.display_name}
@@ -237,6 +237,30 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
           </div>
         </div>
 
+        <!-- Labels -->
+        <div class="mb-6">
+          <label class="block text-sm font-semibold text-gray-800 mb-3">
+            <i class="fas fa-tag text-blue-500 mr-2"></i>
+            Etiquetas
+          </label>
+          ${allLabels.length === 0 ? `
+          <p class="text-sm text-gray-500 italic">No hay etiquetas creadas. Ve al gestor de etiquetas para crearlas.</p>
+          ` : `
+          <div class="flex flex-wrap gap-2">
+            ${allLabels.map(label => `
+            <label class="cursor-pointer select-none">
+              <input type="checkbox" name="label_ids" value="${label.id}" ${selectedLabelIds.includes(label.id) ? 'checked' : ''} class="sr-only peer" />
+              <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-semibold border-2 transition-all peer-checked:opacity-100 opacity-40 peer-checked:scale-105"
+                style="background-color: ${label.color}; color: ${label.text_color}; border-color: ${label.color};">
+                <i class="fas fa-tag text-xs"></i>
+                ${label.name}
+              </span>
+            </label>
+            `).join('')}
+          </div>
+          `}
+        </div>
+
         <!-- Status -->
         <div class="mb-8 p-4 border-2 rounded-lg ${asset.status === 'draft' ? 'border-amber-400 bg-amber-50' : 'border-green-300 bg-green-50'}">
           <label class="block text-sm font-semibold text-gray-800 mb-2">
@@ -353,6 +377,9 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
       const language = document.getElementById('language').value;
       const status = document.getElementById('status').value;
 
+      const labelCheckboxes = document.querySelectorAll('input[name="label_ids"]:checked');
+      const label_ids = Array.from(labelCheckboxes).map(cb => parseInt(cb.value));
+
       const updateData = {
         title: title || 'Untitled',
         description: description || null,
@@ -373,9 +400,12 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
       submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Guardando...';
       
       try {
-        const response = await axios.put('/api/assets/${asset.id}', updateData);
+        const [response] = await Promise.all([
+          axios.put('/api/assets/${asset.id}', updateData),
+          axios.put('/api/assets/${asset.id}/labels', { label_ids })
+        ]);
         console.log('✅ Update response:', response.data);
-        
+
         // Upload thumbnail if selected
         const thumbnailFile = document.getElementById('thumbnail').files[0];
         if (thumbnailFile) {
