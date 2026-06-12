@@ -42,20 +42,20 @@ export const emailTemplates = {
             </td>
           </tr>
 
-          <!-- Content -->
+          <!-- Content: greeting + credentials (white background) -->
           <tr>
-            <td style="padding:40px;">
+            <td style="padding:40px 40px 32px 40px;background-color:#ffffff;">
 
               <p style="color:#1a202c;font-size:16px;line-height:1.6;margin:0 0 20px 0;font-family:Arial,sans-serif;">
                 Hello <strong>${name}</strong>,
               </p>
 
-              <p style="color:#4a5568;font-size:15px;line-height:1.6;margin:0 0 20px 0;font-family:Arial,sans-serif;">
+              <p style="color:#4a5568;font-size:15px;line-height:1.6;margin:0 0 28px 0;font-family:Arial,sans-serif;">
                 Your Brand Center account has been created successfully. You now have access to all marketing materials, brand assets, and resources.
               </p>
 
               <!-- Credentials Box -->
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:30px 0;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td style="background-color:#f7fafc;border-left:4px solid #002f57;padding:20px;">
                     <p style="color:#2d3748;font-size:14px;font-weight:700;margin:0 0 12px 0;font-family:Arial,sans-serif;">
@@ -78,24 +78,33 @@ export const emailTemplates = {
                 </tr>
               </table>
 
-              <!-- CTA Button -->
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td align="center" style="padding:20px 0 35px 0;">
-                    <!--[if mso]>
-                    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${loginUrl}" style="height:54px;v-text-anchor:middle;width:240px;" arcsize="15%" stroke="f" fillcolor="#002f57">
-                      <w:anchorlock/>
-                      <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">Access Brand Center</center>
-                    </v:roundrect>
-                    <![endif]-->
-                    <!--[if !mso]><!-->
-                    <a href="${loginUrl}" style="background-color:#002f57;border-radius:8px;color:#ffffff;display:inline-block;font-family:Arial,sans-serif;font-size:16px;font-weight:700;line-height:54px;text-align:center;text-decoration:none;width:240px;mso-hide:all;">
-                      Access Brand Center
-                    </a>
-                    <!--<![endif]-->
-                  </td>
-                </tr>
-              </table>
+            </td>
+          </tr>
+
+          <!-- CTA Section — dark blue, same as header -->
+          <tr>
+            <td align="center" bgcolor="#002f57" style="background-color:#002f57;padding:40px 40px 44px 40px;">
+
+              <p style="color:#c8d8e8;font-size:15px;margin:0 0 28px 0;font-family:Arial,sans-serif;line-height:1.5;">
+                Use your credentials above to log in and start<br>accessing all your brand materials.
+              </p>
+
+              <!-- White button on dark blue — maximum visibility in all email clients -->
+              <!--[if mso]>
+              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${loginUrl}" style="height:56px;v-text-anchor:middle;width:260px;" arcsize="12%" stroke="f" fillcolor="#ffffff">
+                <w:anchorlock/>
+                <center style="color:#002f57;font-family:Arial,sans-serif;font-size:17px;font-weight:bold;">Access Brand Center</center>
+              </v:roundrect>
+              <![endif]-->
+              <!--[if !mso]><!-->
+              <a href="${loginUrl}" style="background-color:#ffffff;border-radius:8px;color:#002f57;display:inline-block;font-family:Arial,sans-serif;font-size:17px;font-weight:800;line-height:56px;text-align:center;text-decoration:none;width:260px;mso-hide:all;">
+                Access Brand Center
+              </a>
+              <!--<![endif]-->
+
+              <p style="color:#6b8caa;font-size:12px;margin:22px 0 0 0;font-family:Arial,sans-serif;">
+                Having trouble? Contact <a href="mailto:brandcenter@pbserum.com" style="color:#93c5fd;text-decoration:none;">brandcenter@pbserum.com</a>
+              </p>
 
             </td>
           </tr>

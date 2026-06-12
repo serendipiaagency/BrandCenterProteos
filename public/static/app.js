@@ -10,6 +10,7 @@ const state = {
   materialTypes: [],
   assets: [],
   users: [],
+  labels: [],
   selectedBrand: null,
   selectedSubBrand: null,
   selectedMaterialType: null,
@@ -137,6 +138,26 @@ const api = {
     return response.data
   },
   
+  async getLabels() {
+    const response = await axios.get('/api/labels')
+    return response.data.labels || []
+  },
+
+  async createLabel(data) {
+    const response = await axios.post('/api/labels', data)
+    return response.data
+  },
+
+  async updateLabel(id, data) {
+    const response = await axios.put(`/api/labels/${id}`, data)
+    return response.data
+  },
+
+  async deleteLabel(id) {
+    const response = await axios.delete(`/api/labels/${id}`)
+    return response.data
+  },
+
   async getBrands() {
     const response = await axios.get('/api/brands')
     return response.data.brands
@@ -590,10 +611,12 @@ const loadInitialData = async () => {
   try {
     showLoading()
     
-    const [brands, materialTypes] = await Promise.all([
+    const [brands, materialTypes, labelsData] = await Promise.all([
       api.getBrands(),
-      api.getMaterialTypes('en') // Always use English for Material Types
+      api.getMaterialTypes('en'), // Always use English for Material Types
+      api.getLabels()
     ])
+    state.labels = labelsData
     
     // Filter brands based on user's brands_access
     // Admin and marketing see all brands, others see only assigned brands
@@ -1877,6 +1900,12 @@ const renderSidebar = () => {
                 <span>Analytics</span>
               </a>
             </li>
+            <li class="sidebar-item">
+              <a href="#" onclick="navigateTo('labels'); return false;" class="sidebar-link ${state.currentPage === 'labels' ? 'active' : ''}">
+                <i class="fas fa-tags"></i>
+                <span>Etiquetas</span>
+              </a>
+            </li>
           ` : ''}
         </ul>
       </div>
@@ -2053,7 +2082,7 @@ const renderAssetsPage = () => {
               </div>
             ` : ''}
 
-            <div class="asset-thumbnail">
+            <div class="asset-thumbnail" style="position: relative;">
               ${asset.thumbnail_url ? `
                 <img src="${asset.thumbnail_url}" alt="${asset.title || asset.original_filename}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy" />
               ` : asset.file_type && asset.file_type.includes('image') ? `
@@ -2061,6 +2090,15 @@ const renderAssetsPage = () => {
               ` : `
                 <i class="fas ${getFileIcon(asset.file_type)} ${getFileIconColor(asset.file_type)}"></i>
               `}
+              ${asset.labels && asset.labels.length > 0 ? `
+                <div style="position: absolute; bottom: 0.5rem; left: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem; z-index: 5;">
+                  ${asset.labels.map(label => `
+                    <span style="display: inline-block; background-color: ${label.color}; color: ${label.text_color}; font-size: 0.65rem; font-weight: 800; padding: 0.2rem 0.55rem; border-radius: 4px; letter-spacing: 0.06em; text-transform: uppercase; pointer-events: none; box-shadow: 0 1px 3px rgba(0,0,0,0.25);">
+                      ${label.name}
+                    </span>
+                  `).join('')}
+                </div>
+              ` : ''}
             </div>
             
             <div class="asset-body">
@@ -3966,6 +4004,217 @@ const renderAnalyticsPage = () => {
 // Main Render Function
 // ============================================
 
+// ============================================
+// Labels Manager
+// ============================================
+
+let labelModal = null // { id, name, color, text_color } or null for create
+
+const openLabelModal = (label = null) => {
+  labelModal = label ? { ...label } : { name: '', color: '#3b82f6', text_color: '#ffffff' }
+  render()
+}
+
+const closeLabelModal = () => {
+  labelModal = null
+  render()
+}
+
+const handleSaveLabel = async (e) => {
+  e.preventDefault()
+  const name = document.getElementById('label-name')?.value?.trim()
+  const color = document.getElementById('label-color')?.value || '#3b82f6'
+  const text_color = document.getElementById('label-text-color')?.value || '#ffffff'
+  if (!name) return showNotification('El nombre es obligatorio', 'error')
+  try {
+    showLoading()
+    if (labelModal?.id) {
+      await api.updateLabel(labelModal.id, { name, color, text_color })
+      showNotification('Etiqueta actualizada', 'success')
+    } else {
+      await api.createLabel({ name, color, text_color })
+      showNotification('Etiqueta creada', 'success')
+    }
+    state.labels = await api.getLabels()
+    labelModal = null
+    render()
+  } catch (error) {
+    const msg = error?.response?.data?.error || 'Error al guardar la etiqueta'
+    showNotification(msg, 'error')
+  } finally {
+    hideLoading()
+  }
+}
+
+const handleDeleteLabel = async (labelId, labelName) => {
+  if (!confirm(`¿Eliminar la etiqueta "${labelName}"?\n\nSe quitará de todos los assets que la tengan asignada.`)) return
+  try {
+    showLoading()
+    await api.deleteLabel(labelId)
+    state.labels = await api.getLabels()
+    showNotification('Etiqueta eliminada', 'success')
+    render()
+  } catch (error) {
+    showNotification('Error al eliminar la etiqueta', 'error')
+  } finally {
+    hideLoading()
+  }
+}
+
+const renderLabelsPage = () => {
+  const presetColors = [
+    { bg: '#10b981', fg: '#ffffff', name: 'Verde' },
+    { bg: '#3b82f6', fg: '#ffffff', name: 'Azul' },
+    { bg: '#f59e0b', fg: '#1a202c', name: 'Ámbar' },
+    { bg: '#ef4444', fg: '#ffffff', name: 'Rojo' },
+    { bg: '#8b5cf6', fg: '#ffffff', name: 'Violeta' },
+    { bg: '#002f57', fg: '#ffffff', name: 'Azul marca' },
+    { bg: '#1a202c', fg: '#ffffff', name: 'Negro' },
+    { bg: '#e2e8f0', fg: '#1a202c', name: 'Gris claro' },
+  ]
+
+  return `
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">Gestor de Etiquetas</h2>
+        <p style="color: var(--gray-500); font-size: 0.9rem; margin-top: 0.25rem;">
+          Crea etiquetas para destacar tus assets. Se muestran como badges sobre la imagen.
+        </p>
+      </div>
+      <button onclick="openLabelModal()" class="btn-primary" style="display: flex; align-items: center; gap: 0.5rem;">
+        <i class="fas fa-plus"></i> Nueva Etiqueta
+      </button>
+    </div>
+
+    ${labelModal !== null ? `
+    <!-- Create/Edit Modal -->
+    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 1rem;">
+      <div style="background: white; border-radius: 12px; padding: 2rem; width: 100%; max-width: 480px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--gray-900);">
+            ${labelModal.id ? 'Editar Etiqueta' : 'Nueva Etiqueta'}
+          </h3>
+          <button onclick="closeLabelModal()" style="background: none; border: none; cursor: pointer; color: var(--gray-500); font-size: 1.25rem;">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <form onsubmit="handleSaveLabel(event)">
+          <div style="margin-bottom: 1.25rem;">
+            <label style="display: block; font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 0.5rem;">
+              Nombre *
+            </label>
+            <input id="label-name" type="text" value="${labelModal.name || ''}" placeholder="Ej: Nuevo, Actualizado, Oferta…"
+              class="form-input" style="width: 100%;" required />
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+              <label style="display: block; font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 0.5rem;">
+                Color fondo
+              </label>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <input id="label-color" type="color" value="${labelModal.color || '#3b82f6'}"
+                  style="width: 3rem; height: 2.5rem; border-radius: 6px; border: 2px solid #e2e8f0; cursor: pointer; padding: 2px;" />
+                <span id="label-color-hex" style="font-size: 0.8rem; color: var(--gray-600); font-family: monospace;">${labelModal.color || '#3b82f6'}</span>
+              </div>
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 0.5rem;">
+                Color texto
+              </label>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <input id="label-text-color" type="color" value="${labelModal.text_color || '#ffffff'}"
+                  style="width: 3rem; height: 2.5rem; border-radius: 6px; border: 2px solid #e2e8f0; cursor: pointer; padding: 2px;" />
+                <span id="label-text-hex" style="font-size: 0.8rem; color: var(--gray-600); font-family: monospace;">${labelModal.text_color || '#ffffff'}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Color presets -->
+          <div style="margin-bottom: 1.5rem;">
+            <p style="font-size: 0.8rem; font-weight: 600; color: var(--gray-600); margin-bottom: 0.5rem;">Colores rápidos:</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+              ${presetColors.map(p => `
+                <button type="button"
+                  onclick="document.getElementById('label-color').value='${p.bg}'; document.getElementById('label-text-color').value='${p.fg}'; document.getElementById('label-color-hex').textContent='${p.bg}'; document.getElementById('label-text-hex').textContent='${p.fg}'; document.getElementById('label-preview').style.backgroundColor='${p.bg}'; document.getElementById('label-preview').style.color='${p.fg}';"
+                  style="background-color: ${p.bg}; color: ${p.fg}; border: none; padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">
+                  ${p.name}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Live preview -->
+          <div style="margin-bottom: 1.5rem; text-align: center;">
+            <p style="font-size: 0.8rem; color: var(--gray-500); margin-bottom: 0.5rem;">Vista previa:</p>
+            <span id="label-preview"
+              style="display: inline-block; background-color: ${labelModal.color || '#3b82f6'}; color: ${labelModal.text_color || '#ffffff'}; font-size: 0.7rem; font-weight: 800; padding: 0.25rem 0.7rem; border-radius: 4px; letter-spacing: 0.08em; text-transform: uppercase;">
+              ${labelModal.name || 'ETIQUETA'}
+            </span>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+            <button type="button" onclick="closeLabelModal()" class="btn-secondary">Cancelar</button>
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-save mr-1"></i>
+              ${labelModal.id ? 'Guardar cambios' : 'Crear etiqueta'}
+            </button>
+          </div>
+        </form>
+
+        <script>
+          // Live preview update
+          const colorIn = document.getElementById('label-color')
+          const textIn = document.getElementById('label-text-color')
+          const nameIn = document.getElementById('label-name')
+          const prev = document.getElementById('label-preview')
+          if (colorIn) colorIn.addEventListener('input', e => { prev.style.backgroundColor = e.target.value; document.getElementById('label-color-hex').textContent = e.target.value })
+          if (textIn) textIn.addEventListener('input', e => { prev.style.color = e.target.value; document.getElementById('label-text-hex').textContent = e.target.value })
+          if (nameIn) nameIn.addEventListener('input', e => { prev.textContent = e.target.value || 'ETIQUETA' })
+        </script>
+      </div>
+    </div>
+    ` : ''}
+
+    <!-- Labels grid -->
+    ${state.labels.length === 0 ? `
+      <div style="text-align: center; padding: 4rem 2rem; color: var(--gray-500);">
+        <i class="fas fa-tags" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.4;"></i>
+        <p style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;">Sin etiquetas</p>
+        <p style="font-size: 0.875rem;">Crea tu primera etiqueta con el botón de arriba.</p>
+      </div>
+    ` : `
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+        ${state.labels.map(label => `
+          <div style="background: white; border-radius: 10px; border: 1.5px solid #e2e8f0; padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+            <!-- Badge preview -->
+            <span style="display: inline-block; background-color: ${label.color}; color: ${label.text_color}; font-size: 0.7rem; font-weight: 800; padding: 0.3rem 0.8rem; border-radius: 4px; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; min-width: 80px; text-align: center;">
+              ${label.name}
+            </span>
+            <!-- Info -->
+            <div style="flex: 1; min-width: 0;">
+              <p style="font-weight: 700; color: var(--gray-800); font-size: 0.9rem; margin: 0 0 0.2rem 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${label.name}</p>
+              <p style="color: var(--gray-500); font-size: 0.75rem; font-family: monospace; margin: 0;">${label.color} / ${label.text_color}</p>
+            </div>
+            <!-- Actions -->
+            <div style="display: flex; gap: 0.4rem; flex-shrink: 0;">
+              <button onclick='openLabelModal(${JSON.stringify(label).replace(/"/g, "&quot;")})'
+                class="icon-btn" title="Editar">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button onclick="handleDeleteLabel(${label.id}, '${label.name.replace(/'/g, "\\'")}')"
+                class="icon-btn danger" title="Eliminar">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `}
+  `
+}
+
 const render = () => {
   const app = $('#app')
   
@@ -4002,6 +4251,9 @@ const render = () => {
       break
     case 'analytics':
       pageContent = renderAnalyticsPage()
+      break
+    case 'labels':
+      pageContent = renderLabelsPage()
       break
   }
   

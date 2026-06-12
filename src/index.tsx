@@ -1265,6 +1265,81 @@ app.delete('/api/users/:id', async (c) => {
 })
 
 // ============================================
+// ============================================
+// API ROUTES - Labels
+// ============================================
+
+app.get('/api/labels', async (c) => {
+  const { results } = await c.env.DB.prepare(`
+    SELECT id, name, color, text_color, created_at FROM labels ORDER BY name
+  `).all()
+  return c.json({ labels: results })
+})
+
+app.post('/api/labels', async (c) => {
+  try {
+    const { name, color = '#3b82f6', text_color = '#ffffff' } = await c.req.json()
+    if (!name?.trim()) return c.json({ error: 'Name is required' }, 400)
+
+    const result = await c.env.DB.prepare(`
+      INSERT INTO labels (name, color, text_color) VALUES (?, ?, ?)
+    `).bind(name.trim(), color, text_color).run()
+
+    return c.json({ success: true, id: result.meta.last_row_id })
+  } catch (error) {
+    if (String(error).includes('UNIQUE')) return c.json({ error: 'Label name already exists' }, 409)
+    return c.json({ error: 'Failed to create label' }, 500)
+  }
+})
+
+app.put('/api/labels/:id', async (c) => {
+  try {
+    const id = c.req.param('id')
+    const { name, color, text_color } = await c.req.json()
+    if (!name?.trim()) return c.json({ error: 'Name is required' }, 400)
+
+    await c.env.DB.prepare(`
+      UPDATE labels SET name = ?, color = ?, text_color = ? WHERE id = ?
+    `).bind(name.trim(), color, text_color, id).run()
+
+    return c.json({ success: true })
+  } catch (error) {
+    if (String(error).includes('UNIQUE')) return c.json({ error: 'Label name already exists' }, 409)
+    return c.json({ error: 'Failed to update label' }, 500)
+  }
+})
+
+app.delete('/api/labels/:id', async (c) => {
+  try {
+    const id = c.req.param('id')
+    await c.env.DB.prepare(`DELETE FROM labels WHERE id = ?`).bind(id).run()
+    return c.json({ success: true })
+  } catch (error) {
+    return c.json({ error: 'Failed to delete label' }, 500)
+  }
+})
+
+// Assign labels to an asset (replaces all existing assignments)
+app.put('/api/assets/:id/labels', async (c) => {
+  try {
+    const assetId = c.req.param('id')
+    const { label_ids = [] } = await c.req.json()
+
+    await c.env.DB.prepare(`DELETE FROM asset_labels WHERE asset_id = ?`).bind(assetId).run()
+
+    for (const labelId of label_ids) {
+      await c.env.DB.prepare(`
+        INSERT OR IGNORE INTO asset_labels (asset_id, label_id) VALUES (?, ?)
+      `).bind(assetId, labelId).run()
+    }
+
+    return c.json({ success: true })
+  } catch (error) {
+    return c.json({ error: 'Failed to assign labels' }, 500)
+  }
+})
+
+// ============================================
 // API ROUTES - Brands
 // ============================================
 
@@ -1495,29 +1570,29 @@ app.get('/api/assets', async (c) => {
     }
   }
   
-  // For each asset, fetch its associated brand_ids from asset_brands table
+  // For each asset, fetch its associated brand_ids and labels in parallel
   const assetsWithBrands = await Promise.all(
     (results as any[]).map(async (asset) => {
-      const { results: brandResults } = await c.env.DB.prepare(`
-        SELECT brand_id FROM asset_brands WHERE asset_id = ?
-      `).bind(asset.id).all()
-      
+      const [{ results: brandResults }, { results: labelResults }] = await Promise.all([
+        c.env.DB.prepare(`SELECT brand_id FROM asset_brands WHERE asset_id = ?`).bind(asset.id).all(),
+        c.env.DB.prepare(`SELECT l.id, l.name, l.color, l.text_color FROM asset_labels al JOIN labels l ON al.label_id = l.id WHERE al.asset_id = ? ORDER BY l.name`).bind(asset.id).all()
+      ])
+
       // Parse regions from JSON string to array
       let regions = []
       if (asset.region) {
         try {
-          // Try to parse as JSON array
           regions = JSON.parse(asset.region)
         } catch {
-          // Fallback: treat as single region
           regions = [asset.region]
         }
       }
-      
+
       return {
         ...asset,
         brand_ids: brandResults.map((b: any) => b.brand_id),
-        regions: regions  // Add parsed regions array
+        regions: regions,
+        labels: labelResults
       }
     })
   )
@@ -2986,13 +3061,14 @@ app.get('/api/public/assets', async (c) => {
   const stmt = c.env.DB.prepare(query)
   const result = await stmt.bind(...params).all()
   
-  // Add brand_ids and regions to each asset
+  // Add brand_ids, labels and regions to each asset
   const assetsWithBrandsAndRegions = await Promise.all(
     (result.results || []).map(async (asset: any) => {
-      const { results: brandResults } = await c.env.DB.prepare(`
-        SELECT brand_id FROM asset_brands WHERE asset_id = ?
-      `).bind(asset.id).all()
-      
+      const [{ results: brandResults }, { results: labelResults }] = await Promise.all([
+        c.env.DB.prepare(`SELECT brand_id FROM asset_brands WHERE asset_id = ?`).bind(asset.id).all(),
+        c.env.DB.prepare(`SELECT l.id, l.name, l.color, l.text_color FROM asset_labels al JOIN labels l ON al.label_id = l.id WHERE al.asset_id = ? ORDER BY l.name`).bind(asset.id).all()
+      ])
+
       // Parse regions from JSON string to array
       let regions = []
       if (asset.region) {
@@ -3002,15 +3078,16 @@ app.get('/api/public/assets', async (c) => {
           regions = [asset.region]
         }
       }
-      
+
       return {
         ...asset,
         brand_ids: brandResults.map((b: any) => b.brand_id),
-        regions: regions
+        regions: regions,
+        labels: labelResults
       }
     })
   )
-  
+
   // Apply brand and region filtering
   let filteredAssets = assetsWithBrandsAndRegions
   
@@ -3276,10 +3353,18 @@ app.get('/admin/edit-asset/:id', async (c) => {
     const { results: assetBrands } = await c.env.DB.prepare(`
       SELECT brand_id FROM asset_brands WHERE asset_id = ?
     `).bind(assetId).all()
-    
+
     const selectedBrandIds = assetBrands.map((b: any) => b.brand_id)
-    
-    const html = generateEditAssetHTML(asset, brands as any[], materialTypes as any[], selectedBrandIds, regions)
+
+    // Get all labels and this asset's current labels
+    const [{ results: allLabels }, { results: assetLabelRows }] = await Promise.all([
+      c.env.DB.prepare(`SELECT id, name, color, text_color FROM labels ORDER BY name`).all(),
+      c.env.DB.prepare(`SELECT label_id FROM asset_labels WHERE asset_id = ?`).bind(assetId).all()
+    ])
+
+    const selectedLabelIds = assetLabelRows.map((r: any) => r.label_id)
+
+    const html = generateEditAssetHTML(asset, brands as any[], materialTypes as any[], selectedBrandIds, regions, allLabels as any[], selectedLabelIds)
     return c.html(html)
   } catch (error) {
     console.error('Edit asset error:', error)
