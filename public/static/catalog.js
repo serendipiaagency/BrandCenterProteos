@@ -9,16 +9,16 @@
 
 const checkAuth = async () => {
   const token = localStorage.getItem('catalog_token') || sessionStorage.getItem('catalog_token')
-  
+
   if (!token) {
     console.log('🔒 No token found, redirecting to login')
     window.location.href = '/login'
     return false
   }
-  
+
   try {
     const response = await axios.post('/api/public/verify-token', { token })
-    
+
     if (!response.data.valid) {
       console.log('🔒 Invalid token, redirecting to login')
       localStorage.removeItem('catalog_token')
@@ -28,7 +28,15 @@ const checkAuth = async () => {
       window.location.href = '/login'
       return false
     }
-    
+
+    // Always refresh catalog_user from the verified token response so
+    // trackDownload always has a valid userId even if storage was partially cleared
+    if (response.data.user) {
+      const userJson = JSON.stringify(response.data.user)
+      localStorage.setItem('catalog_user', userJson)
+      sessionStorage.setItem('catalog_user', userJson)
+    }
+
     console.log('✅ Authentication verified')
     return true
   } catch (error) {
