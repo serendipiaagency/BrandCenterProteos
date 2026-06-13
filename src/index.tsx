@@ -2833,7 +2833,8 @@ app.get('/api/analytics/users-history', async (c) => {
         ...user,
         views,
         downloads,
-        last_activity: lastActivity,
+        last_activity: lastActivity,            // login fallback applied — for sorting/display in list
+        last_event_activity: lastEventActivity, // pure analytics timestamp — downloads/views only
         last_login: user.last_login || null,
         events: eventsResult.results
       }
