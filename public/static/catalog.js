@@ -44,6 +44,7 @@ const state = {
   subBrands: [],
   materialTypes: [],
   assets: [],
+  allAssets: [],    // unfiltered — used for 'Últimas actualizaciones'
   selectedBrands: [],
   selectedMaterialTypes: [],
   loading: false,
@@ -320,7 +321,10 @@ const loadAssets = async () => {
     // Load all assets first
     const allAssets = await api.getAssets()
     console.log('📦 Total assets loaded:', allAssets.length)
-    
+
+    // Keep unfiltered copy for 'Últimas actualizaciones'
+    state.allAssets = allAssets
+
     // Apply filters client-side for better UX
     let filteredAssets = allAssets
     
@@ -676,6 +680,104 @@ const renderHorizontalBrandFilter = () => {
   `
 }
 
+// ── File icon helpers ──────────────────────────────────────────
+const getFileIcon = (fileType) => {
+  if (!fileType) return 'fa-file'
+  const ft = fileType.toLowerCase()
+  if (ft.includes('pdf')) return 'fa-file-pdf'
+  if (ft.includes('image') || /jpg|jpeg|png|webp|gif|svg/.test(ft)) return 'fa-file-image'
+  if (ft.includes('video') || /mp4|mov|avi/.test(ft)) return 'fa-file-video'
+  if (ft.includes('zip') || ft.includes('rar') || ft.includes('7z')) return 'fa-file-archive'
+  if (/doc|docx|ppt|pptx|xls|xlsx/.test(ft)) return 'fa-file-word'
+  return 'fa-file'
+}
+const getFileColor = (fileType) => {
+  if (!fileType) return '#718096'
+  const ft = fileType.toLowerCase()
+  if (ft.includes('pdf')) return '#dc2626'
+  if (ft.includes('image') || /jpg|jpeg|png|webp/.test(ft)) return '#7c3aed'
+  if (ft.includes('video')) return '#2563eb'
+  if (ft.includes('zip') || ft.includes('rar')) return '#d97706'
+  return '#718096'
+}
+
+// ── Últimas actualizaciones ────────────────────────────────────
+const renderLatestUpdates = () => {
+  if (!state.allAssets || state.allAssets.length === 0) return ''
+
+  const latestAssets = [...state.allAssets]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 8)
+
+  const isEs = state.language !== 'en'
+
+  const relDate = (dateStr) => {
+    if (!dateStr) return ''
+    const diff = Math.floor((Date.now() - new Date(dateStr)) / 86400000)
+    if (diff === 0) return isEs ? 'Hoy' : 'Today'
+    if (diff === 1) return isEs ? 'Ayer' : 'Yesterday'
+    if (diff < 7) return isEs ? `Hace ${diff} días` : `${diff}d ago`
+    if (diff < 30) { const w = Math.floor(diff/7); return isEs ? `Hace ${w} sem.` : `${w}w ago` }
+    return new Date(dateStr).toLocaleDateString(isEs ? 'es-ES' : 'en-US', { day: '2-digit', month: 'short' })
+  }
+
+  return `
+    <div style="margin-bottom: 2rem;">
+      <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem;">
+        <i class="fas fa-bolt" style="color: #002f57; font-size: 1rem;"></i>
+        <h2 style="font-size: 1.05rem; font-weight: 700; color: #1a202c; margin: 0;">
+          ${isEs ? 'Últimas actualizaciones' : 'Latest Updates'}
+        </h2>
+      </div>
+
+      <div style="display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 0.75rem; scrollbar-width: thin; scrollbar-color: #cbd5e0 transparent; -webkit-overflow-scrolling: touch;">
+        ${latestAssets.map(asset => `
+          <div style="flex: 0 0 180px; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; cursor: default; transition: transform 0.18s, box-shadow 0.18s;"
+               onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 16px rgba(0,0,0,0.13)'"
+               onmouseout="this.style.transform='';this.style.boxShadow='0 1px 4px rgba(0,0,0,0.08)'">
+
+            <!-- Thumbnail -->
+            <div style="position: relative; height: 110px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+              ${asset.thumbnail_url
+                ? `<img src="${asset.thumbnail_url}" alt="${asset.title || asset.original_filename}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" />`
+                : (asset.file_type && (asset.file_type.includes('image') || /jpg|jpeg|png|webp/.test(asset.file_type)))
+                  ? `<img src="${asset.file_url}" alt="${asset.title || asset.original_filename}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" />`
+                  : `<i class="fas ${getFileIcon(asset.file_type)}" style="font-size: 2.25rem; color: ${getFileColor(asset.file_type)};"></i>`
+              }
+              ${asset.labels && asset.labels.length > 0 ? `
+                <div style="position: absolute; bottom: 0.35rem; left: 0.35rem; display: flex; flex-direction: column; gap: 0.2rem; z-index: 5;">
+                  ${asset.labels.slice(0, 2).map(label => `
+                    <span style="background:${label.color};color:${label.text_color};font-size:0.58rem;font-weight:800;padding:0.12rem 0.38rem;border-radius:3px;letter-spacing:0.05em;text-transform:uppercase;box-shadow:0 1px 3px rgba(0,0,0,0.22);">${label.name}</span>
+                  `).join('')}
+                </div>
+              ` : ''}
+            </div>
+
+            <!-- Info -->
+            <div style="padding: 0.65rem 0.75rem 0.75rem;">
+              <p style="font-size: 0.78rem; font-weight: 600; color: #1a202c; margin: 0 0 0.2rem 0; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2rem;">
+                ${asset.title || asset.original_filename}
+              </p>
+              <p style="font-size: 0.7rem; color: #718096; margin: 0 0 0.65rem 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${asset.brand_name || ''}</p>
+
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.4rem;">
+                <span style="font-size: 0.68rem; color: #a0aec0; white-space: nowrap;">
+                  <i class="fas fa-clock" style="margin-right: 0.15rem;"></i>${relDate(asset.created_at)}
+                </span>
+                <a href="${asset.file_url}" download
+                   onclick="trackDownload(${asset.id})"
+                   style="flex-shrink:0; display:inline-flex; align-items:center; gap:0.2rem; padding:0.28rem 0.55rem; background:#002f57; color:white; border-radius:6px; font-size:0.68rem; font-weight:700; text-decoration:none;">
+                  <i class="fas fa-download"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `
+}
+
 const renderAssets = () => {
   if (state.assets.length === 0) {
     return `
@@ -889,6 +991,7 @@ const render = () => {
     
     <div class="catalog-container">
       ${renderWelcome()}
+      ${renderLatestUpdates()}
       ${renderHorizontalBrandFilter()}
       
       <div class="catalog-layout">
