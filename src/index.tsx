@@ -2411,6 +2411,44 @@ app.delete('/api/assets/:id/thumbnail', async (c) => {
   }
 })
 
+// Replace main asset file
+app.put('/api/assets/:id/file', async (c) => {
+  try {
+    const assetId = c.req.param('id')
+    const { filename, file_url, original_filename, file_size, file_type, old_filename } = await c.req.json()
+
+    if (!filename || !file_url || !original_filename) {
+      return c.json({ error: 'filename, file_url and original_filename are required' }, 400)
+    }
+
+    // Delete old file from R2 if provided
+    if (old_filename) {
+      try {
+        await c.env.R2.delete(old_filename)
+        console.log('🗑️ Deleted old R2 file:', old_filename)
+      } catch (e) {
+        console.warn('⚠️ Could not delete old R2 file:', old_filename, e)
+      }
+    }
+
+    await c.env.DB.prepare(`
+      UPDATE assets SET
+        filename = ?,
+        file_url = ?,
+        original_filename = ?,
+        file_size = ?,
+        file_type = ?
+      WHERE id = ?
+    `).bind(filename, file_url, original_filename, file_size || null, file_type || null, assetId).run()
+
+    console.log('✅ Asset file replaced for asset', assetId)
+    return c.json({ success: true, filename, file_url, original_filename })
+  } catch (error) {
+    console.error('❌ Replace file error:', error)
+    return c.json({ error: 'Failed to replace file', details: error instanceof Error ? error.message : 'Unknown error' }, 500)
+  }
+})
+
 // ============================================
 // API ROUTES - Analytics
 // ============================================

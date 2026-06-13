@@ -39,16 +39,65 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
       </div>
       
       <form id="edit-form" class="bg-white rounded-lg shadow-md p-8">
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Original Filename
-          </label>
-          <input 
-            type="text" 
-            value="${asset.original_filename}"
-            disabled
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
-          />
+        <!-- File Replacement Section -->
+        <div class="mb-6 p-6 bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 rounded-lg">
+          <div class="flex items-center mb-4">
+            <i class="fas fa-file-archive text-orange-600 text-2xl mr-3"></i>
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900">Archivo Principal</h3>
+              <p class="text-sm text-gray-600">Reemplaza el archivo vinculado a este asset</p>
+            </div>
+          </div>
+
+          <!-- Current file info -->
+          <div class="mb-4 p-4 bg-white rounded-lg border border-gray-300">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-file text-gray-400 text-2xl"></i>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900 truncate">${asset.original_filename}</p>
+                <p class="text-xs text-gray-500">${asset.file_size ? (asset.file_size < 1024*1024 ? (asset.file_size/1024).toFixed(1)+' KB' : (asset.file_size/(1024*1024)).toFixed(1)+' MB') : 'Tamaño desconocido'}${asset.file_type ? ' · ' + String(asset.file_type).toUpperCase() : ''}</p>
+              </div>
+              <a href="${asset.file_url}" target="_blank" class="flex-shrink-0 px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition">
+                <i class="fas fa-download mr-1"></i>Ver archivo
+              </a>
+            </div>
+          </div>
+
+          <!-- New file info (shown after upload) -->
+          <div id="new-file-info" class="hidden mb-4 p-4 bg-green-50 rounded-lg border border-green-300">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-check-circle text-green-500 text-2xl"></i>
+              <div class="flex-1 min-w-0">
+                <p id="new-file-name" class="text-sm font-medium text-green-900 truncate"></p>
+                <p id="new-file-meta" class="text-xs text-green-700"></p>
+              </div>
+            </div>
+            <p class="text-xs text-green-700 mt-2"><i class="fas fa-info-circle mr-1"></i>El archivo se actualizará al hacer clic en <strong>Save Changes</strong>.</p>
+          </div>
+
+          <!-- Upload progress -->
+          <div id="file-upload-progress" class="hidden mb-4">
+            <div class="flex items-center gap-3 mb-2">
+              <i class="fas fa-spinner fa-spin text-orange-500"></i>
+              <span id="file-upload-status" class="text-sm text-gray-700">Subiendo archivo...</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div id="file-upload-bar" class="bg-orange-500 h-2 rounded-full transition-all duration-300" style="width:0%"></div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-4">
+            <input type="file" id="replace-file-input" class="hidden" />
+            <button
+              type="button"
+              onclick="document.getElementById('replace-file-input').click()"
+              class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
+            >
+              <i class="fas fa-exchange-alt mr-2"></i>
+              Reemplazar archivo
+            </button>
+            <p class="text-xs text-gray-500">El archivo actual se eliminará al guardar el nuevo.</p>
+          </div>
         </div>
         
         <div class="mb-6">
@@ -314,6 +363,69 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
   </div>
   
   <script>
+    // ── File replacement ──────────────────────────────────────────
+    let pendingFileReplacement = null;
+
+    function formatBytes(bytes) {
+      if (!bytes) return 'Tamaño desconocido';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    document.getElementById('replace-file-input').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const progressEl = document.getElementById('file-upload-progress');
+      const statusEl  = document.getElementById('file-upload-status');
+      const barEl     = document.getElementById('file-upload-bar');
+      const newInfoEl = document.getElementById('new-file-info');
+
+      progressEl.classList.remove('hidden');
+      newInfoEl.classList.add('hidden');
+      barEl.style.width = '5%';
+      barEl.className = 'bg-orange-500 h-2 rounded-full transition-all duration-300';
+      statusEl.textContent = 'Subiendo archivo...';
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await axios.post('/api/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (ev) => {
+            const pct = ev.total ? Math.round((ev.loaded / ev.total) * 90) + 5 : 50;
+            barEl.style.width = pct + '%';
+          }
+        });
+
+        barEl.style.width = '100%';
+        statusEl.textContent = '¡Archivo listo! Se guardará al hacer clic en Save Changes.';
+
+        pendingFileReplacement = {
+          filename: response.data.filename,
+          file_url: response.data.fileUrl,
+          original_filename: file.name,
+          file_size: file.size,
+          file_type: response.data.fileType,
+          old_filename: '${asset.filename}'
+        };
+
+        document.getElementById('new-file-name').textContent = file.name;
+        document.getElementById('new-file-meta').textContent = formatBytes(file.size) + (response.data.fileType ? ' · ' + response.data.fileType.toUpperCase() : '');
+        newInfoEl.classList.remove('hidden');
+
+        setTimeout(() => progressEl.classList.add('hidden'), 2000);
+
+      } catch (err) {
+        console.error('❌ File upload error:', err);
+        barEl.className = 'bg-red-500 h-2 rounded-full';
+        barEl.style.width = '100%';
+        statusEl.textContent = 'Error: ' + (err.response?.data?.error || err.message);
+      }
+    });
+    // ─────────────────────────────────────────────────────────────
+
     // Thumbnail preview
     document.getElementById('thumbnail').addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -405,6 +517,18 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
           axios.put('/api/assets/${asset.id}/labels', { label_ids })
         ]);
         console.log('✅ Update response:', response.data);
+
+        // Replace main file if a new one was uploaded
+        if (pendingFileReplacement) {
+          try {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Actualizando archivo...';
+            await axios.put('/api/assets/${asset.id}/file', pendingFileReplacement);
+            console.log('✅ File replaced successfully');
+          } catch (fileError) {
+            console.error('❌ File replace error:', fileError);
+            alert('Error al actualizar el archivo: ' + (fileError.response?.data?.error || fileError.message));
+          }
+        }
 
         // Upload thumbnail if selected
         const thumbnailFile = document.getElementById('thumbnail').files[0];
