@@ -2784,26 +2784,27 @@ app.get('/api/analytics/user/:userId/history', async (c) => {
 app.get('/api/analytics/users-history', async (c) => {
   try {
     const days = c.req.query('days') || '30'
-    
+
     // Get ALL users from users table (not just those with activity)
     const usersResult = await c.env.DB.prepare(`
-      SELECT 
+      SELECT
         id as user_id,
         email as user_email,
         name as user_name,
-        role as user_role
+        role as user_role,
+        last_login
       FROM users
       WHERE active = 1
       ORDER BY name
     `).all()
-    
+
     const users = usersResult.results
-    
+
     // For each user, get their detailed activity
     const usersWithActivity = await Promise.all(users.map(async (user) => {
       // Get all events for this user
       const eventsResult = await c.env.DB.prepare(`
-        SELECT 
+        SELECT
           id,
           event_type,
           asset_id,
@@ -2819,21 +2820,25 @@ app.get('/api/analytics/users-history', async (c) => {
         ORDER BY timestamp DESC
         LIMIT 1000
       `).bind(user.user_id, days).all()
-      
+
       // Count totals
-      const views = eventsResult.results.filter(e => e.event_type === 'view').length
-      const downloads = eventsResult.results.filter(e => e.event_type === 'download').length
-      const lastActivity = eventsResult.results.length > 0 ? eventsResult.results[0].timestamp : null
-      
+      const views = eventsResult.results.filter((e: any) => e.event_type === 'view').length
+      const downloads = eventsResult.results.filter((e: any) => e.event_type === 'download').length
+      const lastEventActivity = eventsResult.results.length > 0 ? eventsResult.results[0].timestamp : null
+
+      // Fall back to last_login when no analytics events exist
+      const lastActivity = lastEventActivity || user.last_login || null
+
       return {
         ...user,
         views,
         downloads,
         last_activity: lastActivity,
+        last_login: user.last_login || null,
         events: eventsResult.results
       }
     }))
-    
+
     return c.json({ users: usersWithActivity })
   } catch (error) {
     console.error('Users history error:', error)

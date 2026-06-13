@@ -3559,8 +3559,12 @@ const renderUserActivityDetails = () => {
         <div style="font-size: 2rem; font-weight: 700; color: var(--gray-900);">${selectedUser.downloads || 0}</div>
       </div>
       <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #43e97b;">
-        <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">Last Activity</div>
-        <div style="font-size: 1rem; font-weight: 600; color: var(--gray-900);">${selectedUser.last_activity ? formatDate(selectedUser.last_activity) : 'N/A'}</div>
+        <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">Último login</div>
+        <div style="font-size: 1rem; font-weight: 600; color: var(--gray-900);">${selectedUser.last_login ? formatDate(selectedUser.last_login) : 'Nunca'}</div>
+      </div>
+      <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #f59e0b;">
+        <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">Últ. descarga/vista</div>
+        <div style="font-size: 1rem; font-weight: 600; color: var(--gray-900);">${selectedUser.last_activity ? formatDate(selectedUser.last_activity) : 'Sin actividad'}</div>
       </div>
     </div>
     
@@ -3809,8 +3813,8 @@ const renderAnalyticsPage = () => {
                         <div style="font-size: 1.25rem; font-weight: 700; color: #f5576c;">${user.downloads || 0}</div>
                       </div>
                       <div style="text-align: center;">
-                        <div style="font-size: 0.75rem; color: #718096; text-transform: uppercase;">Last Activity</div>
-                        <div style="font-size: 0.875rem; font-weight: 600; color: #1a202c;">${user.last_activity ? formatDate(user.last_activity) : 'N/A'}</div>
+                        <div style="font-size: 0.75rem; color: #718096; text-transform: uppercase;">Último acceso</div>
+                        <div style="font-size: 0.875rem; font-weight: 600; color: #1a202c;">${user.last_login ? formatDate(user.last_login) : (user.last_activity ? formatDate(user.last_activity) : 'Nunca')}</div>
                       </div>
                       <i class="fas fa-chevron-${isExpanded ? 'up' : 'down'}" style="color: #718096; font-size: 1.25rem;"></i>
                     </div>
