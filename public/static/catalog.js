@@ -1059,17 +1059,18 @@ const fallbackCopy = (text) => {
 
 const trackDownload = async (assetId) => {
   try {
-    const userId = localStorage.getItem('userId')
+    const catalogUser = JSON.parse(localStorage.getItem('catalog_user') || sessionStorage.getItem('catalog_user') || '{}')
+    const userId = catalogUser.id
     if (!userId) {
       console.warn('No user ID found for tracking')
       return
     }
-    
+
     await axios.post('/api/analytics/track/download', {
       assetId: parseInt(assetId),
       userId: parseInt(userId)
     })
-    
+
     console.log('✅ Download tracked:', assetId)
   } catch (error) {
     console.error('❌ Failed to track download:', error)

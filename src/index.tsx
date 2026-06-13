@@ -3446,42 +3446,6 @@ app.get('/admin', (c) => {
 // Public Catalog Authentication
 // ============================================
 
-app.post('/api/public/login', async (c) => {
-  try {
-    const { email, password } = await c.req.json()
-    
-    console.log('📥 Public login attempt:', email)
-    
-    // Verify credentials against users table
-    const user = await c.env.DB.prepare(`
-      SELECT id, email, name, role, active, password_hash
-      FROM users
-      WHERE email = ? AND active = 1
-    `).bind(email).first()
-    
-    if (!user || user.password_hash !== password) {
-      return c.json({ success: false, message: 'Invalid credentials' }, 401)
-    }
-    
-    // Generate simple token (in production, use JWT)
-    const token = Buffer.from(`${user.id}:${user.email}:${Date.now()}`).toString('base64')
-    
-    return c.json({
-      success: true,
-      token: token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role
-      }
-    })
-  } catch (error: any) {
-    console.error('❌ Login error:', error.message)
-    return c.json({ success: false, message: 'Login failed' }, 500)
-  }
-})
-
 // Public login endpoint (for catalog users)
 app.post('/api/public/login', async (c) => {
   try {
