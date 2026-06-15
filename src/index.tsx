@@ -1270,10 +1270,15 @@ app.delete('/api/users/:id', async (c) => {
 // ============================================
 
 app.get('/api/labels', async (c) => {
-  const { results } = await c.env.DB.prepare(`
-    SELECT id, name, color, text_color, created_at FROM labels ORDER BY name
-  `).all()
-  return c.json({ labels: results })
+  try {
+    const { results } = await c.env.DB.prepare(`
+      SELECT id, name, color, text_color, created_at FROM labels ORDER BY name
+    `).all()
+    return c.json({ labels: results })
+  } catch (e) {
+    console.error('GET /api/labels error (table may not exist):', e)
+    return c.json({ labels: [] })
+  }
 })
 
 app.post('/api/labels', async (c) => {
@@ -1573,10 +1578,14 @@ app.get('/api/assets', async (c) => {
   // For each asset, fetch its associated brand_ids and labels in parallel
   const assetsWithBrands = await Promise.all(
     (results as any[]).map(async (asset) => {
-      const [{ results: brandResults }, { results: labelResults }] = await Promise.all([
-        c.env.DB.prepare(`SELECT brand_id FROM asset_brands WHERE asset_id = ?`).bind(asset.id).all(),
-        c.env.DB.prepare(`SELECT l.id, l.name, l.color, l.text_color FROM asset_labels al JOIN labels l ON al.label_id = l.id WHERE al.asset_id = ? ORDER BY l.name`).bind(asset.id).all()
-      ])
+      const { results: brandResults } = await c.env.DB.prepare(`SELECT brand_id FROM asset_brands WHERE asset_id = ?`).bind(asset.id).all()
+      let labelResults: any[] = []
+      try {
+        const { results: lr } = await c.env.DB.prepare(`SELECT l.id, l.name, l.color, l.text_color FROM asset_labels al JOIN labels l ON al.label_id = l.id WHERE al.asset_id = ? ORDER BY l.name`).bind(asset.id).all()
+        labelResults = lr
+      } catch (e) {
+        // labels table may not exist yet
+      }
 
       // Parse regions from JSON string to array
       let regions = []
@@ -3108,10 +3117,14 @@ app.get('/api/public/assets', async (c) => {
   // Add brand_ids, labels and regions to each asset
   const assetsWithBrandsAndRegions = await Promise.all(
     (result.results || []).map(async (asset: any) => {
-      const [{ results: brandResults }, { results: labelResults }] = await Promise.all([
-        c.env.DB.prepare(`SELECT brand_id FROM asset_brands WHERE asset_id = ?`).bind(asset.id).all(),
-        c.env.DB.prepare(`SELECT l.id, l.name, l.color, l.text_color FROM asset_labels al JOIN labels l ON al.label_id = l.id WHERE al.asset_id = ? ORDER BY l.name`).bind(asset.id).all()
-      ])
+      const { results: brandResults } = await c.env.DB.prepare(`SELECT brand_id FROM asset_brands WHERE asset_id = ?`).bind(asset.id).all()
+      let labelResults: any[] = []
+      try {
+        const { results: lr } = await c.env.DB.prepare(`SELECT l.id, l.name, l.color, l.text_color FROM asset_labels al JOIN labels l ON al.label_id = l.id WHERE al.asset_id = ? ORDER BY l.name`).bind(asset.id).all()
+        labelResults = lr
+      } catch (e) {
+        // labels table may not exist yet
+      }
 
       // Parse regions from JSON string to array
       let regions = []

@@ -610,13 +610,13 @@ const checkAuth = async () => {
 const loadInitialData = async () => {
   try {
     showLoading()
-    
+
     const [brands, materialTypes, labelsData] = await Promise.all([
       api.getBrands(),
       api.getMaterialTypes('en'), // Always use English for Material Types
-      api.getLabels()
+      api.getLabels().catch(() => [])
     ])
-    state.labels = labelsData
+    state.labels = labelsData || []
     
     // Filter brands based on user's brands_access
     // Admin and marketing see all brands, others see only assigned brands
@@ -1285,7 +1285,8 @@ const handleFileUpload = async (e) => {
     showNotification('File uploaded successfully!', 'success')
   } catch (error) {
     console.error('Upload error:', error)
-    showNotification('Error uploading file', 'error')
+    const detail = error?.response?.data?.error || error?.response?.data?.message || error?.message || 'Error desconocido'
+    showNotification('Error al subir el archivo: ' + detail, 'error')
   } finally {
     hideLoading()
   }
