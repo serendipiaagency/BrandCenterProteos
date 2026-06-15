@@ -1731,87 +1731,90 @@ app.get('/api/assets/:id', async (c) => {
 
 app.post('/api/assets', async (c) => {
   const data = await c.req.json()
-  
+
   console.log('📥 POST /api/assets - Creating new asset')
   console.log('📦 Request data:', JSON.stringify(data, null, 2))
-  console.log('📝 Title:', data.title)
-  console.log('📝 Description:', data.description)
-  
-  // Sanitize data: convert empty strings, undefined, and 'null' string to null
-  const sanitize = (value: any) => {
-    if (value === '' || value === undefined || value === 'undefined' || value === 'null' || value === null) return null
-    return value
-  }
-  
-  // First, create the asset record
-  // Keep brand_id for backward compatibility (use first brand if multiple)
-  const primaryBrandId = Array.isArray(data.brand_ids) && data.brand_ids.length > 0 
-    ? data.brand_ids[0] 
-    : sanitize(data.brand_id)
-  
-  // Handle regions (can be single or array)
-  const regions = data.regions ? 
-    (Array.isArray(data.regions) ? data.regions : [data.regions]) :
-    (data.region ? [data.region] : [])
-  
-  // Convert regions array to JSON string for storage
-  const regionString = regions.length > 0 ? JSON.stringify(regions) : null
-  
-  const result = await c.env.DB.prepare(`
-    INSERT INTO assets (
-      filename, original_filename, title, description, file_type, file_size, file_url,
-      brand_id, sub_brand_id, material_type_id, region, country, regulatory, language,
-      tags, created_by, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).bind(
-    data.filename,
-    data.original_filename,
-    sanitize(data.title),
-    sanitize(data.description),
-    data.file_type,
-    data.file_size,
-    data.file_url,
-    primaryBrandId,
-    sanitize(data.sub_brand_id),
-    sanitize(data.material_type_id),
-    regionString,  // Store as JSON string
-    sanitize(data.country),
-    sanitize(data.regulatory) || 'GLOBAL',
-    sanitize(data.language) || 'ENG',
-    data.tags ? JSON.stringify(data.tags) : null,
-    data.created_by,
-    sanitize(data.status) || 'published'
-  ).run()
-  
-  const assetId = result.meta.last_row_id
-  
-  console.log(`✅ Asset ${assetId} created with title: "${sanitize(data.title)}"`)
-  
-  // Now, insert all brand associations into asset_brands
-  const brandIds = Array.isArray(data.brand_ids) ? data.brand_ids : (data.brand_id ? [data.brand_id] : [])
-  
-  if (brandIds.length > 0) {
-    for (const brandId of brandIds) {
-      if (brandId) {
-        await c.env.DB.prepare(`
-          INSERT OR IGNORE INTO asset_brands (asset_id, brand_id)
-          VALUES (?, ?)
-        `).bind(assetId, brandId).run()
+
+  try {
+    // Sanitize data: convert empty strings, undefined, and 'null' string to null
+    const sanitize = (value: any) => {
+      if (value === '' || value === undefined || value === 'undefined' || value === 'null' || value === null) return null
+      return value
+    }
+
+    // First, create the asset record
+    // Keep brand_id for backward compatibility (use first brand if multiple)
+    const primaryBrandId = Array.isArray(data.brand_ids) && data.brand_ids.length > 0
+      ? data.brand_ids[0]
+      : sanitize(data.brand_id)
+
+    // Handle regions (can be single or array)
+    const regions = data.regions ?
+      (Array.isArray(data.regions) ? data.regions : [data.regions]) :
+      (data.region ? [data.region] : [])
+
+    // Convert regions array to JSON string for storage
+    const regionString = regions.length > 0 ? JSON.stringify(regions) : null
+
+    const result = await c.env.DB.prepare(`
+      INSERT INTO assets (
+        filename, original_filename, title, description, file_type, file_size, file_url,
+        brand_id, sub_brand_id, material_type_id, region, country, regulatory, language,
+        tags, created_by, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      data.filename,
+      data.original_filename,
+      sanitize(data.title),
+      sanitize(data.description),
+      data.file_type,
+      data.file_size,
+      data.file_url,
+      primaryBrandId,
+      sanitize(data.sub_brand_id),
+      sanitize(data.material_type_id),
+      regionString,
+      sanitize(data.country),
+      sanitize(data.regulatory) || 'GLOBAL',
+      sanitize(data.language) || 'ENG',
+      data.tags ? JSON.stringify(data.tags) : null,
+      data.created_by,
+      sanitize(data.status) || 'published'
+    ).run()
+
+    const assetId = result.meta.last_row_id
+
+    console.log(`✅ Asset ${assetId} created with title: "${sanitize(data.title)}"`)
+
+    // Now, insert all brand associations into asset_brands
+    const brandIds = Array.isArray(data.brand_ids) ? data.brand_ids : (data.brand_id ? [data.brand_id] : [])
+
+    if (brandIds.length > 0) {
+      for (const brandId of brandIds) {
+        if (brandId) {
+          await c.env.DB.prepare(`
+            INSERT OR IGNORE INTO asset_brands (asset_id, brand_id)
+            VALUES (?, ?)
+          `).bind(assetId, brandId).run()
+        }
       }
     }
+
+    console.log(`✅ Asset ${assetId} associated with brands: ${brandIds.join(', ')}`)
+
+    return c.json({ success: true, id: assetId }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Clear-Site-Data': '"cache"',
+        'X-Cache-Invalidate': 'all'
+      }
+    })
+  } catch (error: any) {
+    console.error('❌ POST /api/assets error:', error)
+    return c.json({ error: String(error?.message || error) }, 500)
   }
-  
-  console.log(`✅ Asset ${assetId} associated with brands: ${brandIds.join(', ')}`)
-  
-  return c.json({ success: true, id: assetId }, {
-    headers: {
-      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-      'Clear-Site-Data': '"cache"',
-      'X-Cache-Invalidate': 'all'
-    }
-  })
 })
 
 app.put('/api/assets/:id', async (c) => {
