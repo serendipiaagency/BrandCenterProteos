@@ -3078,17 +3078,17 @@ app.get('/api/public/assets', async (c) => {
   `
   
   const params: any[] = []
-  
-  // 🎯 CRITICAL: If user has no brand access and is not admin, return empty results immediately
-  if (!isAdmin && userBrandsAccess.length === 0) {
+
+  // Non-admin users without brand access see nothing (marketing sees everything)
+  if (!isAdmin && !isMarketing && userBrandsAccess.length === 0) {
     return c.json({ assets: [] })
   }
-  
-  // Filter by brands_access if user is not admin
-  if (!isAdmin && userBrandsAccess.length > 0) {
+
+  // Filter by brands_access: check primary brand_id OR any entry in asset_brands
+  if (!isAdmin && !isMarketing && userBrandsAccess.length > 0) {
     const placeholders = userBrandsAccess.map(() => '?').join(',')
-    query += ` AND a.brand_id IN (${placeholders})`
-    params.push(...userBrandsAccess)
+    query += ` AND (a.brand_id IN (${placeholders}) OR EXISTS (SELECT 1 FROM asset_brands ab WHERE ab.asset_id = a.id AND ab.brand_id IN (${placeholders})))`
+    params.push(...userBrandsAccess, ...userBrandsAccess)
   }
   
   if (brand_id) {
@@ -3231,8 +3231,8 @@ app.get('/api/public/brands', async (c) => {
         `).bind(userId).first()
         
         if (user) {
-          // Only admin sees all brands
-          if (user.role === 'admin') {
+          // Admin and marketing see all brands
+          if (user.role === 'admin' || user.role === 'marketing') {
             isAdmin = true
             userBrandsAccess = []
           } else {
@@ -3250,17 +3250,17 @@ app.get('/api/public/brands', async (c) => {
         console.error('Error parsing token:', e)
       }
     }
-    
-    // 🎯 CRITICAL: If user has no brand access and is not admin, return empty
+
+    // Users without brand access see nothing
     if (!isAdmin && userBrandsAccess.length === 0) {
       return c.json({ brands: [] })
     }
-    
+
     // Build query
     let query = `SELECT * FROM brands WHERE active = 1`
     const params: any[] = []
-    
-    // Filter by brands_access if user is not admin
+
+    // Filter by brands_access if user is not admin/marketing
     if (!isAdmin && userBrandsAccess.length > 0) {
       const placeholders = userBrandsAccess.map(() => '?').join(',')
       query += ` AND id IN (${placeholders})`
