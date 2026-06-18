@@ -708,6 +708,14 @@ const getFileColor = (fileType) => {
   if (ft.includes('zip') || ft.includes('rar')) return '#d97706'
   return '#718096'
 }
+const canPreview = (fileType) => {
+  if (!fileType) return false
+  const ft = fileType.toLowerCase()
+  return ft.includes('pdf') ||
+    ft.includes('image') || /jpg|jpeg|png|webp|gif|svg/.test(ft) ||
+    ft.includes('video') || /mp4|mov|webm|ogg/.test(ft) ||
+    ft.includes('audio') || /mp3|wav|ogg/.test(ft)
+}
 
 // ── Últimas actualizaciones ────────────────────────────────────
 const renderLatestUpdates = () => {
@@ -855,7 +863,7 @@ const renderAssets = () => {
                 <div class="asset-description-placeholder" style="min-height: 1.5rem; margin: 0.5rem 0 1rem 0;"></div>
               `}
               
-              <div class="asset-actions" style="display: grid; grid-template-columns: auto 1fr 1fr; gap: 0.5rem; margin-top: auto; padding-top: 1rem;">
+              <div class="asset-actions" style="display: grid; grid-template-columns: auto 1fr ${canPreview(asset.file_type) ? '1fr' : ''}; gap: 0.5rem; margin-top: auto; padding-top: 1rem;">
                 <button onclick="copyAssetLink(${asset.id})" class="btn btn-icon-only" title="Copy link">
                   <i class="fas fa-link"></i>
                 </button>
@@ -863,10 +871,11 @@ const renderAssets = () => {
                   <i class="fas fa-download"></i>
                   ${t('assets.download')}
                 </a>
+                ${canPreview(asset.file_type) ? `
                 <a href="${asset.file_url}" target="_blank" class="btn btn-secondary">
                   <i class="fas fa-eye"></i>
                   ${t('assets.preview')}
-                </a>
+                </a>` : ''}
               </div>
             </div>
           </div>
