@@ -989,10 +989,9 @@ const handleAssetUpdate = async (e) => {
     const titleValue = titleInput?.value?.trim()
     const descriptionValue = descriptionInput?.value?.trim()
     
-    // Get selected brands (multi-select)
-    const brandSelect = $('#edit-asset-brand')
-    const selectedOptions = Array.from(brandSelect.selectedOptions)
-    const brandIds = selectedOptions.map(option => parseInt(option.value)).filter(id => id && !isNaN(id))
+    // Get selected brands (checkboxes)
+    const brandIds = Array.from(document.querySelectorAll('input[name="edit_brand_checkbox"]:checked'))
+      .map(el => parseInt(el.value)).filter(id => id && !isNaN(id))
     
     // Get selected regions (multi-select)
     const regionSelect = $('#edit-asset-region')
@@ -1199,17 +1198,13 @@ const handleFileUpload = async (e) => {
     }
     
     // Get form values
-    // Get selected brands (multi-select)
-    const brandSelect = $('#upload-brand')
-    const selectedOptions = Array.from(brandSelect.selectedOptions)
-    const brandIds = selectedOptions.map(option => parseInt(option.value)).filter(id => id && !isNaN(id))
-    
-    // 🎯 DEFAULT BRAND: pbserum (ID: 2)
-    const DEFAULT_BRAND_ID = 2  // pbserum
-    
-    // If no brands selected, use default
+    // Get selected brands (checkboxes)
+    const brandIds = Array.from(document.querySelectorAll('input[name="upload_brand_checkbox"]:checked'))
+      .map(el => parseInt(el.value)).filter(id => id && !isNaN(id))
+
+    // Default to pbserum (ID: 2) if nothing selected
     if (brandIds.length === 0) {
-      brandIds.push(DEFAULT_BRAND_ID)
+      brandIds.push(2)
     }
     
     const subBrandValue = $('#upload-subbrand') ? $('#upload-subbrand').value : null
@@ -2560,12 +2555,17 @@ const renderUploadModal = () => {
           
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Brands (hold Ctrl/Cmd to select multiple)</label>
-              <select id="upload-brand" class="form-input" multiple size="5" style="height: auto;">
-                ${state.brands.map(brand => `<option value="${brand.id}" ${brand.id === 2 ? 'selected' : ''}>${brand.display_name}</option>`).join('')}
-              </select>
+              <label class="form-label">Líneas de producto</label>
+              <div style="border:1px solid #d1d5db;border-radius:8px;padding:8px;max-height:160px;overflow-y:auto;background:#fff;">
+                ${state.brands.map(brand => `
+                  <label style="display:flex;align-items:center;gap:8px;padding:4px 4px;border-radius:4px;cursor:pointer;font-size:0.875rem;">
+                    <input type="checkbox" name="upload_brand_checkbox" value="${brand.id}" ${brand.id === 2 ? 'checked' : ''} style="width:16px;height:16px;" />
+                    ${brand.display_name}
+                  </label>
+                `).join('')}
+              </div>
             </div>
-            
+
             <div class="form-group">
               <label class="form-label">Material Type</label>
               <select id="upload-material-type" class="form-input">
@@ -2681,14 +2681,15 @@ const renderAssetEditModal = () => {
           
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Brands (hold Ctrl/Cmd to select multiple)</label>
-              <select id="edit-asset-brand" class="form-input" multiple size="5" style="height: auto;">
+              <label class="form-label">Líneas de producto</label>
+              <div style="border:1px solid #d1d5db;border-radius:8px;padding:8px;max-height:160px;overflow-y:auto;background:#fff;">
                 ${state.brands.map(brand => `
-                  <option value="${brand.id}" ${assetEditModal.brand_ids && assetEditModal.brand_ids.includes(brand.id) ? 'selected' : ''}>
+                  <label style="display:flex;align-items:center;gap:8px;padding:4px 4px;border-radius:4px;cursor:pointer;font-size:0.875rem;">
+                    <input type="checkbox" name="edit_brand_checkbox" value="${brand.id}" ${assetEditModal.brand_ids && assetEditModal.brand_ids.includes(brand.id) ? 'checked' : ''} style="width:16px;height:16px;" />
                     ${brand.display_name}
-                  </option>
+                  </label>
                 `).join('')}
-              </select>
+              </div>
             </div>
             
             <div class="form-group">

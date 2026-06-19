@@ -187,17 +187,22 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
         <div class="grid grid-cols-2 gap-6 mb-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              Brands (Ctrl/Cmd + Click for multiple)
+              Líneas de producto
             </label>
-            <select 
-              id="brands"
-              name="brands"
-              multiple
-              size="6"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              ${brandsOptions}
-            </select>
+            <div class="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto bg-white">
+              ${brands.map(brand => `
+                <label class="flex items-center gap-2 py-1 px-1 rounded hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="brand_checkbox"
+                    value="${brand.id}"
+                    ${selectedBrandIds.includes(brand.id) ? 'checked' : ''}
+                    class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span class="text-sm text-gray-700">${brand.display_name}</span>
+                </label>
+              `).join('')}
+            </div>
           </div>
           
           <div>
@@ -476,8 +481,7 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
       const title = document.getElementById('title').value.trim();
       const description = document.getElementById('description').value.trim();
       
-      const brandsSelect = document.getElementById('brands');
-      const brand_ids = Array.from(brandsSelect.selectedOptions).map(opt => parseInt(opt.value));
+      const brand_ids = Array.from(document.querySelectorAll('input[name="brand_checkbox"]:checked')).map(el => parseInt((el as HTMLInputElement).value));
       
       const material_type_id = document.getElementById('material_type').value || null;
       
