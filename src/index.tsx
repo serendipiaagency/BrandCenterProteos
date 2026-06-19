@@ -1623,19 +1623,12 @@ app.get('/api/assets', async (c) => {
         // Admin/Marketing: all brands
         hasBrandAccess = true
       } else {
-        // IMPORTANT: Check primary brand_id first
-        // If user doesn't have access to primary brand, deny access even if asset has other brands
-        if (asset.brand_id && !userBrandsAccess.includes(asset.brand_id)) {
-          hasBrandAccess = false
-        } else {
-          // Check if asset has at least one brand_id in user's brands_access
-          if (asset.brand_ids && asset.brand_ids.length > 0) {
-            hasBrandAccess = asset.brand_ids.some((brandId: number) => userBrandsAccess.includes(brandId))
-          } else if (asset.brand_id) {
-            // Fallback to old brand_id field
-            hasBrandAccess = userBrandsAccess.includes(asset.brand_id)
-          }
-        }
+        // Asset is accessible if ANY of its brands (primary or secondary) is in
+        // the user's brands_access. A secondary brand association is enough.
+        const allBrandIds = new Set<number>()
+        if (asset.brand_id) allBrandIds.add(asset.brand_id)
+        if (Array.isArray(asset.brand_ids)) asset.brand_ids.forEach((b: number) => allBrandIds.add(b))
+        hasBrandAccess = Array.from(allBrandIds).some((brandId) => userBrandsAccess.includes(brandId))
       }
       
       // Check region access
@@ -3160,19 +3153,13 @@ app.get('/api/public/assets', async (c) => {
         // No brand restriction (shouldn't happen for non-admin)
         hasBrandAccess = true
       } else {
-        // IMPORTANT: Check primary brand_id first
-        // If user doesn't have access to primary brand, deny access even if asset has other brands
-        if (asset.brand_id && !userBrandsAccess.includes(asset.brand_id)) {
-          hasBrandAccess = false
-        } else {
-          // Check if asset has at least one brand_id in user's brands_access
-          if (asset.brand_ids && asset.brand_ids.length > 0) {
-            hasBrandAccess = asset.brand_ids.some((brandId: number) => userBrandsAccess.includes(brandId))
-          } else if (asset.brand_id) {
-            // Fallback to old brand_id field
-            hasBrandAccess = userBrandsAccess.includes(asset.brand_id)
-          }
-        }
+        // Asset is accessible if ANY of its brands (primary or secondary) is in
+        // the user's brands_access. A secondary brand association is enough —
+        // we do NOT require access to the primary brand_id.
+        const allBrandIds = new Set<number>()
+        if (asset.brand_id) allBrandIds.add(asset.brand_id)
+        if (Array.isArray(asset.brand_ids)) asset.brand_ids.forEach((b: number) => allBrandIds.add(b))
+        hasBrandAccess = Array.from(allBrandIds).some((brandId) => userBrandsAccess.includes(brandId))
       }
       
       // Check region access
@@ -3362,7 +3349,7 @@ app.get('/admin', (c) => {
       </head>
       <body>
         <div id="app"></div>
-        <script src="/static/app.js?v=20"></script>
+        <script src="/static/app.js?v=21"></script>
       </body>
     </html>
   )
@@ -3451,7 +3438,7 @@ app.get('/admin', (c) => {
       <body class="bg-gray-50">
         <div id="app"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/app.js?v=20"></script>
+        <script src="/static/app.js?v=21"></script>
       </body>
     </html>
   )
@@ -4024,7 +4011,7 @@ app.get('/catalog', (c) => {
       <body>
         <div id="catalog"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/catalog.js?v=11"></script>
+        <script src="/static/catalog.js?v=13"></script>
       </body>
     </html>
   )
@@ -4052,7 +4039,7 @@ app.get('/brand/:brandName', (c) => {
         <script dangerouslySetInnerHTML={{__html: `
           window.BRAND_FILTER = '${brandName}';
         `}} />
-        <script src="/static/catalog.js?v=12"></script>
+        <script src="/static/catalog.js?v=13"></script>
       </body>
     </html>
   )
