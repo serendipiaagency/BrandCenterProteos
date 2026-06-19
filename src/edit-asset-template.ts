@@ -481,7 +481,7 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
       const title = document.getElementById('title').value.trim();
       const description = document.getElementById('description').value.trim();
       
-      const brand_ids = Array.from(document.querySelectorAll('input[name="brand_checkbox"]:checked')).map(el => parseInt((el as HTMLInputElement).value));
+      const brand_ids = Array.from(document.querySelectorAll('input[name="brand_checkbox"]:checked')).map(el => parseInt(el.value));
       
       const material_type_id = document.getElementById('material_type').value || null;
       
