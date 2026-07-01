@@ -55,6 +55,7 @@ const state = {
   allAssets: [],    // unfiltered — used for 'Últimas actualizaciones'
   selectedBrands: [],
   selectedMaterialTypes: [],
+  productLinesExpanded: false, // Product Lines sidebar section collapsed by default
   loading: false,
   language: localStorage.getItem('brandPortalLanguage') || 'en' // Default English
 }
@@ -409,6 +410,12 @@ const clearBrandFilters = async () => {
   await loadAssets()
 }
 
+// Toggle the Product Lines sidebar section (state-based so it survives re-render)
+const toggleProductLines = () => {
+  state.productLinesExpanded = !state.productLinesExpanded
+  render()
+}
+
 const clearCategoryFilters = async () => {
   state.selectedMaterialTypes = []
   await loadAssets()
@@ -569,6 +576,9 @@ const renderSidebar = () => {
   
   return `
     <aside class="sidebar sidebar-narrow">
+      <!-- Product Lines Filter (collapsed by default, above Asset Category) -->
+      ${renderProductLinesFilter()}
+
       <!-- Assets Category Filter (Always expanded by default) -->
       <div id="category-filter" class="filter-section expanded">
         <button class="filter-header" onclick="toggleFilterSection('category-filter')">
@@ -632,57 +642,72 @@ const renderWelcome = () => {
   `
 }
 
-// Horizontal Product Lines Filter
-const renderHorizontalBrandFilter = () => {
+// Product Lines Filter — collapsible sidebar section (collapsed by default)
+const renderProductLinesFilter = () => {
   // 🎯 HIDE brand filter if user has 0 or 1 brands (no filtering needed)
   if (state.brands.length <= 1) {
     return ''
   }
-  
+
   const brandGroups = state.brands.map(brand => ({
     ...brand,
     subBrands: state.subBrands.filter(sb => sb.parent_brand_id === brand.id)
   }))
-  
+
+  const totalBrands = state.brands.length
+  const selectedCount = state.selectedBrands.length
+  const isExpanded = state.productLinesExpanded
+
   return `
-    <div class="horizontal-filter-container">
-      <div class="horizontal-filter-header">
-        <i class="fas fa-tag filter-icon"></i>
-        <h3 class="horizontal-filter-title">${t('filters.productLines')}</h3>
-        ${state.selectedBrands.length > 0 ? `
-          <button onclick="clearBrandFilters()" class="clear-filters-btn-inline">
-            <i class="fas fa-times-circle"></i>
-            ${t('filters.clearAll')}
-          </button>
+    <div id="productlines-filter" class="filter-section ${isExpanded ? 'expanded' : ''}">
+      <button class="filter-header" onclick="toggleProductLines()">
+        <div class="filter-header-left">
+          <i class="fas fa-tag filter-icon"></i>
+          <h3 class="filter-title">${t('filters.productLines')}</h3>
+          <span class="filter-count">(${totalBrands})</span>
+          ${selectedCount > 0 ? `<span class="filter-badge">${selectedCount}</span>` : ''}
+        </div>
+        <i class="fas fa-chevron-up filter-toggle" style="transform: rotate(${isExpanded ? '180deg' : '0deg'});"></i>
+      </button>
+
+      <div class="filter-content" style="${isExpanded ? 'max-height: 2000px; overflow: visible;' : ''}">
+        ${selectedCount > 0 ? `
+          <div class="filter-actions">
+            <button class="clear-filters-btn-top" onclick="event.stopPropagation(); clearBrandFilters()">
+              <i class="fas fa-times-circle"></i>
+              ${t('filters.clearAll')}
+            </button>
+          </div>
         ` : ''}
-      </div>
-      <div class="horizontal-filter-items">
-        ${brandGroups.map(brand => {
-          const isSelected = state.selectedBrands.includes(brand.id);
-          
-          // If brand has sub-brands, show sub-brand names
-          if (brand.subBrands.length > 0) {
-            return brand.subBrands.map(subBrand => `
-              <button 
-                class="horizontal-filter-chip ${isSelected ? 'selected' : ''}"
-                onclick="toggleBrandFilter(${brand.id})"
-              >
-                ${subBrand.display_name}
-                ${isSelected ? '<i class="fas fa-check-circle"></i>' : ''}
-              </button>
-            `).join('')
-          } else {
-            return `
-              <button 
-                class="horizontal-filter-chip ${isSelected ? 'selected' : ''}"
-                onclick="toggleBrandFilter(${brand.id})"
-              >
-                ${brand.display_name}
-                ${isSelected ? '<i class="fas fa-check-circle"></i>' : ''}
-              </button>
-            `
-          }
-        }).join('')}
+
+        <div class="horizontal-filter-items">
+          ${brandGroups.map(brand => {
+            const isSelected = state.selectedBrands.includes(brand.id);
+
+            // If brand has sub-brands, show sub-brand names
+            if (brand.subBrands.length > 0) {
+              return brand.subBrands.map(subBrand => `
+                <button
+                  class="horizontal-filter-chip ${isSelected ? 'selected' : ''}"
+                  onclick="toggleBrandFilter(${brand.id})"
+                >
+                  ${subBrand.display_name}
+                  ${isSelected ? '<i class="fas fa-check-circle"></i>' : ''}
+                </button>
+              `).join('')
+            } else {
+              return `
+                <button
+                  class="horizontal-filter-chip ${isSelected ? 'selected' : ''}"
+                  onclick="toggleBrandFilter(${brand.id})"
+                >
+                  ${brand.display_name}
+                  ${isSelected ? '<i class="fas fa-check-circle"></i>' : ''}
+                </button>
+              `
+            }
+          }).join('')}
+        </div>
       </div>
     </div>
   `
@@ -1009,8 +1034,7 @@ const render = () => {
     <div class="catalog-container">
       ${renderWelcome()}
       ${renderLatestUpdates()}
-      ${renderHorizontalBrandFilter()}
-      
+
       <div class="catalog-layout">
         ${renderSidebar()}
         

@@ -4329,7 +4329,7 @@ app.get('/catalog', (c) => {
       <body>
         <div id="catalog"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/catalog.js?v=13"></script>
+        <script src="/static/catalog.js?v=14"></script>
       </body>
     </html>
   )
@@ -4357,7 +4357,7 @@ app.get('/brand/:brandName', (c) => {
         <script dangerouslySetInnerHTML={{__html: `
           window.BRAND_FILTER = '${brandName}';
         `}} />
-        <script src="/static/catalog.js?v=13"></script>
+        <script src="/static/catalog.js?v=14"></script>
       </body>
     </html>
   )
