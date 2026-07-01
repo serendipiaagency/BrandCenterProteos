@@ -2852,6 +2852,322 @@ app.get('/api/analytics/users-history', async (c) => {
   }
 })
 
+// ============================================
+// API ROUTES - Reports / Informes (admin)
+// ============================================
+
+// Region values are stored as JSON arrays (e.g. ["LATAM","EUROPA"]) or plain
+// strings (e.g. "GLOBAL"). Normalize any raw value into its region tokens.
+const parseRegionTokens = (raw: any): string[] => {
+  if (raw === null || raw === undefined) return ['Sin región']
+  const s = String(raw).trim()
+  if (!s) return ['Sin región']
+  try {
+    const parsed = JSON.parse(s)
+    if (Array.isArray(parsed)) {
+      return parsed.length ? parsed.map((x: any) => String(x)) : ['Sin región']
+    }
+  } catch { /* not JSON, treat as plain string */ }
+  return [s]
+}
+
+// Aggregate raw {region, views, downloads} rows into per-canonical-region tallies.
+// A multi-region row contributes to each of its regions.
+const aggregateByRegion = (rows: any[]) => {
+  const map: Record<string, any> = {}
+  for (const r of rows) {
+    for (const tok of parseRegionTokens(r.region)) {
+      if (!map[tok]) map[tok] = { region: tok, views: 0, downloads: 0 }
+      map[tok].views += r.views || 0
+      map[tok].downloads += r.downloads || 0
+    }
+  }
+  return Object.values(map).sort((a: any, b: any) => (b.downloads - a.downloads) || (b.views - a.views))
+}
+
+// Build a WHERE clause + params from report query filters.
+// Filters: days (number | 'all'), region, country, brand_id
+// Base FROM must be: analytics_events ae LEFT JOIN users u ON ae.user_id = u.id
+const buildReportFilters = (c: any) => {
+  const days = c.req.query('days') || '30'
+  const region = c.req.query('region') || ''
+  const country = c.req.query('country') || ''
+  const brandId = c.req.query('brand_id') || ''
+
+  const conditions: string[] = []
+  const params: any[] = []
+
+  if (days && days !== 'all') {
+    conditions.push("ae.timestamp >= datetime('now', '-' || ? || ' days')")
+    params.push(days)
+  }
+  if (region) {
+    // region is stored as a JSON array or plain string; match by containment.
+    // Canonical regions are not substrings of one another, so this is safe.
+    conditions.push('(u.region LIKE ? OR ae.user_region LIKE ?)')
+    params.push('%' + region + '%', '%' + region + '%')
+  }
+  if (country) {
+    conditions.push('u.country = ?')
+    params.push(country)
+  }
+  if (brandId) {
+    conditions.push('ae.brand_id = ?')
+    params.push(brandId)
+  }
+
+  const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : ''
+  return { where, params, days, region, country, brandId }
+}
+
+// Get available filter options (regions, countries, brands)
+app.get('/api/reports/filters', async (c) => {
+  try {
+    const [userRegionsRes, eventRegionsRes, countriesRes, brandsRes] = await Promise.all([
+      c.env.DB.prepare(`
+        SELECT DISTINCT region as val FROM users
+        WHERE region IS NOT NULL AND TRIM(region) != ''
+      `).all(),
+      c.env.DB.prepare(`
+        SELECT DISTINCT user_region as val FROM analytics_events
+        WHERE user_region IS NOT NULL AND TRIM(user_region) != ''
+      `).all(),
+      c.env.DB.prepare(`
+        SELECT DISTINCT country FROM users
+        WHERE country IS NOT NULL AND TRIM(country) != ''
+        ORDER BY country
+      `).all(),
+      c.env.DB.prepare(`
+        SELECT id, name, display_name FROM brands
+        WHERE active = 1 ORDER BY display_name
+      `).all()
+    ])
+
+    // Flatten JSON-array / plain-string region values into canonical tokens
+    const regionSet = new Set<string>()
+    for (const row of [...userRegionsRes.results, ...eventRegionsRes.results]) {
+      for (const tok of parseRegionTokens((row as any).val)) {
+        if (tok && tok !== 'Sin región') regionSet.add(tok)
+      }
+    }
+
+    return c.json({
+      regions: Array.from(regionSet).sort(),
+      countries: countriesRes.results.map((r: any) => r.country),
+      brands: brandsRes.results
+    })
+  } catch (error: any) {
+    console.error('Reports filters error:', error)
+    return c.json({ error: 'Failed to get report filters', details: error.message }, 500)
+  }
+})
+
+// Get aggregated report data (KPIs + breakdowns for charts)
+app.get('/api/reports/data', async (c) => {
+  try {
+    const { where, params } = buildReportFilters(c)
+    const FROM = 'FROM analytics_events ae LEFT JOIN users u ON ae.user_id = u.id'
+
+    const kpis = await c.env.DB.prepare(`
+      SELECT
+        COUNT(CASE WHEN ae.event_type = 'view' THEN 1 END) as total_views,
+        COUNT(CASE WHEN ae.event_type = 'download' THEN 1 END) as total_downloads,
+        COUNT(DISTINCT ae.user_id) as unique_users,
+        COUNT(DISTINCT ae.asset_id) as assets_accessed
+      ${FROM} ${where}
+    `).bind(...params).first()
+
+    const byBrand = await c.env.DB.prepare(`
+      SELECT COALESCE(ae.brand_name, 'Sin marca') as brand_name,
+        COUNT(CASE WHEN ae.event_type = 'view' THEN 1 END) as views,
+        COUNT(CASE WHEN ae.event_type = 'download' THEN 1 END) as downloads
+      ${FROM} ${where}
+      GROUP BY ae.brand_id
+      ORDER BY downloads DESC, views DESC
+    `).bind(...params).all()
+
+    const byRegionRaw = await c.env.DB.prepare(`
+      SELECT COALESCE(u.region, ae.user_region, 'Sin región') as region,
+        COUNT(CASE WHEN ae.event_type = 'view' THEN 1 END) as views,
+        COUNT(CASE WHEN ae.event_type = 'download' THEN 1 END) as downloads
+      ${FROM} ${where}
+      GROUP BY COALESCE(u.region, ae.user_region, 'Sin región')
+    `).bind(...params).all()
+    const byRegion = aggregateByRegion(byRegionRaw.results)
+
+    const byCountry = await c.env.DB.prepare(`
+      SELECT COALESCE(u.country, 'Sin país') as country,
+        COUNT(CASE WHEN ae.event_type = 'view' THEN 1 END) as views,
+        COUNT(CASE WHEN ae.event_type = 'download' THEN 1 END) as downloads
+      ${FROM} ${where}
+      GROUP BY COALESCE(u.country, 'Sin país')
+      ORDER BY downloads DESC, views DESC
+    `).bind(...params).all()
+
+    const timeline = await c.env.DB.prepare(`
+      SELECT DATE(ae.timestamp) as date,
+        COUNT(CASE WHEN ae.event_type = 'view' THEN 1 END) as views,
+        COUNT(CASE WHEN ae.event_type = 'download' THEN 1 END) as downloads
+      ${FROM} ${where}
+      GROUP BY DATE(ae.timestamp)
+      ORDER BY date ASC
+    `).bind(...params).all()
+
+    const byAsset = await c.env.DB.prepare(`
+      SELECT ae.asset_id,
+        COALESCE(ae.asset_title, 'Sin título') as asset_title,
+        COALESCE(ae.brand_name, 'Sin marca') as brand_name,
+        COALESCE(ae.material_type, '') as material_type,
+        COUNT(CASE WHEN ae.event_type = 'view' THEN 1 END) as views,
+        COUNT(CASE WHEN ae.event_type = 'download' THEN 1 END) as downloads,
+        MAX(ae.timestamp) as last_activity
+      ${FROM} ${where}
+      GROUP BY ae.asset_id
+      ORDER BY downloads DESC, views DESC
+    `).bind(...params).all()
+
+    return c.json({
+      kpis,
+      byBrand: byBrand.results,
+      byRegion: byRegion,
+      byCountry: byCountry.results,
+      timeline: timeline.results,
+      byAsset: byAsset.results
+    })
+  } catch (error: any) {
+    console.error('Reports data error:', error)
+    return c.json({ error: 'Failed to get report data', details: error.message }, 500)
+  }
+})
+
+// Export report data to Excel (respects the same filters)
+app.get('/api/reports/export', async (c) => {
+  try {
+    const { where, params, days, region, country, brandId } = buildReportFilters(c)
+    const FROM = 'FROM analytics_events ae LEFT JOIN users u ON ae.user_id = u.id'
+
+    const kpis: any = await c.env.DB.prepare(`
+      SELECT
+        COUNT(CASE WHEN ae.event_type = 'view' THEN 1 END) as total_views,
+        COUNT(CASE WHEN ae.event_type = 'download' THEN 1 END) as total_downloads,
+        COUNT(DISTINCT ae.user_id) as unique_users,
+        COUNT(DISTINCT ae.asset_id) as assets_accessed
+      ${FROM} ${where}
+    `).bind(...params).first()
+
+    const byAsset = await c.env.DB.prepare(`
+      SELECT ae.asset_id,
+        COALESCE(ae.asset_title, 'Sin título') as asset_title,
+        COALESCE(ae.brand_name, 'Sin marca') as brand_name,
+        COALESCE(ae.material_type, '') as material_type,
+        COUNT(CASE WHEN ae.event_type = 'view' THEN 1 END) as views,
+        COUNT(CASE WHEN ae.event_type = 'download' THEN 1 END) as downloads,
+        MAX(ae.timestamp) as last_activity
+      ${FROM} ${where}
+      GROUP BY ae.asset_id
+      ORDER BY downloads DESC, views DESC
+    `).bind(...params).all()
+
+    const byBrand = await c.env.DB.prepare(`
+      SELECT COALESCE(ae.brand_name, 'Sin marca') as brand_name,
+        COUNT(CASE WHEN ae.event_type = 'view' THEN 1 END) as views,
+        COUNT(CASE WHEN ae.event_type = 'download' THEN 1 END) as downloads
+      ${FROM} ${where}
+      GROUP BY ae.brand_id
+      ORDER BY downloads DESC, views DESC
+    `).bind(...params).all()
+
+    const byRegionRaw = await c.env.DB.prepare(`
+      SELECT COALESCE(u.region, ae.user_region, 'Sin región') as region,
+        COUNT(CASE WHEN ae.event_type = 'view' THEN 1 END) as views,
+        COUNT(CASE WHEN ae.event_type = 'download' THEN 1 END) as downloads
+      ${FROM} ${where}
+      GROUP BY COALESCE(u.region, ae.user_region, 'Sin región')
+    `).bind(...params).all()
+    const byRegion = { results: aggregateByRegion(byRegionRaw.results) }
+
+    const byCountry = await c.env.DB.prepare(`
+      SELECT COALESCE(u.country, 'Sin país') as country,
+        COUNT(CASE WHEN ae.event_type = 'view' THEN 1 END) as views,
+        COUNT(CASE WHEN ae.event_type = 'download' THEN 1 END) as downloads
+      ${FROM} ${where}
+      GROUP BY COALESCE(u.country, 'Sin país')
+      ORDER BY downloads DESC, views DESC
+    `).bind(...params).all()
+
+    const wb = XLSX.utils.book_new()
+
+    // Sheet 1: Resumen (KPIs + applied filters)
+    const resumen = [
+      { 'Métrica': 'Periodo (días)', 'Valor': days === 'all' ? 'Todo' : days },
+      { 'Métrica': 'Región', 'Valor': region || 'Todas' },
+      { 'Métrica': 'País', 'Valor': country || 'Todos' },
+      { 'Métrica': 'Marca (ID)', 'Valor': brandId || 'Todas' },
+      { 'Métrica': '', 'Valor': '' },
+      { 'Métrica': 'Visualizaciones totales', 'Valor': kpis?.total_views || 0 },
+      { 'Métrica': 'Descargas totales', 'Valor': kpis?.total_downloads || 0 },
+      { 'Métrica': 'Usuarios únicos', 'Valor': kpis?.unique_users || 0 },
+      { 'Métrica': 'Activos accedidos', 'Valor': kpis?.assets_accessed || 0 }
+    ]
+    const wsResumen = XLSX.utils.json_to_sheet(resumen)
+    wsResumen['!cols'] = [{ wch: 28 }, { wch: 20 }]
+    XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen')
+
+    // Sheet 2: Por Activo
+    const assetRows = byAsset.results.map((a: any) => ({
+      'ID': a.asset_id,
+      'Activo': a.asset_title,
+      'Marca': a.brand_name,
+      'Tipo de material': a.material_type,
+      'Visualizaciones': a.views,
+      'Descargas': a.downloads,
+      'Última actividad': a.last_activity || ''
+    }))
+    const wsAssets = XLSX.utils.json_to_sheet(assetRows.length ? assetRows : [{ 'ID': '', 'Activo': 'Sin datos', 'Marca': '', 'Tipo de material': '', 'Visualizaciones': 0, 'Descargas': 0, 'Última actividad': '' }])
+    wsAssets['!cols'] = [{ wch: 6 }, { wch: 45 }, { wch: 20 }, { wch: 22 }, { wch: 16 }, { wch: 12 }, { wch: 20 }]
+    XLSX.utils.book_append_sheet(wb, wsAssets, 'Por Activo')
+
+    // Sheet 3: Por Marca
+    const brandRows = byBrand.results.map((b: any) => ({
+      'Marca': b.brand_name, 'Visualizaciones': b.views, 'Descargas': b.downloads
+    }))
+    const wsBrand = XLSX.utils.json_to_sheet(brandRows.length ? brandRows : [{ 'Marca': 'Sin datos', 'Visualizaciones': 0, 'Descargas': 0 }])
+    wsBrand['!cols'] = [{ wch: 25 }, { wch: 16 }, { wch: 12 }]
+    XLSX.utils.book_append_sheet(wb, wsBrand, 'Por Marca')
+
+    // Sheet 4: Por Región
+    const regionRows = byRegion.results.map((r: any) => ({
+      'Región': r.region, 'Visualizaciones': r.views, 'Descargas': r.downloads
+    }))
+    const wsRegion = XLSX.utils.json_to_sheet(regionRows.length ? regionRows : [{ 'Región': 'Sin datos', 'Visualizaciones': 0, 'Descargas': 0 }])
+    wsRegion['!cols'] = [{ wch: 25 }, { wch: 16 }, { wch: 12 }]
+    XLSX.utils.book_append_sheet(wb, wsRegion, 'Por Región')
+
+    // Sheet 5: Por País
+    const countryRows = byCountry.results.map((r: any) => ({
+      'País': r.country, 'Visualizaciones': r.views, 'Descargas': r.downloads
+    }))
+    const wsCountry = XLSX.utils.json_to_sheet(countryRows.length ? countryRows : [{ 'País': 'Sin datos', 'Visualizaciones': 0, 'Descargas': 0 }])
+    wsCountry['!cols'] = [{ wch: 25 }, { wch: 16 }, { wch: 12 }]
+    XLSX.utils.book_append_sheet(wb, wsCountry, 'Por País')
+
+    const excelBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+    const timestamp = new Date().toISOString().split('T')[0]
+    const filename = `brand-center-informe-${timestamp}.xlsx`
+
+    return new Response(excelBuffer, {
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-cache'
+      }
+    })
+  } catch (error: any) {
+    console.error('Reports export error:', error)
+    return c.json({ error: 'Failed to export report', details: error.message }, 500)
+  }
+})
+
 app.get('/api/files/:filename{.*}', async (c) => {
   const filename = c.req.param('filename')
   
@@ -3346,10 +3662,11 @@ app.get('/admin', (c) => {
         <link href="/static/styles.css?v=4" rel="stylesheet" />
         <script src="https://cdn.tailwindcss.com"></script>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
       </head>
       <body>
         <div id="app"></div>
-        <script src="/static/app.js?v=21"></script>
+        <script src="/static/app.js?v=22"></script>
       </body>
     </html>
   )
@@ -3438,7 +3755,8 @@ app.get('/admin', (c) => {
       <body class="bg-gray-50">
         <div id="app"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/app.js?v=21"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+        <script src="/static/app.js?v=22"></script>
       </body>
     </html>
   )

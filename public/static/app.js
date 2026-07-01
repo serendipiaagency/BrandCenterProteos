@@ -35,8 +35,27 @@ const state = {
     selectedUserId: null,
     userDetailHistory: []
   },
-  expandedUserId: null // Track which user's history is expanded
+  expandedUserId: null, // Track which user's history is expanded
+  // Reports / Informes state
+  reportsData: {
+    loading: false,
+    data: null,           // { kpis, byBrand, byRegion, byCountry, timeline, byAsset }
+    filters: {            // available filter options
+      regions: [],
+      countries: [],
+      brands: []
+    },
+    selected: {           // currently applied filters
+      days: '30',
+      region: '',
+      country: '',
+      brand_id: ''
+    }
+  }
 }
+
+// Chart.js instances (kept so we can destroy before re-rendering)
+const reportCharts = {}
 
 // ============================================
 // Utility Functions
@@ -445,6 +464,17 @@ const api = {
   async getUsersHistory(days = 30) {
     const response = await axios.get(`/api/analytics/users-history?days=${days}`)
     return response.data
+  },
+
+  // Reports / Informes
+  async getReportFilters() {
+    const response = await axios.get('/api/reports/filters')
+    return response.data
+  },
+
+  async getReportData(query) {
+    const response = await axios.get(`/api/reports/data?${query}`)
+    return response.data
   }
 }
 
@@ -775,6 +805,134 @@ const backToAnalyticsOverview = () => {
   render()
 }
 
+// ============================================
+// Reports / Informes
+// ============================================
+
+const reportsQueryString = () => {
+  const s = state.reportsData.selected
+  const params = new URLSearchParams()
+  params.set('days', s.days)
+  if (s.region) params.set('region', s.region)
+  if (s.country) params.set('country', s.country)
+  if (s.brand_id) params.set('brand_id', s.brand_id)
+  return params.toString()
+}
+
+const loadReports = async () => {
+  try {
+    state.reportsData.loading = true
+    render()
+
+    // Load filter options once
+    if (!state.reportsData.filters.brands.length &&
+        !state.reportsData.filters.regions.length &&
+        !state.reportsData.filters.countries.length) {
+      try {
+        const filters = await api.getReportFilters()
+        state.reportsData.filters = {
+          regions: filters.regions || [],
+          countries: filters.countries || [],
+          brands: filters.brands || []
+        }
+      } catch (e) {
+        console.error('Error loading report filters:', e)
+      }
+    }
+
+    const data = await api.getReportData(reportsQueryString())
+    state.reportsData.data = data
+    state.reportsData.loading = false
+    render()
+  } catch (error) {
+    console.error('Error loading reports:', error)
+    state.reportsData.loading = false
+    render()
+    showNotification('Error al cargar los informes', 'error')
+  }
+}
+
+const updateReportFilter = (key, value) => {
+  state.reportsData.selected[key] = value
+  loadReports()
+}
+
+const exportReportsExcel = () => {
+  window.location.href = `/api/reports/export?${reportsQueryString()}`
+}
+
+// Draw all report charts (called after the reports page is in the DOM)
+const drawReportsCharts = () => {
+  if (typeof Chart === 'undefined') return
+  const data = state.reportsData.data
+  if (!data) return
+
+  const palette = ['#667eea', '#f5576c', '#4facfe', '#43e97b', '#f59e0b', '#a855f7', '#ec4899', '#14b8a6', '#f97316', '#3b82f6']
+
+  // Destroy existing charts to avoid canvas reuse errors
+  Object.keys(reportCharts).forEach(k => {
+    if (reportCharts[k]) { reportCharts[k].destroy(); reportCharts[k] = null }
+  })
+
+  // Timeline (views vs downloads over time)
+  const tlEl = document.getElementById('chart-timeline')
+  if (tlEl && data.timeline) {
+    reportCharts.timeline = new Chart(tlEl, {
+      type: 'line',
+      data: {
+        labels: data.timeline.map(t => t.date),
+        datasets: [
+          { label: 'Visualizaciones', data: data.timeline.map(t => t.views), borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,0.1)', fill: true, tension: 0.3 },
+          { label: 'Descargas', data: data.timeline.map(t => t.downloads), borderColor: '#f5576c', backgroundColor: 'rgba(245,87,108,0.1)', fill: true, tension: 0.3 }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+    })
+  }
+
+  // Downloads by brand (bar)
+  const brandEl = document.getElementById('chart-brand')
+  if (brandEl && data.byBrand) {
+    reportCharts.brand = new Chart(brandEl, {
+      type: 'bar',
+      data: {
+        labels: data.byBrand.map(b => b.brand_name),
+        datasets: [
+          { label: 'Descargas', data: data.byBrand.map(b => b.downloads), backgroundColor: '#f5576c' },
+          { label: 'Visualizaciones', data: data.byBrand.map(b => b.views), backgroundColor: '#667eea' }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+    })
+  }
+
+  // Downloads by region (doughnut)
+  const regionEl = document.getElementById('chart-region')
+  if (regionEl && data.byRegion) {
+    reportCharts.region = new Chart(regionEl, {
+      type: 'doughnut',
+      data: {
+        labels: data.byRegion.map(r => r.region),
+        datasets: [{ data: data.byRegion.map(r => r.downloads), backgroundColor: palette }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+    })
+  }
+
+  // Downloads by country (horizontal bar)
+  const countryEl = document.getElementById('chart-country')
+  if (countryEl && data.byCountry) {
+    reportCharts.country = new Chart(countryEl, {
+      type: 'bar',
+      data: {
+        labels: data.byCountry.map(r => r.country),
+        datasets: [{ label: 'Descargas', data: data.byCountry.map(r => r.downloads), backgroundColor: '#43e97b' }]
+      },
+      options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+    })
+  }
+}
+
 const toggleUserHistory = (userId) => {
   if (state.expandedUserId === userId) {
     state.expandedUserId = null
@@ -795,6 +953,8 @@ const navigateTo = (page) => {
     loadUsers()
   } else if (page === 'analytics') {
     loadAnalytics()
+  } else if (page === 'reports') {
+    loadReports()
   } else {
     render()
   }
@@ -1894,6 +2054,12 @@ const renderSidebar = () => {
               <a href="#" onclick="navigateTo('analytics'); return false;" class="sidebar-link ${state.currentPage === 'analytics' ? 'active' : ''}">
                 <i class="fas fa-chart-line"></i>
                 <span>Analytics</span>
+              </a>
+            </li>
+            <li class="sidebar-item">
+              <a href="#" onclick="navigateTo('reports'); return false;" class="sidebar-link ${state.currentPage === 'reports' ? 'active' : ''}">
+                <i class="fas fa-chart-pie"></i>
+                <span>Informes</span>
               </a>
             </li>
             <li class="sidebar-item">
@@ -3645,6 +3811,179 @@ const renderUserActivityDetails = () => {
   `
 }
 
+const renderReportsPage = () => {
+  const rd = state.reportsData
+  const { data, loading, filters, selected } = rd
+  const kpis = data?.kpis || {}
+
+  const regionOptions = filters.regions.map(r =>
+    `<option value="${r}" ${selected.region === r ? 'selected' : ''}>${r}</option>`
+  ).join('')
+  const countryOptions = filters.countries.map(cn =>
+    `<option value="${cn}" ${selected.country === cn ? 'selected' : ''}>${cn}</option>`
+  ).join('')
+  const brandOptions = filters.brands.map(b =>
+    `<option value="${b.id}" ${String(selected.brand_id) === String(b.id) ? 'selected' : ''}>${b.display_name}</option>`
+  ).join('')
+
+  const inputStyle = 'padding: 0.6rem 0.75rem; border: 1px solid #cbd5e0; border-radius: 8px; background: white; min-width: 150px;'
+
+  const kpiCard = (grad, icon, label, value) => `
+    <div style="background: linear-gradient(135deg, ${grad}); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <i class="fas ${icon}" style="font-size: 2rem; opacity: 0.9;"></i>
+        <div>
+          <div style="font-size: 0.875rem; opacity: 0.9;">${label}</div>
+          <div style="font-size: 2rem; font-weight: 700;">${value || 0}</div>
+        </div>
+      </div>
+    </div>`
+
+  const byAsset = data?.byAsset || []
+
+  return `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">
+          <i class="fas fa-chart-pie"></i>
+          Informes
+        </h1>
+        <p class="page-subtitle">KPIs, gráficas y exportación de datos por Región, País y Marca</p>
+      </div>
+      <div class="page-actions">
+        <button onclick="exportReportsExcel()" class="btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+          <i class="fas fa-file-excel"></i>
+          Descargar Excel
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div style="background: white; border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+      <div>
+        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #4a5568; margin-bottom: 0.35rem;">Periodo</label>
+        <select onchange="updateReportFilter('days', this.value)" style="${inputStyle}">
+          <option value="7" ${selected.days === '7' ? 'selected' : ''}>Últimos 7 días</option>
+          <option value="30" ${selected.days === '30' ? 'selected' : ''}>Últimos 30 días</option>
+          <option value="90" ${selected.days === '90' ? 'selected' : ''}>Últimos 90 días</option>
+          <option value="365" ${selected.days === '365' ? 'selected' : ''}>Últimos 12 meses</option>
+          <option value="all" ${selected.days === 'all' ? 'selected' : ''}>Todo</option>
+        </select>
+      </div>
+      <div>
+        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #4a5568; margin-bottom: 0.35rem;">Región</label>
+        <select onchange="updateReportFilter('region', this.value)" style="${inputStyle}">
+          <option value="">Todas las regiones</option>
+          ${regionOptions}
+        </select>
+      </div>
+      <div>
+        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #4a5568; margin-bottom: 0.35rem;">País</label>
+        <select onchange="updateReportFilter('country', this.value)" style="${inputStyle}">
+          <option value="">Todos los países</option>
+          ${countryOptions}
+        </select>
+      </div>
+      <div>
+        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #4a5568; margin-bottom: 0.35rem;">Marca</label>
+        <select onchange="updateReportFilter('brand_id', this.value)" style="${inputStyle}">
+          <option value="">Todas las marcas</option>
+          ${brandOptions}
+        </select>
+      </div>
+      ${(selected.region || selected.country || selected.brand_id) ? `
+        <button onclick="updateReportFilter('region',''); state.reportsData.selected.country=''; state.reportsData.selected.brand_id=''; loadReports();" class="btn-secondary" style="padding: 0.6rem 1rem;">
+          <i class="fas fa-times"></i> Limpiar filtros
+        </button>
+      ` : ''}
+    </div>
+
+    ${loading ? `
+      <div style="text-align: center; padding: 4rem 2rem;">
+        <i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: #667eea; margin-bottom: 1rem;"></i>
+        <p style="color: #718096; font-size: 1.1rem;">Cargando informe...</p>
+      </div>
+    ` : `
+      <!-- KPI cards -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+        ${kpiCard('#667eea 0%, #764ba2 100%', 'fa-eye', 'Visualizaciones', kpis.total_views)}
+        ${kpiCard('#f093fb 0%, #f5576c 100%', 'fa-download', 'Descargas', kpis.total_downloads)}
+        ${kpiCard('#4facfe 0%, #00f2fe 100%', 'fa-users', 'Usuarios únicos', kpis.unique_users)}
+        ${kpiCard('#43e97b 0%, #38f9d7 100%', 'fa-images', 'Activos accedidos', kpis.assets_accessed)}
+      </div>
+
+      <!-- Charts row 1 -->
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
+        <div style="background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #1a202c;">Evolución en el tiempo</h3>
+          <div style="height: 280px;"><canvas id="chart-timeline"></canvas></div>
+        </div>
+        <div style="background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #1a202c;">Descargas por Región</h3>
+          <div style="height: 280px;"><canvas id="chart-region"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Charts row 2 -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem;">
+        <div style="background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #1a202c;">Por Marca</h3>
+          <div style="height: 300px;"><canvas id="chart-brand"></canvas></div>
+        </div>
+        <div style="background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #1a202c;">Descargas por País</h3>
+          <div style="height: 300px;"><canvas id="chart-country"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Per-asset table -->
+      <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 style="font-size: 1.25rem; font-weight: 600; color: #1a202c;">
+            <i class="fas fa-list" style="color: #667eea;"></i>
+            Descargas por Activo
+          </h2>
+          <button onclick="exportReportsExcel()" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-file-excel"></i> Exportar
+          </button>
+        </div>
+        ${byAsset.length === 0 ? `
+          <p style="text-align: center; color: #718096; padding: 2rem;">No hay datos para los filtros seleccionados</p>
+        ` : `
+          <div style="overflow-x: auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px;">#</th>
+                  <th>Activo</th>
+                  <th>Marca</th>
+                  <th style="text-align: center; width: 130px;"><i class="fas fa-eye"></i> Visualizaciones</th>
+                  <th style="text-align: center; width: 110px;"><i class="fas fa-download"></i> Descargas</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${byAsset.map((a, i) => `
+                  <tr>
+                    <td style="font-weight: 600; color: #718096;">${i + 1}</td>
+                    <td>
+                      <a href="/asset/${a.asset_id}" target="_blank" style="color: #002f57; text-decoration: none;">
+                        ${a.asset_title || 'Sin título'}
+                      </a>
+                    </td>
+                    <td><span class="brand-badge" style="background-color: #002f57;">${a.brand_name || 'N/A'}</span></td>
+                    <td style="text-align: center; font-weight: 600;">${a.views || 0}</td>
+                    <td style="text-align: center; font-weight: 600; color: #f5576c;">${a.downloads || 0}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}
+      </div>
+    `}
+  `
+}
+
 const renderAnalyticsPage = () => {
   const { stats, topAssets, usersHistory, brandActivity, timeline, allAssets = [], selectedPeriod, activeTab } = state.analyticsData
   
@@ -4258,6 +4597,9 @@ const render = () => {
     case 'analytics':
       pageContent = renderAnalyticsPage()
       break
+    case 'reports':
+      pageContent = renderReportsPage()
+      break
     case 'labels':
       pageContent = renderLabelsPage()
       break
@@ -4291,6 +4633,11 @@ const render = () => {
   const modalsContainer = $('#modals-container')
   if (modalsContainer && !modalsContainer.hasChildNodes()) {
     renderModalsContainer()
+  }
+
+  // Draw report charts after the DOM is updated (canvases must exist)
+  if (state.currentPage === 'reports' && state.reportsData.data && !state.reportsData.loading) {
+    requestAnimationFrame(() => drawReportsCharts())
   }
 }
 
