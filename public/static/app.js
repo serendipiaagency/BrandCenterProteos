@@ -57,6 +57,16 @@ const state = {
 // Chart.js instances (kept so we can destroy before re-rendering)
 const reportCharts = {}
 
+// Canonical list of world countries (Spanish), used for the country autocomplete
+const WORLD_COUNTRIES = ["Afganistán","Albania","Alemania","Andorra","Angola","Antigua y Barbuda","Arabia Saudita","Argelia","Argentina","Armenia","Australia","Austria","Azerbaiyán","Bahamas","Bangladés","Barbados","Baréin","Bélgica","Belice","Benín","Bielorrusia","Birmania","Bolivia","Bosnia y Herzegovina","Botsuana","Brasil","Brunéi","Bulgaria","Burkina Faso","Burundi","Bután","Cabo Verde","Camboya","Camerún","Canadá","Catar","Chad","Chile","China","Chipre","Ciudad del Vaticano","Colombia","Comoras","Congo","Corea del Norte","Corea del Sur","Costa de Marfil","Costa Rica","Croacia","Cuba","Dinamarca","Dominica","Ecuador","Egipto","El Salvador","Emiratos Árabes Unidos","Eritrea","Eslovaquia","Eslovenia","España","Estados Unidos","Estonia","Esuatini","Etiopía","Filipinas","Finlandia","Fiyi","Francia","Gabón","Gambia","Georgia","Ghana","Granada","Grecia","Guatemala","Guinea","Guinea Ecuatorial","Guinea-Bisáu","Guyana","Haití","Honduras","Hungría","India","Indonesia","Irak","Irán","Irlanda","Islandia","Islas Marshall","Islas Salomón","Israel","Italia","Jamaica","Japón","Jordania","Kazajistán","Kenia","Kirguistán","Kiribati","Kosovo","Kuwait","Laos","Lesoto","Letonia","Líbano","Liberia","Libia","Liechtenstein","Lituania","Luxemburgo","Macedonia del Norte","Madagascar","Malasia","Malaui","Maldivas","Malí","Malta","Marruecos","Mauricio","Mauritania","México","Micronesia","Moldavia","Mónaco","Mongolia","Montenegro","Mozambique","Namibia","Nauru","Nepal","Nicaragua","Níger","Nigeria","Noruega","Nueva Zelanda","Omán","Países Bajos","Pakistán","Palaos","Palestina","Panamá","Papúa Nueva Guinea","Paraguay","Perú","Polonia","Portugal","Reino Unido","República Centroafricana","República Checa","República Dominicana","Ruanda","Rumanía","Rusia","Samoa","San Cristóbal y Nieves","San Marino","San Vicente y las Granadinas","Santa Lucía","Santo Tomé y Príncipe","Senegal","Serbia","Seychelles","Sierra Leona","Singapur","Siria","Somalia","Sri Lanka","Sudáfrica","Sudán","Sudán del Sur","Suecia","Suiza","Surinam","Tailandia","Taiwán","Tanzania","Tayikistán","Timor Oriental","Togo","Tonga","Trinidad y Tobago","Túnez","Turkmenistán","Turquía","Tuvalu","Ucrania","Uganda","Uruguay","Uzbekistán","Vanuatu","Venezuela","Vietnam","Yemen","Yibuti","Zambia","Zimbabue"]
+
+// Shared <datalist> so any country <input list="countries-datalist"> autocompletes
+const renderCountriesDatalist = () => `
+  <datalist id="countries-datalist">
+    ${WORLD_COUNTRIES.map(cn => `<option value="${cn}"></option>`).join('')}
+  </datalist>
+`
+
 // ============================================
 // Utility Functions
 // ============================================
@@ -2757,7 +2767,7 @@ const renderUploadModal = () => {
             
             <div class="form-group">
               <label class="form-label">Country <span style="color: #9ca3af; font-size: 0.75rem; font-weight: 400;">(Optional)</span></label>
-              <input id="upload-country" type="text" class="form-input" placeholder="Country" />
+              <input id="upload-country" type="text" list="countries-datalist" autocomplete="off" class="form-input" placeholder="Escribe para buscar un país..." />
             </div>
           </div>
           
@@ -2887,12 +2897,14 @@ const renderAssetEditModal = () => {
             
             <div class="form-group">
               <label class="form-label">Country <span style="color: #9ca3af; font-size: 0.75rem; font-weight: 400;">(Optional)</span></label>
-              <input 
-                id="edit-asset-country" 
-                type="text" 
+              <input
+                id="edit-asset-country"
+                type="text"
+                list="countries-datalist"
+                autocomplete="off"
                 value="${assetEditModal.country || ''}"
-                class="form-input" 
-                placeholder="Country" 
+                class="form-input"
+                placeholder="Escribe para buscar un país..."
               />
             </div>
           </div>
@@ -3230,7 +3242,7 @@ const renderUserModal = () => {
                 <i class="fas fa-flag"></i>
                 Country
               </label>
-              <input id="user-country" type="text" value="${userModal.country || ''}" class="form-input" placeholder="Spain, Mexico, USA..." />
+              <input id="user-country" type="text" list="countries-datalist" autocomplete="off" value="${userModal.country || ''}" class="form-input" placeholder="Escribe para buscar un país..." />
             </div>
           </div>
           
@@ -4656,6 +4668,7 @@ const renderModalsContainer = () => {
     ${renderPasswordModal()}
     ${renderBrandModal()}
     ${renderMaterialTypeModal()}
+    ${renderCountriesDatalist()}
   `
 }
 
