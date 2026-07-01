@@ -4324,12 +4324,12 @@ app.get('/catalog', (c) => {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet" />
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
-        <link href="/static/catalog.css?v=6" rel="stylesheet" />
+        <link href="/static/catalog.css?v=8" rel="stylesheet" />
       </head>
       <body>
         <div id="catalog"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/catalog.js?v=14"></script>
+        <script src="/static/catalog.js?v=15"></script>
       </body>
     </html>
   )
@@ -4349,7 +4349,7 @@ app.get('/brand/:brandName', (c) => {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet" />
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
-        <link href="/static/catalog.css?v=7" rel="stylesheet" />
+        <link href="/static/catalog.css?v=8" rel="stylesheet" />
       </head>
       <body>
         <div id="catalog"></div>
@@ -4357,7 +4357,7 @@ app.get('/brand/:brandName', (c) => {
         <script dangerouslySetInnerHTML={{__html: `
           window.BRAND_FILTER = '${brandName}';
         `}} />
-        <script src="/static/catalog.js?v=14"></script>
+        <script src="/static/catalog.js?v=15"></script>
       </body>
     </html>
   )

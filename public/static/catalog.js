@@ -56,6 +56,7 @@ const state = {
   selectedBrands: [],
   selectedMaterialTypes: [],
   productLinesExpanded: false, // Product Lines sidebar section collapsed by default
+  categoryExpanded: false,     // Assets Category sidebar section collapsed by default
   loading: false,
   language: localStorage.getItem('brandPortalLanguage') || 'en' // Default English
 }
@@ -416,6 +417,12 @@ const toggleProductLines = () => {
   render()
 }
 
+// Toggle the Assets Category sidebar section (state-based so it survives re-render)
+const toggleCategory = () => {
+  state.categoryExpanded = !state.categoryExpanded
+  render()
+}
+
 const clearCategoryFilters = async () => {
   state.selectedMaterialTypes = []
   await loadAssets()
@@ -579,33 +586,34 @@ const renderSidebar = () => {
       <!-- Product Lines Filter (collapsed by default, above Asset Category) -->
       ${renderProductLinesFilter()}
 
-      <!-- Assets Category Filter (Always expanded by default) -->
-      <div id="category-filter" class="filter-section expanded">
-        <button class="filter-header" onclick="toggleFilterSection('category-filter')">
+      <!-- Assets Category Filter (collapsed by default) -->
+      <div id="category-filter" class="filter-section ${state.categoryExpanded ? 'expanded' : ''}">
+        <button class="filter-header" onclick="toggleCategory()">
           <div class="filter-header-left">
             <i class="fas fa-folder-open filter-icon"></i>
             <h3 class="filter-title">${t('filters.assetsCategory')}</h3>
             <span class="filter-count">(${totalMaterialTypes})</span>
             ${selectedCount > 0 && selectedCount < totalMaterialTypes ? `<span class="filter-badge">${selectedCount}</span>` : ''}
           </div>
-          <i id="category-filter-icon" class="fas fa-chevron-up filter-toggle" style="transform: rotate(180deg);"></i>
+          <i class="fas fa-chevron-up filter-toggle" style="transform: rotate(${state.categoryExpanded ? '180deg' : '0deg'});"></i>
         </button>
-        
-        <div id="category-filter-content" class="filter-content" style="max-height: 1000px; overflow: visible;">
-          <!-- Clear All Button (Always visible at top) -->
-          <div class="filter-actions">
-            <button class="clear-filters-btn-top" onclick="clearCategoryFilters()">
-              <i class="fas fa-times-circle"></i>
-              ${t('filters.clearAll')}
-            </button>
-            ${selectedCount === totalMaterialTypes ? `
-              <span class="all-selected-badge">
-                <i class="fas fa-check-circle"></i>
-                All selected
-              </span>
-            ` : ''}
-          </div>
-          
+
+        <div class="filter-content" style="${state.categoryExpanded ? 'max-height: 2000px; overflow: visible;' : ''}">
+          ${selectedCount > 0 ? `
+            <div class="filter-actions">
+              <button class="clear-filters-btn-top" onclick="event.stopPropagation(); clearCategoryFilters()">
+                <i class="fas fa-times-circle"></i>
+                ${t('filters.clearAll')}
+              </button>
+              ${selectedCount === totalMaterialTypes ? `
+                <span class="all-selected-badge">
+                  <i class="fas fa-check-circle"></i>
+                  ${t('filters.clearAll') === 'Clear all' ? 'All selected' : 'Todas'}
+                </span>
+              ` : ''}
+            </div>
+          ` : ''}
+
           <ul class="filter-list">
             ${state.materialTypes.map(type => {
               const displayName = type.display_name;
@@ -680,7 +688,7 @@ const renderProductLinesFilter = () => {
           </div>
         ` : ''}
 
-        <div class="horizontal-filter-items">
+        <div class="horizontal-filter-items productlines-chips">
           ${brandGroups.map(brand => {
             const isSelected = state.selectedBrands.includes(brand.id);
 

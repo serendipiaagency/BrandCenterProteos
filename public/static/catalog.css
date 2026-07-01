@@ -267,32 +267,16 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 0.5rem;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 0.45rem;
   background: var(--corporate-blue);
-  color: #1a1d2e;
-  font-size: 0.75rem;
+  color: #ffffff;
+  font-size: 0.72rem;
   font-weight: 700;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(245, 200, 66, 0.3);
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 47, 86, 0.25);
   animation: bounceIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  position: relative;
-}
-
-.filter-badge::before {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: 12px;
-  background: var(--corporate-blue);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.filter-header:hover .filter-badge::before {
-  opacity: 0.2;
-  animation: pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes bounceIn {
@@ -1491,6 +1475,36 @@ body {
   font-size: 0.85rem;
 }
 
+/* Product Lines chips rendered inside the narrow sidebar:
+   full-width, wrapping pills so long names don't overflow. */
+.productlines-chips {
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.productlines-chips .horizontal-filter-chip {
+  width: 100%;
+  justify-content: space-between;
+  white-space: normal;
+  text-align: left;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 10px;
+  border-width: 1.5px;
+  line-height: 1.25;
+}
+
+.productlines-chips .horizontal-filter-chip:hover {
+  transform: none; /* avoid horizontal jump inside a tight column */
+  box-shadow: 0 2px 8px rgba(0, 47, 86, 0.12);
+}
+
+.productlines-chips .horizontal-filter-chip i {
+  flex-shrink: 0;
+  margin-left: 0.4rem;
+}
+
 /* ============================================
    Narrow Sidebar
    ============================================ */
@@ -1498,6 +1512,17 @@ body {
 .sidebar-narrow {
   width: 240px;
   min-width: 240px;
+}
+
+/* Tighter horizontal padding inside the narrow sidebar for more chip width */
+.sidebar-narrow .filter-header {
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+.sidebar-narrow .filter-content {
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
 }
 
 /* Expanded filter section by default */
