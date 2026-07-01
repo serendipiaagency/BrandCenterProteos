@@ -4324,7 +4324,7 @@ app.get('/catalog', (c) => {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet" />
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
-        <link href="/static/catalog.css?v=8" rel="stylesheet" />
+        <link href="/static/catalog.css?v=9" rel="stylesheet" />
       </head>
       <body>
         <div id="catalog"></div>
@@ -4349,7 +4349,7 @@ app.get('/brand/:brandName', (c) => {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet" />
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
-        <link href="/static/catalog.css?v=8" rel="stylesheet" />
+        <link href="/static/catalog.css?v=9" rel="stylesheet" />
       </head>
       <body>
         <div id="catalog"></div>

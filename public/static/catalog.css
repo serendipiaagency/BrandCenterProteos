@@ -184,11 +184,34 @@ body {
   border-radius: 16px;
   padding: 0;
   box-shadow: 0 4px 24px rgba(26, 29, 46, 0.12), 0 1px 4px rgba(26, 29, 46, 0.08);
-  height: fit-content;
   position: sticky;
   top: 2rem;
-  overflow: hidden;
+  /* Never taller than the viewport: scroll inside when sections are expanded
+     so the bottom items are always reachable. */
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+  overflow-x: hidden;
   border: 1px solid rgba(225, 228, 232, 0.6);
+}
+
+/* Slim scrollbar for the sidebar and inner scroll areas */
+.sidebar::-webkit-scrollbar,
+.filter-list::-webkit-scrollbar,
+.productlines-chips::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-thumb,
+.filter-list::-webkit-scrollbar-thumb,
+.productlines-chips::-webkit-scrollbar-thumb {
+  background: rgba(0, 47, 86, 0.25);
+  border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover,
+.filter-list::-webkit-scrollbar-thumb:hover,
+.productlines-chips::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 47, 86, 0.45);
 }
 
 /* Filter Section - Collapsible */
@@ -354,6 +377,11 @@ body {
   list-style: none;
   padding: 0;
   margin: 0;
+  /* Long category lists scroll inside the section instead of making the
+     whole block taller than the screen. */
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .filter-item {
@@ -1480,6 +1508,10 @@ body {
 .productlines-chips {
   flex-direction: column;
   gap: 0.4rem;
+  /* Long product-line lists scroll inside the section. */
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .productlines-chips .horizontal-filter-chip {
