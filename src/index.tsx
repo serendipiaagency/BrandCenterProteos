@@ -3666,7 +3666,7 @@ app.get('/admin', (c) => {
       </head>
       <body>
         <div id="app"></div>
-        <script src="/static/app.js?v=23"></script>
+        <script src="/static/app.js?v=24"></script>
       </body>
     </html>
   )
@@ -3756,7 +3756,7 @@ app.get('/admin', (c) => {
         <div id="app"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-        <script src="/static/app.js?v=23"></script>
+        <script src="/static/app.js?v=24"></script>
       </body>
     </html>
   )
@@ -4329,7 +4329,7 @@ app.get('/catalog', (c) => {
       <body>
         <div id="catalog"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/catalog.js?v=15"></script>
+        <script src="/static/catalog.js?v=16"></script>
       </body>
     </html>
   )
@@ -4357,7 +4357,7 @@ app.get('/brand/:brandName', (c) => {
         <script dangerouslySetInnerHTML={{__html: `
           window.BRAND_FILTER = '${brandName}';
         `}} />
-        <script src="/static/catalog.js?v=15"></script>
+        <script src="/static/catalog.js?v=16"></script>
       </body>
     </html>
   )
