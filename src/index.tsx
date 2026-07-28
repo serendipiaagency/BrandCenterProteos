@@ -2920,6 +2920,74 @@ const buildReportFilters = (c: any) => {
   return { where, params, days, region, country, brandId }
 }
 
+// Build the JOIN/WHERE pieces for the per-user activity breakdown.
+// Base query is `FROM users u LEFT JOIN analytics_events ae ON ae.user_id = u.id`
+// so that users with zero activity in the period still appear (matching the
+// "User Activity" list shown in Analytics). days/brand_id filter which events
+// count (via the JOIN's ON clause); region/country filter which users show up
+// (via WHERE, on the user's own fields).
+const buildUserReportFilters = (c: any) => {
+  const days = c.req.query('days') || '30'
+  const region = c.req.query('region') || ''
+  const country = c.req.query('country') || ''
+  const brandId = c.req.query('brand_id') || ''
+
+  const joinConditions: string[] = []
+  const joinParams: any[] = []
+  if (days && days !== 'all') {
+    joinConditions.push("ae.timestamp >= datetime('now', '-' || ? || ' days')")
+    joinParams.push(days)
+  }
+  if (brandId) {
+    joinConditions.push('ae.brand_id = ?')
+    joinParams.push(brandId)
+  }
+
+  const whereConditions: string[] = ['u.active = 1']
+  const whereParams: any[] = []
+  if (region) {
+    whereConditions.push('u.region LIKE ?')
+    whereParams.push('%' + region + '%')
+  }
+  if (country) {
+    whereConditions.push('u.country = ?')
+    whereParams.push(country)
+  }
+
+  const joinExtra = joinConditions.length ? 'AND ' + joinConditions.join(' AND ') : ''
+  const where = 'WHERE ' + whereConditions.join(' AND ')
+  return { joinExtra, joinParams, where, whereParams }
+}
+
+const ROLE_LABELS_ES: Record<string, string> = {
+  admin: 'Administrador',
+  marketing: 'Marketing',
+  distributor: 'Distribuidor',
+  agency: 'Agencia'
+}
+
+const queryByUser = async (c: any) => {
+  const { joinExtra, joinParams, where, whereParams } = buildUserReportFilters(c)
+  const { results } = await c.env.DB.prepare(`
+    SELECT
+      u.id as user_id,
+      u.name as user_name,
+      u.email as user_email,
+      u.role as user_role,
+      u.region as region,
+      u.country as country,
+      COALESCE(SUM(CASE WHEN ae.event_type = 'view' THEN 1 ELSE 0 END), 0) as views,
+      COALESCE(SUM(CASE WHEN ae.event_type = 'download' THEN 1 ELSE 0 END), 0) as downloads,
+      MAX(ae.timestamp) as last_activity
+    FROM users u
+    LEFT JOIN analytics_events ae ON ae.user_id = u.id ${joinExtra}
+    ${where}
+    GROUP BY u.id, u.name, u.email, u.role, u.region, u.country
+    ORDER BY downloads DESC, views DESC, u.name ASC
+  `).bind(...joinParams, ...whereParams).all()
+  return results
+}
+
 // Get available filter options (regions, countries, brands)
 app.get('/api/reports/filters', async (c) => {
   try {
@@ -3026,13 +3094,16 @@ app.get('/api/reports/data', async (c) => {
       ORDER BY downloads DESC, views DESC
     `).bind(...params).all()
 
+    const byUser = await queryByUser(c)
+
     return c.json({
       kpis,
       byBrand: byBrand.results,
       byRegion: byRegion,
       byCountry: byCountry.results,
       timeline: timeline.results,
-      byAsset: byAsset.results
+      byAsset: byAsset.results,
+      byUser
     })
   } catch (error: any) {
     console.error('Reports data error:', error)
@@ -3095,6 +3166,8 @@ app.get('/api/reports/export', async (c) => {
       ORDER BY downloads DESC, views DESC
     `).bind(...params).all()
 
+    const byUser = await queryByUser(c)
+
     const wb = XLSX.utils.book_new()
 
     // Sheet 1: Resumen (KPIs + applied filters)
@@ -3150,6 +3223,22 @@ app.get('/api/reports/export', async (c) => {
     const wsCountry = XLSX.utils.json_to_sheet(countryRows.length ? countryRows : [{ 'País': 'Sin datos', 'Visualizaciones': 0, 'Descargas': 0 }])
     wsCountry['!cols'] = [{ wch: 25 }, { wch: 16 }, { wch: 12 }]
     XLSX.utils.book_append_sheet(wb, wsCountry, 'Por País')
+
+    // Sheet 6: Actividad de Usuarios (incluye distribuidores, admins, marketing y agencia;
+    // se listan todos los usuarios activos aunque no tengan accesos en el periodo)
+    const userRows = byUser.map((u: any) => ({
+      'Nombre': u.user_name,
+      'Email': u.user_email,
+      'Rol': ROLE_LABELS_ES[u.user_role] || u.user_role,
+      'Región': parseRegionTokens(u.region).join(', '),
+      'País': u.country || 'Sin país',
+      'Visualizaciones': u.views,
+      'Descargas': u.downloads,
+      'Último acceso': u.last_activity || 'Nunca'
+    }))
+    const wsUsers = XLSX.utils.json_to_sheet(userRows.length ? userRows : [{ 'Nombre': 'Sin datos', 'Email': '', 'Rol': '', 'Región': '', 'País': '', 'Visualizaciones': 0, 'Descargas': 0, 'Último acceso': '' }])
+    wsUsers['!cols'] = [{ wch: 28 }, { wch: 32 }, { wch: 16 }, { wch: 20 }, { wch: 20 }, { wch: 16 }, { wch: 12 }, { wch: 20 }]
+    XLSX.utils.book_append_sheet(wb, wsUsers, 'Actividad de Usuarios')
 
     const excelBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
     const timestamp = new Date().toISOString().split('T')[0]
