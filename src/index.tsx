@@ -3755,7 +3755,7 @@ app.get('/admin', (c) => {
       </head>
       <body>
         <div id="app"></div>
-        <script src="/static/app.js?v=24"></script>
+        <script src="/static/app.js?v=25"></script>
       </body>
     </html>
   )
@@ -3845,7 +3845,7 @@ app.get('/admin', (c) => {
         <div id="app"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-        <script src="/static/app.js?v=24"></script>
+        <script src="/static/app.js?v=25"></script>
       </body>
     </html>
   )

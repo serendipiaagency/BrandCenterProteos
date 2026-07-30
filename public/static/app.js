@@ -938,7 +938,18 @@ const drawReportsCharts = () => {
         labels: data.byCountry.map(r => r.country),
         datasets: [{ label: 'Descargas', data: data.byCountry.map(r => r.downloads), backgroundColor: '#43e97b' }]
       },
-      options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { beginAtZero: true },
+          // Never skip a country label — with a fixed short height Chart.js
+          // will hide "crowded" ticks, which reads as missing countries.
+          y: { ticks: { autoSkip: false } }
+        }
+      }
     })
   }
 }
@@ -3937,15 +3948,17 @@ const renderReportsPage = () => {
       </div>
 
       <!-- Charts row 2 -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem;">
-        <div style="background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #1a202c;">Por Marca</h3>
-          <div style="height: 300px;"><canvas id="chart-brand"></canvas></div>
-        </div>
-        <div style="background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #1a202c;">Descargas por País</h3>
-          <div style="height: 300px;"><canvas id="chart-country"></canvas></div>
-        </div>
+      <div style="background: white; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #1a202c;">Por Marca</h3>
+        <div style="height: 320px;"><canvas id="chart-brand"></canvas></div>
+      </div>
+
+      <!-- Charts row 3: full-width so every country gets enough vertical room
+           to show a bar — a fixed short height compresses long lists until
+           the middle entries are visually invisible. -->
+      <div style="background: white; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #1a202c;">Descargas por País</h3>
+        <div style="height: ${Math.max(320, (data?.byCountry?.length || 0) * 32 + 60)}px;"><canvas id="chart-country"></canvas></div>
       </div>
 
       <!-- Per-asset table -->
