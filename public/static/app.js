@@ -50,6 +50,14 @@ const state = {
       region: '',
       country: '',
       brand_id: ''
+    },
+    // Per-asset download detail modal (who downloaded it, email, IP, when)
+    assetDownloads: {
+      open: false,
+      loading: false,
+      assetId: null,
+      assetTitle: '',
+      events: []
     }
   }
 }
@@ -485,6 +493,11 @@ const api = {
   async getReportData(query) {
     const response = await axios.get(`/api/reports/data?${query}`)
     return response.data
+  },
+
+  async getAssetDownloads(assetId, days) {
+    const response = await axios.get(`/api/reports/asset/${assetId}/downloads?days=${days}`)
+    return response.data
   }
 }
 
@@ -869,6 +882,36 @@ const updateReportFilter = (key, value) => {
 
 const exportReportsExcel = () => {
   window.location.href = `/api/reports/export?${reportsQueryString()}`
+}
+
+// Per-asset download detail modal: who downloaded this asset, their email,
+// IP and when. Honors the period currently selected in the report filters.
+const viewAssetDownloads = async (assetId, assetTitle) => {
+  state.reportsData.assetDownloads = {
+    open: true,
+    loading: true,
+    assetId,
+    assetTitle,
+    events: []
+  }
+  render()
+
+  try {
+    const days = state.reportsData.selected.days
+    const data = await api.getAssetDownloads(assetId, days)
+    state.reportsData.assetDownloads.events = data.downloads || []
+  } catch (error) {
+    console.error('Error loading asset downloads:', error)
+    showNotification('Error al cargar el detalle de descargas', 'error')
+  } finally {
+    state.reportsData.assetDownloads.loading = false
+    render()
+  }
+}
+
+const closeAssetDownloadsModal = () => {
+  state.reportsData.assetDownloads.open = false
+  render()
 }
 
 // Draw all report charts (called after the reports page is in the DOM)
@@ -3834,6 +3877,62 @@ const renderUserActivityDetails = () => {
   `
 }
 
+const renderAssetDownloadsModal = () => {
+  const { open, loading, assetTitle, events } = state.reportsData.assetDownloads
+  if (!open) return ''
+
+  return `
+    <div class="modal-overlay" onclick="closeAssetDownloadsModal()">
+      <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 720px; max-height: 85vh; display: flex; flex-direction: column;">
+        <div class="modal-header">
+          <h3 class="modal-title">
+            <i class="fas fa-user-clock"></i>
+            Descargas de "${assetTitle}"
+          </h3>
+          <button onclick="closeAssetDownloadsModal()" class="modal-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="modal-body" style="overflow-y: auto;">
+          ${loading ? `
+            <div style="text-align: center; padding: 3rem;">
+              <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #667eea;"></i>
+            </div>
+          ` : events.length === 0 ? `
+            <p style="text-align: center; color: #718096; padding: 2rem;">Sin descargas registradas en este periodo</p>
+          ` : `
+            <div style="overflow-x: auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Usuario</th>
+                    <th>Email</th>
+                    <th>Rol</th>
+                    <th>IP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${events.map(e => `
+                    <tr>
+                      <td style="white-space: nowrap; font-size: 0.85rem; color: #718096;">${e.timestamp || ''}</td>
+                      <td>${e.user_name || 'Desconocido'}</td>
+                      <td>${e.user_email || ''}</td>
+                      <td><span style="padding: 0.15rem 0.5rem; background: #f1f5f9; border-radius: 10px; font-size: 0.75rem;">${e.user_role || ''}</span></td>
+                      <td style="font-family: monospace; font-size: 0.85rem;">${e.ip_address || ''}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `}
+        </div>
+      </div>
+    </div>
+  `
+}
+
 const renderReportsPage = () => {
   const rd = state.reportsData
   const { data, loading, filters, selected } = rd
@@ -3984,6 +4083,7 @@ const renderReportsPage = () => {
                   <th>Marca</th>
                   <th style="text-align: center; width: 130px;"><i class="fas fa-eye"></i> Visualizaciones</th>
                   <th style="text-align: center; width: 110px;"><i class="fas fa-download"></i> Descargas</th>
+                  <th style="text-align: center; width: 100px;">Detalle</th>
                 </tr>
               </thead>
               <tbody>
@@ -3998,6 +4098,13 @@ const renderReportsPage = () => {
                     <td><span class="brand-badge" style="background-color: #002f57;">${a.brand_name || 'N/A'}</span></td>
                     <td style="text-align: center; font-weight: 600;">${a.views || 0}</td>
                     <td style="text-align: center; font-weight: 600; color: #f5576c;">${a.downloads || 0}</td>
+                    <td style="text-align: center;">
+                      ${a.downloads > 0 ? `
+                        <button onclick="viewAssetDownloads(${a.asset_id}, '${(a.asset_title || 'Sin título').replace(/'/g, "\\'")}')" class="btn-secondary" style="padding: 0.35rem 0.7rem; font-size: 0.8rem;" title="Ver quién ha descargado este activo">
+                          <i class="fas fa-user-clock"></i>
+                        </button>
+                      ` : '—'}
+                    </td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -4682,6 +4789,7 @@ const renderModalsContainer = () => {
     ${renderBrandModal()}
     ${renderMaterialTypeModal()}
     ${renderCountriesDatalist()}
+    ${renderAssetDownloadsModal()}
   `
 }
 

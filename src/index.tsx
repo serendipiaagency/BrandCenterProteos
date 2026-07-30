@@ -3111,6 +3111,37 @@ app.get('/api/reports/data', async (c) => {
   }
 })
 
+// Get individual download events for one asset — who downloaded it, their
+// email and IP, and when. Uses the snapshot fields captured on the event
+// itself (user_name/email/role) rather than joining live users, so the
+// record stays accurate even if the user is later renamed/deactivated.
+app.get('/api/reports/asset/:assetId/downloads', async (c) => {
+  try {
+    const assetId = c.req.param('assetId')
+    const days = c.req.query('days') || 'all'
+
+    const conditions = ['asset_id = ?', "event_type = 'download'"]
+    const params: any[] = [assetId]
+    if (days && days !== 'all') {
+      conditions.push("timestamp >= datetime('now', '-' || ? || ' days')")
+      params.push(days)
+    }
+
+    const { results } = await c.env.DB.prepare(`
+      SELECT timestamp, user_id, user_name, user_email, user_role, ip_address
+      FROM analytics_events
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY timestamp DESC
+      LIMIT 1000
+    `).bind(...params).all()
+
+    return c.json({ downloads: results })
+  } catch (error: any) {
+    console.error('Asset downloads detail error:', error)
+    return c.json({ error: 'Failed to get asset downloads', details: error.message }, 500)
+  }
+})
+
 // Export report data to Excel (respects the same filters)
 app.get('/api/reports/export', async (c) => {
   try {
@@ -3167,6 +3198,21 @@ app.get('/api/reports/export', async (c) => {
     `).bind(...params).all()
 
     const byUser = await queryByUser(c)
+
+    // Individual download events — who downloaded each asset, their email
+    // and IP, and when. Respects the same filters as the rest of the report.
+    const downloadDetailWhere = where
+      ? `${where} AND ae.event_type = 'download'`
+      : "WHERE ae.event_type = 'download'"
+    const downloadDetail = await c.env.DB.prepare(`
+      SELECT ae.timestamp,
+        COALESCE(ae.asset_title, 'Sin título') as asset_title,
+        COALESCE(ae.brand_name, 'Sin marca') as brand_name,
+        ae.user_name, ae.user_email, ae.user_role, ae.ip_address
+      ${FROM} ${downloadDetailWhere}
+      ORDER BY ae.timestamp DESC
+      LIMIT 20000
+    `).bind(...params).all()
 
     const wb = XLSX.utils.book_new()
 
@@ -3239,6 +3285,21 @@ app.get('/api/reports/export', async (c) => {
     const wsUsers = XLSX.utils.json_to_sheet(userRows.length ? userRows : [{ 'Nombre': 'Sin datos', 'Email': '', 'Rol': '', 'Región': '', 'País': '', 'Visualizaciones': 0, 'Descargas': 0, 'Último acceso': '' }])
     wsUsers['!cols'] = [{ wch: 28 }, { wch: 32 }, { wch: 16 }, { wch: 20 }, { wch: 20 }, { wch: 16 }, { wch: 12 }, { wch: 20 }]
     XLSX.utils.book_append_sheet(wb, wsUsers, 'Actividad de Usuarios')
+
+    // Sheet 7: Detalle de Descargas — un registro por descarga individual,
+    // con el email y la IP de quien la realizó.
+    const downloadRows = downloadDetail.results.map((d: any) => ({
+      'Fecha': d.timestamp,
+      'Activo': d.asset_title,
+      'Marca': d.brand_name,
+      'Usuario': d.user_name || 'Desconocido',
+      'Email': d.user_email || '',
+      'Rol': ROLE_LABELS_ES[d.user_role] || d.user_role || '',
+      'IP': d.ip_address || ''
+    }))
+    const wsDownloads = XLSX.utils.json_to_sheet(downloadRows.length ? downloadRows : [{ 'Fecha': '', 'Activo': 'Sin datos', 'Marca': '', 'Usuario': '', 'Email': '', 'Rol': '', 'IP': '' }])
+    wsDownloads['!cols'] = [{ wch: 20 }, { wch: 40 }, { wch: 20 }, { wch: 24 }, { wch: 30 }, { wch: 16 }, { wch: 16 }]
+    XLSX.utils.book_append_sheet(wb, wsDownloads, 'Detalle de Descargas')
 
     const excelBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
     const timestamp = new Date().toISOString().split('T')[0]
@@ -3755,7 +3816,7 @@ app.get('/admin', (c) => {
       </head>
       <body>
         <div id="app"></div>
-        <script src="/static/app.js?v=25"></script>
+        <script src="/static/app.js?v=26"></script>
       </body>
     </html>
   )
@@ -3845,7 +3906,7 @@ app.get('/admin', (c) => {
         <div id="app"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-        <script src="/static/app.js?v=25"></script>
+        <script src="/static/app.js?v=26"></script>
       </body>
     </html>
   )
