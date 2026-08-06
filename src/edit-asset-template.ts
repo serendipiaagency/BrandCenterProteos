@@ -392,32 +392,102 @@ export function generateEditAssetHTML(asset: any, brands: any[], materialTypes: 
       barEl.className = 'bg-orange-500 h-2 rounded-full transition-all duration-300';
       statusEl.textContent = 'Subiendo archivo...';
 
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
+      // Files above this size go through R2 multipart upload (chunked),
+      // otherwise a single large POST hits the platform's request body
+      // size limit and fails with 413.
+      var MAX_SIZE_SIMPLE = 80 * 1024 * 1024; // 80 MB
+      var CHUNK_SIZE = 50 * 1024 * 1024; // 50 MB per chunk
 
-        const response = await axios.post('/api/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          onUploadProgress: (ev) => {
-            const pct = ev.total ? Math.round((ev.loaded / ev.total) * 90) + 5 : 50;
-            barEl.style.width = pct + '%';
+      try {
+        var uploadResult;
+
+        if (file.size < MAX_SIZE_SIMPLE) {
+          const formData = new FormData();
+          formData.append('file', file);
+
+          const response = await axios.post('/api/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: (ev) => {
+              const pct = ev.total ? Math.round((ev.loaded / ev.total) * 90) + 5 : 50;
+              barEl.style.width = pct + '%';
+            }
+          });
+
+          uploadResult = {
+            filename: response.data.filename,
+            fileUrl: response.data.fileUrl,
+            fileType: response.data.fileType
+          };
+        } else {
+          const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+          statusEl.textContent = 'Subiendo archivo grande (' + totalChunks + ' partes)...';
+
+          const startResponse = await axios.post('/api/upload/start-multipart', {
+            filename: file.name,
+            contentType: file.type
+          });
+          const uploadId = startResponse.data.uploadId;
+          const key = startResponse.data.key;
+
+          const uploadedParts = [];
+          try {
+            for (let partNumber = 1; partNumber <= totalChunks; partNumber++) {
+              const start = (partNumber - 1) * CHUNK_SIZE;
+              const end = Math.min(start + CHUNK_SIZE, file.size);
+              const chunk = file.slice(start, end);
+
+              const chunkFormData = new FormData();
+              chunkFormData.append('chunk', chunk);
+              chunkFormData.append('key', key);
+              chunkFormData.append('uploadId', uploadId);
+              chunkFormData.append('partNumber', partNumber.toString());
+
+              const chunkResponse = await axios.post('/api/upload/chunk', chunkFormData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+              });
+
+              uploadedParts.push({ partNumber: partNumber, etag: chunkResponse.data.etag });
+
+              const pct = Math.round((partNumber / totalChunks) * 90) + 5;
+              barEl.style.width = pct + '%';
+              statusEl.textContent = 'Subiendo parte ' + partNumber + ' de ' + totalChunks + '...';
+            }
+          } catch (chunkError) {
+            try {
+              await axios.post('/api/upload/abort-multipart', { key: key, uploadId: uploadId });
+            } catch (abortError) {
+              console.error('Failed to abort multipart upload:', abortError);
+            }
+            throw chunkError;
           }
-        });
+
+          const completeResponse = await axios.post('/api/upload/complete-multipart', {
+            key: key,
+            uploadId: uploadId,
+            parts: uploadedParts
+          });
+
+          uploadResult = {
+            filename: completeResponse.data.filename,
+            fileUrl: completeResponse.data.fileUrl,
+            fileType: file.type
+          };
+        }
 
         barEl.style.width = '100%';
         statusEl.textContent = '¡Archivo listo! Se guardará al hacer clic en Save Changes.';
 
         pendingFileReplacement = {
-          filename: response.data.filename,
-          file_url: response.data.fileUrl,
+          filename: uploadResult.filename,
+          file_url: uploadResult.fileUrl,
           original_filename: file.name,
           file_size: file.size,
-          file_type: response.data.fileType,
+          file_type: uploadResult.fileType,
           old_filename: '${asset.filename}'
         };
 
         document.getElementById('new-file-name').textContent = file.name;
-        document.getElementById('new-file-meta').textContent = formatBytes(file.size) + (response.data.fileType ? ' · ' + response.data.fileType.toUpperCase() : '');
+        document.getElementById('new-file-meta').textContent = formatBytes(file.size) + (uploadResult.fileType ? ' · ' + uploadResult.fileType.toUpperCase() : '');
         newInfoEl.classList.remove('hidden');
 
         setTimeout(() => progressEl.classList.add('hidden'), 2000);
