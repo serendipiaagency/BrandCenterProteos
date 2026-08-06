@@ -15,6 +15,10 @@ const state = {
   selectedSubBrand: null,
   selectedMaterialType: null,
   loading: false,
+  // Assets Library search bar
+  assetSearch: '',           // name/ID search term
+  assetFileTypeFilter: '',   // selected file type (e.g. 'pdf', 'jpg')
+  availableFileTypes: [],    // [{ file_type, count }]
   // Bulk edit state
   selectedAssets: [],  // Array of selected asset IDs
   bulkEditMode: false,  // Toggle bulk edit mode
@@ -215,8 +219,9 @@ const api = {
     if (filters.brand_id) url += `brand_id=${filters.brand_id}&`
     if (filters.sub_brand_id) url += `sub_brand_id=${filters.sub_brand_id}&`
     if (filters.material_type_id) url += `material_type_id=${filters.material_type_id}&`
-    if (filters.search) url += `search=${filters.search}&`
-    
+    if (filters.search) url += `search=${encodeURIComponent(filters.search)}&`
+    if (filters.file_type) url += `file_type=${encodeURIComponent(filters.file_type)}&`
+
     // Add userId for brand permissions filtering
     if (state.currentUser) {
       url += `userId=${state.currentUser.id}&`
@@ -233,7 +238,12 @@ const api = {
     })
     return response.data.assets
   },
-  
+
+  async getFileTypes() {
+    const response = await axios.get('/api/assets/file-types')
+    return response.data.fileTypes
+  },
+
   async createAsset(data) {
     const response = await axios.post('/api/assets', data)
     return response.data
@@ -664,12 +674,14 @@ const loadInitialData = async () => {
   try {
     showLoading()
 
-    const [brands, materialTypes, labelsData] = await Promise.all([
+    const [brands, materialTypes, labelsData, fileTypes] = await Promise.all([
       api.getBrands(),
       api.getMaterialTypes('en'), // Always use English for Material Types
-      api.getLabels().catch(() => [])
+      api.getLabels().catch(() => []),
+      api.getFileTypes().catch(() => [])
     ])
     state.labels = labelsData || []
+    state.availableFileTypes = fileTypes || []
     
     // Filter brands based on user's brands_access
     // Admin and marketing see all brands, others see only assigned brands
@@ -743,13 +755,59 @@ const loadAssets = async () => {
     if (state.selectedMaterialType) {
       filters.material_type_id = state.selectedMaterialType.id
     }
-    
+
+    if (state.assetSearch) {
+      filters.search = state.assetSearch
+    }
+
+    if (state.assetFileTypeFilter) {
+      filters.file_type = state.assetFileTypeFilter
+    }
+
     state.assets = await api.getAssets(filters)
     render()
   } catch (error) {
     console.error('Error loading assets:', error)
     showNotification('Error loading assets', 'error')
   }
+}
+
+// ============================================
+// Assets Library — Search & Filters
+// ============================================
+
+let assetSearchDebounceTimer = null
+
+// Debounced so we don't fire a request on every keystroke
+const handleAssetSearchInput = (value) => {
+  state.assetSearch = value
+  clearTimeout(assetSearchDebounceTimer)
+  assetSearchDebounceTimer = setTimeout(() => {
+    loadAssets()
+  }, 350)
+}
+
+const handleAssetFileTypeFilter = (value) => {
+  state.assetFileTypeFilter = value
+  loadAssets()
+}
+
+const handleAssetCategoryFilter = async (materialTypeId) => {
+  state.selectedMaterialType = materialTypeId
+    ? state.materialTypes.find(mt => mt.id === parseInt(materialTypeId)) || null
+    : null
+  await loadAssets()
+}
+
+const clearAssetFilters = async () => {
+  state.assetSearch = ''
+  state.assetFileTypeFilter = ''
+  state.selectedBrand = null
+  state.selectedSubBrand = null
+  state.selectedMaterialType = null
+  const searchInput = $('#asset-search-input')
+  if (searchInput) searchInput.value = ''
+  await loadAssets()
 }
 
 const loadUsers = async () => {
@@ -2278,14 +2336,59 @@ const renderAssetsPage = () => {
         </div>
       ` : ''}
     </div>
-    
+
+    <!-- Search & Filters -->
+    <div style="background: white; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
+      <div style="position: relative; flex: 1 1 260px; min-width: 220px;">
+        <i class="fas fa-search" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #a0aec0; font-size: 0.9rem;"></i>
+        <input
+          id="asset-search-input"
+          type="text"
+          value="${state.assetSearch}"
+          oninput="handleAssetSearchInput(this.value)"
+          placeholder="Buscar por nombre o ID..."
+          class="form-input"
+          style="padding-left: 2.25rem; width: 100%;"
+        />
+      </div>
+
+      <select onchange="handleAssetCategoryFilter(this.value)" class="form-input" style="width: auto; min-width: 180px;">
+        <option value="">Todas las categorías</option>
+        ${state.materialTypes.map(type => `
+          <option value="${type.id}" ${state.selectedMaterialType?.id === type.id ? 'selected' : ''}>${type.display_name}</option>
+        `).join('')}
+      </select>
+
+      <select onchange="handleAssetFileTypeFilter(this.value)" class="form-input" style="width: auto; min-width: 160px;">
+        <option value="">Todos los tipos</option>
+        ${state.availableFileTypes.map(ft => `
+          <option value="${ft.file_type}" ${state.assetFileTypeFilter === ft.file_type ? 'selected' : ''}>${ft.file_type.toUpperCase()} (${ft.count})</option>
+        `).join('')}
+      </select>
+
+      ${(state.assetSearch || state.assetFileTypeFilter || state.selectedBrand || state.selectedMaterialType) ? `
+        <button onclick="clearAssetFilters()" class="btn-secondary" style="white-space: nowrap;">
+          <i class="fas fa-times-circle"></i> Limpiar filtros
+        </button>
+      ` : ''}
+
+      <span style="margin-left: auto; color: #718096; font-size: 0.875rem; white-space: nowrap;">
+        ${state.assets.length} resultado${state.assets.length === 1 ? '' : 's'}
+      </span>
+    </div>
+
     ${state.assets.length === 0 ? `
       <div class="empty-state">
         <div class="empty-icon">
           <i class="fas fa-folder-open"></i>
         </div>
-        <h3 class="empty-title">No assets found</h3>
-        <p class="empty-description">Upload your first asset to get started</p>
+        ${(state.assetSearch || state.assetFileTypeFilter || state.selectedBrand || state.selectedMaterialType) ? `
+          <h3 class="empty-title">No results for these filters</h3>
+          <p class="empty-description">Try a different search term or clear the filters</p>
+        ` : `
+          <h3 class="empty-title">No assets found</h3>
+          <p class="empty-description">Upload your first asset to get started</p>
+        `}
       </div>
     ` : `
       <div class="asset-grid">

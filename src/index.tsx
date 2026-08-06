@@ -1494,6 +1494,7 @@ app.get('/api/assets', async (c) => {
   const subBrandId = c.req.query('sub_brand_id')
   const materialTypeId = c.req.query('material_type_id')
   const search = c.req.query('search')
+  const fileType = c.req.query('file_type')
   const userId = c.req.query('userId')  // For brand permissions
   
   let query = `
@@ -1528,12 +1529,25 @@ app.get('/api/assets', async (c) => {
   }
   
   if (search) {
-    query += ` AND (a.title LIKE ? OR a.original_filename LIKE ? OR a.description LIKE ?)`
-    const searchTerm = `%${search}%`
-    params.push(searchTerm, searchTerm, searchTerm)
+    // Match by name/description, or by exact asset ID when the search term is numeric
+    const trimmedSearch = search.trim()
+    if (/^\d+$/.test(trimmedSearch)) {
+      query += ` AND (a.id = ? OR a.title LIKE ? OR a.original_filename LIKE ? OR a.description LIKE ?)`
+      const searchTerm = `%${trimmedSearch}%`
+      params.push(trimmedSearch, searchTerm, searchTerm, searchTerm)
+    } else {
+      query += ` AND (a.title LIKE ? OR a.original_filename LIKE ? OR a.description LIKE ?)`
+      const searchTerm = `%${trimmedSearch}%`
+      params.push(searchTerm, searchTerm, searchTerm)
+    }
   }
-  
-  query += ` ORDER BY a.created_at DESC LIMIT 100`
+
+  if (fileType) {
+    query += ` AND a.file_type = ?`
+    params.push(fileType)
+  }
+
+  query += ` ORDER BY a.created_at DESC LIMIT 200`
   
   const stmt = c.env.DB.prepare(query)
   const { results } = await (params.length > 0 ? stmt.bind(...params) : stmt).all()
@@ -1672,6 +1686,26 @@ app.get('/api/assets', async (c) => {
       'Expires': '0'
     }
   })
+})
+
+// Distinct file types across all assets — powers the "File Type" filter
+// dropdown in the admin Assets Library search bar.
+// NOTE: must be registered before /api/assets/:id so "file-types" isn't
+// swallowed by the :id param route.
+app.get('/api/assets/file-types', async (c) => {
+  try {
+    const { results } = await c.env.DB.prepare(`
+      SELECT file_type, COUNT(*) as count
+      FROM assets
+      WHERE file_type IS NOT NULL AND TRIM(file_type) != ''
+      GROUP BY file_type
+      ORDER BY file_type
+    `).all()
+    return c.json({ fileTypes: results })
+  } catch (error: any) {
+    console.error('File types error:', error)
+    return c.json({ error: 'Failed to get file types', details: error.message }, 500)
+  }
 })
 
 // Get single asset by ID (public - with brand/region check)
@@ -3816,7 +3850,7 @@ app.get('/admin', (c) => {
       </head>
       <body>
         <div id="app"></div>
-        <script src="/static/app.js?v=26"></script>
+        <script src="/static/app.js?v=27"></script>
       </body>
     </html>
   )
@@ -3906,7 +3940,7 @@ app.get('/admin', (c) => {
         <div id="app"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-        <script src="/static/app.js?v=26"></script>
+        <script src="/static/app.js?v=27"></script>
       </body>
     </html>
   )
