@@ -2950,8 +2950,12 @@ const buildReportFilters = (c: any) => {
     params.push(country)
   }
   if (brandId) {
-    conditions.push('ae.brand_id = ?')
-    params.push(brandId)
+    // Match the event's own recorded brand (its asset's primary brand at
+    // tracking time), OR any line the asset is currently tagged with via
+    // asset_brands — so filtering Informes by a secondary line doesn't miss
+    // activity on multi-line assets (same fix as the catalog/panel listing).
+    conditions.push('(ae.brand_id = ? OR EXISTS (SELECT 1 FROM asset_brands ab WHERE ab.asset_id = ae.asset_id AND ab.brand_id = ?))')
+    params.push(brandId, brandId)
   }
 
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : ''
@@ -2977,8 +2981,8 @@ const buildUserReportFilters = (c: any) => {
     joinParams.push(days)
   }
   if (brandId) {
-    joinConditions.push('ae.brand_id = ?')
-    joinParams.push(brandId)
+    joinConditions.push('(ae.brand_id = ? OR EXISTS (SELECT 1 FROM asset_brands ab WHERE ab.asset_id = ae.asset_id AND ab.brand_id = ?))')
+    joinParams.push(brandId, brandId)
   }
 
   const whereConditions: string[] = ['u.active = 1']
