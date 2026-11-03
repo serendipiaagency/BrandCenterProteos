@@ -1514,8 +1514,12 @@ app.get('/api/assets', async (c) => {
   const params: any[] = []
   
   if (brandId) {
-    query += ` AND a.brand_id = ?`
-    params.push(brandId)
+    // Match the asset's own primary brand_id, OR any secondary line it's
+    // tagged with via asset_brands. Without the EXISTS clause, a multi-line
+    // asset whose primary brand differs from the filtered line never shows
+    // up when filtering the admin panel by that secondary line.
+    query += ` AND (a.brand_id = ? OR EXISTS (SELECT 1 FROM asset_brands ab WHERE ab.asset_id = a.id AND ab.brand_id = ?))`
+    params.push(brandId, brandId)
   }
   
   if (subBrandId) {
@@ -3585,8 +3589,11 @@ app.get('/api/public/assets', async (c) => {
   }
   
   if (brand_id) {
-    query += ` AND a.brand_id = ?`
-    params.push(brand_id)
+    // Same fix as the admin /api/assets endpoint: match the primary brand_id
+    // OR any secondary line via asset_brands, so a multi-line asset shows up
+    // when filtered by a line that isn't its primary one.
+    query += ` AND (a.brand_id = ? OR EXISTS (SELECT 1 FROM asset_brands ab WHERE ab.asset_id = a.id AND ab.brand_id = ?))`
+    params.push(brand_id, brand_id)
   }
   
   if (material_type_id) {
