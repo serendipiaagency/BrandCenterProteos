@@ -9,10 +9,15 @@
 
 const checkAuth = async () => {
   const token = localStorage.getItem('catalog_token') || sessionStorage.getItem('catalog_token')
+  // Preserve the page the viewer was trying to reach (e.g. a shared
+  // /category/:name or /brand/:name link) so it isn't lost on the login
+  // round-trip.
+  const redirectTarget = encodeURIComponent(window.location.pathname + window.location.search)
+  const loginUrl = `/login?redirect=${redirectTarget}`
 
   if (!token) {
     console.log('🔒 No token found, redirecting to login')
-    window.location.href = '/login'
+    window.location.href = loginUrl
     return false
   }
 
@@ -25,7 +30,7 @@ const checkAuth = async () => {
       sessionStorage.removeItem('catalog_token')
       localStorage.removeItem('catalog_user')
       sessionStorage.removeItem('catalog_user')
-      window.location.href = '/login'
+      window.location.href = loginUrl
       return false
     }
 
@@ -41,7 +46,7 @@ const checkAuth = async () => {
     return true
   } catch (error) {
     console.error('❌ Auth verification failed:', error)
-    window.location.href = '/login'
+    window.location.href = loginUrl
     return false
   }
 }
@@ -299,8 +304,20 @@ const loadInitialData = async () => {
       state.selectedBrands = brands.map(brand => brand.id)
     }
     
-    // 🎯 SELECT ALL MATERIAL TYPES BY DEFAULT
-    state.selectedMaterialTypes = materialTypes.map(type => type.id)
+    // 🎯 SELECT ALL MATERIAL TYPES BY DEFAULT, unless a category filter from
+    // URL is set (window.CATEGORY_FILTER is set in /category/:categoryName)
+    if (window.CATEGORY_FILTER) {
+      const filteredType = materialTypes.find(t => t.name === window.CATEGORY_FILTER)
+      if (filteredType) {
+        // Select only the filtered category
+        state.selectedMaterialTypes = [filteredType.id]
+      } else {
+        // Category not found, select all
+        state.selectedMaterialTypes = materialTypes.map(type => type.id)
+      }
+    } else {
+      state.selectedMaterialTypes = materialTypes.map(type => type.id)
+    }
     
     // Load sub-brands for all brands
     for (const brand of brands) {
@@ -618,12 +635,12 @@ const renderSidebar = () => {
             ${state.materialTypes.map(type => {
               const displayName = type.display_name;
               const isSelected = state.selectedMaterialTypes.includes(type.id);
-              
+
               return `
-                <li class="filter-item ${isSelected ? 'selected' : ''}" onclick="toggleMaterialTypeFilter(${type.id})">
-                  <label class="filter-checkbox">
-                    <input 
-                      type="checkbox" 
+                <li class="filter-item ${isSelected ? 'selected' : ''}" style="display: flex; align-items: center; justify-content: space-between;" onclick="toggleMaterialTypeFilter(${type.id})">
+                  <label class="filter-checkbox" style="flex: 1; min-width: 0;">
+                    <input
+                      type="checkbox"
                       value="${type.id}"
                       ${isSelected ? 'checked' : ''}
                       onchange="event.stopPropagation(); toggleMaterialTypeFilter(${type.id})"
@@ -631,6 +648,13 @@ const renderSidebar = () => {
                     <span class="checkbox-custom"></span>
                     <span class="checkbox-label">${displayName}</span>
                   </label>
+                  <button
+                    onclick="event.stopPropagation(); copyCategoryLink('${type.name}', '${displayName.replace(/'/g, "\\'")}')"
+                    title="${state.language === 'ESP' ? 'Copiar enlace para compartir esta categoría' : 'Copy link to share this category'}"
+                    style="background: none; border: none; color: #a0aec0; cursor: pointer; padding: 0.5rem; flex-shrink: 0; font-size: 0.9rem;"
+                  >
+                    <i class="fas fa-link"></i>
+                  </button>
                 </li>
               `
             }).join('')}
@@ -1069,7 +1093,7 @@ const render = () => {
 
 const copyAssetLink = (assetId) => {
   const assetUrl = `${window.location.origin}/asset/${assetId}`
-  
+
   // Try to copy to clipboard
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(assetUrl)
@@ -1081,6 +1105,28 @@ const copyAssetLink = (assetId) => {
       })
   } else {
     fallbackCopy(assetUrl)
+  }
+}
+
+// Shareable link for a whole category (e.g. "all Social Media assets"),
+// landing on /category/:name which pre-selects just that category — see
+// window.CATEGORY_FILTER handling in loadInitialData().
+const copyCategoryLink = (categoryName, displayName) => {
+  const categoryUrl = `${window.location.origin}/category/${categoryName}`
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(categoryUrl)
+      .then(() => {
+        const msg = state.language === 'ESP'
+          ? `✅ Enlace de "${displayName}" copiado al portapapeles`
+          : `✅ Link for "${displayName}" copied to clipboard`
+        showNotification(msg, 'success')
+      })
+      .catch(() => {
+        fallbackCopy(categoryUrl)
+      })
+  } else {
+    fallbackCopy(categoryUrl)
   }
 }
 

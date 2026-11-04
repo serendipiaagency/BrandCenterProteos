@@ -4127,7 +4127,7 @@ app.get('/login', (c) => {
           </div>
         </div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/catalog-login.js"></script>
+        <script src="/static/catalog-login.js?v=2"></script>
       </body>
     </html>
   )
@@ -4524,7 +4524,7 @@ app.get('/catalog', (c) => {
       <body>
         <div id="catalog"></div>
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-        <script src="/static/catalog.js?v=16"></script>
+        <script src="/static/catalog.js?v=17"></script>
       </body>
     </html>
   )
@@ -4552,7 +4552,7 @@ app.get('/brand/:brandName', (c) => {
         <script dangerouslySetInnerHTML={{__html: `
           window.BRAND_FILTER = '${brandName}';
         `}} />
-        <script src="/static/catalog.js?v=16"></script>
+        <script src="/static/catalog.js?v=17"></script>
       </body>
     </html>
   )
@@ -4561,6 +4561,36 @@ app.get('/brand/:brandName', (c) => {
 // Root redirects to login
 app.get('/', (c) => {
   return c.redirect('/login')
+})
+
+// Category page - Show all assets from a specific category (material type),
+// across every brand the viewer has access to. Mirrors /brand/:brandName —
+// used to give distributors a direct link to e.g. "all Social Media assets".
+app.get('/category/:categoryName', (c) => {
+  const categoryName = c.req.param('categoryName')
+
+  return c.html(
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{categoryName} - Proteos Biotech BRAND CENTER</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet" />
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
+        <link href="/static/catalog.css?v=9" rel="stylesheet" />
+      </head>
+      <body>
+        <div id="catalog"></div>
+        <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+        <script dangerouslySetInnerHTML={{__html: `
+          window.CATEGORY_FILTER = '${categoryName}';
+        `}} />
+        <script src="/static/catalog.js?v=17"></script>
+      </body>
+    </html>
+  )
 })
 
 export default app

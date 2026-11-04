@@ -1,12 +1,29 @@
 // API Configuration
 const API_BASE = ''
 
+// Where to send the viewer after a successful (or already-valid) login.
+// Reads ?redirect=<path>, set by catalog.js when it bounces an unauthenticated
+// visit to login (e.g. a shared /category/:name or /brand/:name link).
+// Only accepts a same-site path (starts with a single '/') to avoid being
+// turned into an open redirect — anything else falls back to /catalog.
+const getRedirectTarget = () => {
+  const params = new URLSearchParams(window.location.search)
+  const target = params.get('redirect')
+  if (target && target.startsWith('/') && !target.startsWith('//')) {
+    try {
+      return decodeURIComponent(target)
+    } catch {
+      return '/catalog'
+    }
+  }
+  return '/catalog'
+}
+
 // Check if already logged in
 const checkAuth = () => {
   const token = localStorage.getItem('catalog_token')
   if (token) {
-    // Redirect to catalog
-    window.location.href = '/catalog'
+    window.location.href = getRedirectTarget()
   }
 }
 
@@ -43,8 +60,8 @@ const handleLogin = async (e) => {
         sessionStorage.setItem('catalog_user', JSON.stringify(response.data.user))
       }
       
-      // Redirect to catalog
-      window.location.href = '/catalog'
+      // Redirect to catalog (or wherever the viewer originally tried to reach)
+      window.location.href = getRedirectTarget()
     } else {
       throw new Error(response.data.message || 'Invalid credentials')
     }
